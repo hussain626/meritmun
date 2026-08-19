@@ -49,10 +49,24 @@ it floats over the hero, which is what keeps the wordmark and nav legible in lig
 
 ## Type
 
-`Fraunces` (display, 700, opsz axis) over `Inter` (400–700). A serif display against a sans
-body is the institutional register the brand needs — a decision, not a default.
-Fluid `clamp()` scale; display maxes at **5.25rem** (under the 6rem cap). Tracking floor
-**-0.035em** (never tighter than -0.04em). Prose capped at `68ch`, leads at `54ch`.
+**Eczar** (display, 600–800) over **Archivo** (text and UI, 400–700).
+
+The brand's physical object is a committee placard and an engraved rostrum nameplate:
+*engraved, deliberate, meant to be spoken aloud.* Eczar was drawn for multilingual typesetting
+across the Indian subcontinent, which gives a Karachi conference a real typographic lineage
+rather than a costume one, and its stroke contrast has genuine vigour at headline sizes.
+Archivo — a sturdy grotesque built for signage and forms — carries the text, because a
+four-step registration flow is where a display face would fall apart.
+
+> This replaced a **Fraunces / Inter** pair chosen by reflex during the build. Both are
+> training-data defaults, and display-serif-over-neutral-sans is the saturated
+> editorial-magazine lane — the exact reflex a diplomatic brand should be avoiding. If either
+> is ever reintroduced, that is a regression, not a preference.
+
+Fluid `clamp()` scale; display maxes at **5.25rem** (under the 6rem cap). Tracking was retuned
+for Eczar's narrower sidebearings — display now sits at **-0.018em** (the previous -0.035em
+cramped it) and steps loosen to -0.006em by h3. Floor remains -0.04em. Prose capped at `68ch`,
+leads at `54ch`.
 
 ## Absolute bans
 

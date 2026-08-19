@@ -72,7 +72,7 @@ export function HelpWidget({ faqs }: HelpWidgetProps) {
                 triggerRef.current?.focus();
               }}
               aria-label="Close help"
-              className="-mt-1 -mr-1 grid size-9 shrink-0 place-items-center rounded-full text-fg-muted transition-colors duration-[var(--dur-fast)] ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
+              className="-mt-1 -mr-1 grid size-11 shrink-0 place-items-center rounded-full text-fg-muted transition-colors duration-[var(--dur-fast)] ease-out hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
             >
               <Close className="size-4" />
             </button>

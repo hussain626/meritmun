@@ -4,8 +4,7 @@ Updated as work completes. Any future session should be able to resume from this
 
 **Legend:** ⬜ not started · 🟡 in progress · ✅ done · ⛔ blocked
 
-**Current status:** Phases 0-8 complete. The full site is built, builds clean, and runs.
-**Next:** Phase 9 — the `/impeccable` elevation pass.
+**Current status:** All nine phases complete. The site is built, polished, and passing every gate.
 
 ---
 
@@ -120,14 +119,14 @@ Updated as work completes. Any future session should be able to resume from this
 | `PRODUCT.md` + `DESIGN.md` derived | ✅ |
 | Gates | ✅ |
 
-## Phase 9 — `/impeccable` elevation 🟡
+## Phase 9 — `/impeccable` elevation ✅
 
 | Item | Status |
 |---|---|
-| Elevation directive run | ⬜ |
-| Findings fixed | ⬜ |
-| Follow-up commands run | ⬜ |
-| Final verification, both themes | ⬜ |
+| Elevation directive run | ✅ |
+| Findings fixed | ✅ |
+| Follow-up commands run | n/a — no weakness warranted one |
+| Final verification, both themes | ✅ |
 
 ---
 
@@ -154,3 +153,15 @@ Updated as work completes. Any future session should be able to resume from this
    Caught by a subagent, not by tsc or lint — neither reads CSS comments.
 7. **The committee slate is 12, not 13.** UNHCR was cut because it overlapped UNEP and UNHRC
    thematically, and because the marketing copy says twelve.
+8. **The typeface pair was replaced during polish.** Fraunces/Inter were reflex picks made
+   during Phase 0 — both are training-data defaults, and serif-display-over-neutral-sans is the
+   saturated editorial lane. Now **Eczar** (display) over **Archivo** (text/UI), chosen against
+   the brand's physical object. Display tracking was retuned from -0.035em to -0.018em for
+   Eczar's narrower sidebearings. `ui-tokens.md` and `DESIGN.md` both record this.
+9. **Four icon controls were under the 44px target floor** my own `ui-rules.md` mandates
+   (theme toggle, menu trigger, mobile sheet close, help-widget close — all 36-40px). Raised
+   to 44px. Caught by an automated traversal, not by eye.
+10. **Contrast auditing needs alpha compositing.** A naive walk-up-for-a-background audit
+   reported ~30 false failures on the hero and forest bands: it ignored `/75`-style alpha and
+   missed absolutely-positioned backdrops. Re-measured with proper compositing, every pairing
+   passes in both themes (lowest 4.73:1). Do not trust an audit that does not composite.

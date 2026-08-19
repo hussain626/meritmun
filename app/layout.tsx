@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Archivo, Eczar } from "next/font/google";
 import { HelpWidget } from "@/components/layout/HelpWidget";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
@@ -9,16 +9,32 @@ import { quickHelpFaqs } from "@/content/faq";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-// Variable font: `axes` requires the weight axis stay variable, so no `weight`.
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+/**
+ * Type pairing — chosen against the brand's physical object, not by reflex.
+ *
+ * The object is a committee placard and an engraved rostrum nameplate:
+ * engraved, deliberate, meant to be spoken aloud.
+ *
+ * Eczar carries the display. It was drawn for multilingual typesetting across
+ * the Indian subcontinent, which gives a Karachi conference a real typographic
+ * lineage rather than a costume one, and its high stroke contrast has genuine
+ * vigour at headline sizes. Archivo takes the text and the UI: a sturdy
+ * grotesque built for signage and forms, so it holds up in a four-step
+ * registration flow where Eczar would not.
+ *
+ * This replaced a Fraunces/Inter pair. Both are training-data defaults, and the
+ * serif-display-over-neutral-sans move is the saturated editorial lane — the
+ * exact reflex a diplomatic brand should be avoiding.
+ */
+const eczar = Eczar({
+  variable: "--font-eczar",
   subsets: ["latin"],
-  axes: ["opsz"],
+  weight: ["600", "700", "800"],
   display: "swap",
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
@@ -58,8 +74,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0b241c" },
-    { media: "(prefers-color-scheme: light)", color: "#fbfefc" },
+    // The only sanctioned hex literals in the codebase: browser-chrome colour
+    // cannot read a CSS variable. Kept in sync with --bg in each theme.
+    { media: "(prefers-color-scheme: dark)", color: "#12251d" },
+    { media: "(prefers-color-scheme: light)", color: "#fafdfb" },
   ],
 };
 
@@ -68,7 +86,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fraunces.variable} ${inter.variable} h-full`}
+      className={`${eczar.variable} ${archivo.variable} h-full`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

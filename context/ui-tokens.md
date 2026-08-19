@@ -156,14 +156,17 @@ tokens are defined.
 
 | Token | Value |
 |---|---|
-| `--font-display` | `"Fraunces", Georgia, serif` — hero + page titles only |
-| `--font-sans` | `"Inter", system-ui, sans-serif` — everything else |
+| `--font-display` | `"Eczar", Georgia, serif` — hero, page titles, stat figures, wordmark |
+| `--font-sans` | `"Archivo", system-ui, sans-serif` — everything else |
 | `--font-mono` | `ui-monospace, "SF Mono", monospace` — reference codes, times |
 
+> Replaced the original Fraunces/Inter pair during the polish pass. Both are training-data
+> defaults and the serif-display-over-neutral-sans move is the saturated editorial lane.
+> Eczar carries a genuine subcontinental typographic lineage for a Karachi conference;
+> Archivo is a signage-and-forms grotesque that survives the registration flow.
+
 Loaded via `next/font/google` with `display: 'swap'`; the Geist pair in the scaffold is removed.
-Fraunces is used at one optical size (`opsz` 72+) with weight 700 only — a serif display face
-against Inter body is the institutional register the brand needs, and it is a decision, not a
-default.
+Eczar ships at 600/700/800 (the hero headline uses 800); Archivo at 400/500/600/700.
 
 ### Scale — fluid via `clamp()`
 
@@ -187,8 +190,8 @@ default.
 | `--leading-snug` | `1.35` |
 | `--leading-normal` | `1.6` |
 | `--leading-relaxed` | `1.75` (long-form prose on About) |
-| `--tracking-display` | `-0.035em` — **floor is -0.04em; do not go tighter** |
-| `--tracking-tight` | `-0.02em` |
+| `--tracking-display` | `-0.018em` — retuned for Eczar; floor is -0.04em |
+| `--tracking-tight` | `-0.008em` |
 | `--tracking-normal` | `0` |
 | `--tracking-wide` | `0.02em` |
 | `--tracking-caps` | `0.08em` — small-caps labels *where earned*, not as a reflex eyebrow |

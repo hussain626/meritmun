@@ -73,7 +73,7 @@ export function MobileNav({ items }: MobileNavProps) {
         aria-label="Open menu"
         aria-expanded={isOpen}
         className={cn(
-          "grid size-10 place-items-center rounded-full text-fg-muted lg:hidden",
+          "grid size-11 place-items-center rounded-full text-fg-muted lg:hidden",
           "transition-colors duration-[var(--dur-fast)] ease-out",
           "hover:bg-surface-raised hover:text-fg",
           "focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2",
@@ -107,7 +107,7 @@ export function MobileNav({ items }: MobileNavProps) {
                 type="button"
                 onClick={() => setIsOpen(false)}
                 aria-label="Close menu"
-                className="grid size-10 place-items-center rounded-full text-fg-muted transition-colors duration-[var(--dur-fast)] ease-out hover:bg-surface-raised hover:text-fg focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
+                className="grid size-11 place-items-center rounded-full text-fg-muted transition-colors duration-[var(--dur-fast)] ease-out hover:bg-surface-raised hover:text-fg focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
               >
                 <Close className="size-5" />
               </button>

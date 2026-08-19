@@ -28,9 +28,9 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       type="button"
       onClick={toggle}
       className={cn(
-        "relative grid size-10 place-items-center rounded-full text-fg-muted",
-        "transition-colors duration-[var(--dur-fast)] ease-out",
-        "hover:bg-surface-raised hover:text-fg",
+        "relative grid size-11 place-items-center rounded-full text-fg-muted",
+        "transition-[background-color,color,transform] duration-[var(--dur-fast)] ease-out",
+        "hover:bg-surface-raised hover:text-fg active:scale-90",
         "focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2",
         className,
       )}

@@ -22,23 +22,26 @@ export function Hero({ stats, city, datesLabel, committeeCount }: HeroProps) {
         <FlagArray />
 
         <div className="relative container-page grid min-h-[var(--hero-min-h)] items-center gap-8 pt-[calc(var(--header-h)+2.5rem)] pb-44 lg:grid-cols-[7fr_5fr] lg:gap-4 lg:pb-40">
-          {/* Left — the pitch */}
-          <div className="max-w-[38rem] animate-rise">
-            <p className="text-xs font-semibold tracking-caps text-on-art-accent uppercase sm:text-sm">
+          {/* Left — the pitch. Staggered rather than risen as one block: this is
+              a single ordered sequence (label → name → offer → action), which is
+              what a stagger is for. The global reduced-motion reset collapses
+              every delay to zero, so the fallback is the final state instantly. */}
+          <div className="max-w-[38rem] stagger-children">
+            <p className="animate-rise text-xs font-semibold tracking-caps text-on-art-accent uppercase sm:text-sm">
               Discover the world of diplomacy with
             </p>
             {/* nowrap only from sm up — below that the display size would
                 overflow the viewport rather than wrap. */}
-            <h1 className="mt-4 font-display text-display font-bold text-on-art sm:text-nowrap">
+            <h1 className="mt-4 animate-rise font-display text-display font-extrabold text-on-art sm:text-nowrap">
               MERITMUN <span className="text-on-art-accent">III</span>
             </h1>
-            <p className="mt-5 max-w-[34ch] text-lg leading-snug text-on-art-muted">
+            <p className="mt-5 max-w-[34ch] animate-rise text-lg leading-snug text-on-art-muted">
               {committeeCount} committees. Three days in {city}.
               <br className="hidden sm:inline" /> Six hundred seats, and one of
               them is yours.
             </p>
 
-            <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+            <div className="mt-9 flex animate-rise flex-col items-start gap-5 sm:flex-row sm:items-center">
               <ButtonLink href="/register/delegate" size="lg">
                 Register now
                 <ArrowRight className="size-5" />
@@ -55,7 +58,7 @@ export function Hero({ stats, city, datesLabel, committeeCount }: HeroProps) {
               </p>
             </div>
 
-            <p className="mt-7 text-xs tracking-wide text-on-art-muted/80 uppercase">
+            <p className="mt-7 animate-rise text-xs tracking-wide text-on-art-muted/80 uppercase">
               {datesLabel}
             </p>
           </div>
