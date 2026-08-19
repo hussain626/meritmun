@@ -74,6 +74,17 @@ export function CommitteeCard({ committee }: CommitteeCardProps) {
   layout → box → typography → color → border → effects → state/responsive.
 - Conditional variants live in a `const variants = {...}` lookup object above the component,
   never inline ternary soup in `className`.
+- **`cn()` concatenates; it does NOT resolve conflicts.** There is no `tailwind-merge` here.
+  So a component must never hard-code a class for a property its caller is likely to override
+  — most importantly `display`, `position`, and sizing. `cn("inline-flex", className)` with an
+  incoming `hidden` yields *both*, and CSS source order silently decides the winner. This bit
+  the build twice (the header wordmark, the hero collage). Two rules follow:
+  1. If a component's layout is the caller's business, take `className` **raw**:
+     `<div className={className}>`.
+  2. If you must set a base layout class, wrap the component at the call site instead of
+     passing a competing class into it.
+  Variant-prefixed classes (`[[data-theme=light]_&]:shadow-sm`, `sm:grid-cols-2`) are safe —
+  the variant raises specificity, so they genuinely win.
 - Component-scoped keyframes go in `globals.css` under a clearly-commented block, not in
   `<style>` tags.
 

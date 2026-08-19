@@ -29,8 +29,11 @@ update this file first.
 - **Server Actions:** declared in `lib/actions.ts` with a file-level `'use server'`. Passed to
   client form components as props from the route. See `code-standards.md` for the signature.
 - **`next/link`:** every internal navigation. Never a bare `<a href="/about">`.
-- **`next/image`:** not used in this build — there are no raster assets. If photography is
-  added later, it becomes mandatory, with `remotePatterns` configured in `next.config.ts`.
+- **`next/image`:** used for the two supplied hero photographs, always via **static import**
+  (`import delegates from "@/public/ppl.png"`) so intrinsic width/height come for free and
+  layout shift is impossible. Both carry `priority` — they sit in the LCP region — and an
+  explicit `sizes` so the right variant is served per breakpoint. Decorative, so `alt=""`
+  plus `aria-hidden`. No remote images exist; `remotePatterns` stays unconfigured.
 - **`notFound()`** from `next/navigation` for invalid committee slugs.
 - **Do not add** `next-themes`, `next-seo`, or any Next.js meta-framework helper. Theme and
   metadata are hand-rolled and small.

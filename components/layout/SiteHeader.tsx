@@ -67,14 +67,21 @@ export function SiteHeader({ items }: SiteHeaderProps) {
           aria-label="MERITMUN III — home"
           className="rounded-sm focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-4"
         >
-          <Wordmark className="hidden sm:inline-flex" />
-          <Wordmark variant="mark" className="sm:hidden" />
+          {/* Wrapped rather than passing a display class into Wordmark: its base
+              `inline-flex` and an incoming `hidden` are the same CSS property,
+              and cn() does no conflict resolution, so both would render. */}
+          <span className="hidden sm:block">
+            <Wordmark />
+          </span>
+          <span className="block sm:hidden">
+            <Wordmark variant="mark" />
+          </span>
         </Link>
 
         <div className="flex items-center gap-1 lg:gap-3">
           <MainNav items={items} className="hidden lg:block" />
           <ThemeToggle />
-          <ButtonLink href="/register" size="sm" className="hidden sm:inline-flex">
+          <ButtonLink href="/register" size="sm">
             Register
             <ArrowRight className="size-4" />
           </ButtonLink>

@@ -116,10 +116,16 @@ Every item here was inferred, not stated. These are the things to correct at the
    fake and easy to replace.
 5. **Pricing.** Assumed PKR-denominated: individual delegate PKR 4,500; delegation rate
    PKR 4,000/head for 5+, PKR 3,500/head for 15+. Displayed but not charged.
-6. **Imagery.** Assumed **no photography is available**. The reference image's photographic
-   hero (duotone building, flag row, cutout student collage) is reproduced as original
-   SVG/CSS artwork. This is the single largest visual assumption — if real photos exist,
-   the hero art layer is designed to be swappable.
+6. **Imagery — RESOLVED, no longer an assumption.** The build originally authored the flag
+   row and delegate collage as original SVG artwork on the assumption that no photography
+   existed. The user then supplied two alpha-channel cutouts:
+   - `public/ppl.png` (589×474) — the delegate collage: students at microphones, holding
+     placards, presenting.
+   - `public/flags.png` (1600×400) — the world-flag array for the hero base.
+
+   Both are now used via `next/image` with static imports, and the SVG versions were
+   retired. The **architectural backdrop is still authored SVG** (`HeroBackdrop`), because
+   no building photograph was supplied — that one remains a swappable seam.
 7. **Aftermovie.** Assumed no real video file. The aftermovie section ships as a fully built
    player shell — poster frame, play affordance, duration, chapter captions — with a
    documented `src` seam. It does not fake playback.

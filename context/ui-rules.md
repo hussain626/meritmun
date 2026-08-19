@@ -152,22 +152,26 @@ The forms are where the site converts. They get the most care.
 
 ## Imagery & graphics
 
-All artwork is **authored SVG/CSS** in the project's own language. Every graphic must clarify,
-persuade, or orient. Rules:
+Two sources: **supplied photography** for the hero's human content, and **authored SVG/CSS**
+for everything else. Every graphic must clarify, persuade, or orient.
 
-- **Duotone hero backdrop:** an original SVG architectural skyline (assembly-hall colonnade,
-  domes, flagpoles) rendered in two tones — `--forest` and `--brand-soft` — with the page
-  background showing through. It is a backdrop: it must never compete with the headline, and
-  a scrim gradient guarantees headline contrast at every breakpoint.
-- **Flag array:** an SVG row of stylised flags along the hero base — simplified two- and
-  three-band flags in a muted palette derived from the token set, not literal national flags.
-  They read as "many nations" without pretending to be an accurate atlas. On mobile the row
-  crops rather than shrinks to illegibility.
-- **Delegate collage:** original SVG figure illustrations — seated and standing delegates at
-  microphones, one holding a placard — in a flat, confident, two-tone style using `--brand`,
-  `--forest`, `--accent`, and neutrals. Geometric and stylised, not attempted photorealism,
-  because attempted photorealism in SVG always fails. Figures are `aria-hidden` and purely
-  decorative.
+- **Delegate collage — photograph.** `public/ppl.png`, an alpha-channel cutout of student
+  delegates at microphones, holding placards, presenting. Rendered with `next/image`,
+  bottom-anchored, absolutely positioned so it runs past the hero's bottom padding and stands
+  in front of the flag row, with its hard crop edge clipped by the section's overflow.
+  Decorative: `alt=""` + `aria-hidden`.
+- **Flag array — photograph.** `public/flags.png`, an alpha-channel strip of world flags along
+  the hero base. Graded to sit in the emerald world rather than fight it: `saturate-[0.88]`, a
+  `--art-scrim` gradient over the top edge so the flags emerge from the architecture instead
+  of being pasted onto it, and a light `--forest` multiply. Crops rather than squashes on
+  mobile via `object-cover object-bottom`.
+- **Duotone hero backdrop — authored SVG.** An original architectural field (assembly-hall
+  colonnade under a dome) in three green plies, `--art-back` / `--art-mid` / `--art-fore`.
+  No building photograph was supplied, so this stays SVG. It is a backdrop: held at ~0.62
+  opacity as a whole so it never competes with the headline, with a scrim gradient
+  guaranteeing headline contrast at every breakpoint.
+- **Aftermovie poster — authored SVG.** A committee-in-session still in the same three-ply
+  language, so the video shell is never an empty grey box.
 - **Board avatars:** generated initials medallions on a `--brand-soft` fill until real photos
   exist.
 - Every graphic is verified in **both themes** — tokens only, no baked hex.
