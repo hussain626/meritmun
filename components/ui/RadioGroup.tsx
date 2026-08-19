@@ -10,7 +10,11 @@ export type RadioOption = {
 type RadioGroupProps = {
   name: string;
   options: RadioOption[];
+  /** Uncontrolled initial selection. Ignored when `value` is supplied. */
   defaultValue?: string;
+  /** Supply with `onChange` to drive the group as a controlled input. */
+  value?: string;
+  onChange?: (value: string) => void;
   legend: string;
   error?: string;
   columns?: 1 | 2;
@@ -26,12 +30,15 @@ export function RadioGroup({
   name,
   options,
   defaultValue,
+  value,
+  onChange,
   legend,
   error,
   columns = 1,
   className,
 }: RadioGroupProps) {
   const errorId = error ? `${name}-error` : undefined;
+  const isControlled = value !== undefined;
 
   return (
     <fieldset
@@ -52,7 +59,12 @@ export function RadioGroup({
                 id={optionId}
                 name={name}
                 value={option.value}
-                defaultChecked={defaultValue === option.value}
+                {...(isControlled
+                  ? {
+                      checked: value === option.value,
+                      onChange: () => onChange?.(option.value),
+                    }
+                  : { defaultChecked: defaultValue === option.value })}
                 className="peer sr-only"
               />
 

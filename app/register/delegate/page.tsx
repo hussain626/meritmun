@@ -1,12 +1,45 @@
 import type { Metadata } from "next";
+import { DelegateForm } from "@/components/forms/DelegateForm";
 import { PageHero } from "@/components/layout/PageHero";
+import { Section } from "@/components/ui/Section";
+import { committees } from "@/content/committees";
+import { pricing } from "@/content/site";
+import { submitDelegate } from "@/lib/actions";
 
-export const metadata: Metadata = { title: "Register as a Delegate" };
+export const metadata: Metadata = {
+  title: "Register as a Delegate",
+  description:
+    "Apply to MERITMUN III as an individual delegate. Rank three committees and we will allocate you a portfolio pitched at your experience.",
+};
 
-export default function RegisterDelegatePage() {
+export default async function RegisterDelegatePage({
+  searchParams,
+}: PageProps<"/register/delegate">) {
+  // searchParams is async in Next.js 16.
+  const params = await searchParams;
+  const raw = params.committee;
+  const preselect = typeof raw === "string" ? raw : undefined;
+
   return (
     <main id="content">
-      <PageHero title="Register as a Delegate" lead="Placeholder — built in phase 7." />
+      <PageHero
+        title="Register as a delegate"
+        lead="Four steps, about four minutes. Nothing is charged now — the fee is payable after you are allocated."
+      />
+
+      <Section width="prose">
+        <DelegateForm
+          committees={committees.map(({ slug, abbr, name, difficulty }) => ({
+            slug,
+            abbr,
+            name,
+            difficulty,
+          }))}
+          preselect={preselect}
+          fee={{ currency: pricing.currency, amount: pricing.delegate }}
+          action={submitDelegate}
+        />
+      </Section>
     </main>
   );
 }
