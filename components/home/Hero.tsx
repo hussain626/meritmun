@@ -27,7 +27,9 @@ export function Hero({ stats, city, datesLabel, committeeCount }: HeroProps) {
             <p className="text-xs font-semibold tracking-caps text-on-art-accent uppercase sm:text-sm">
               Discover the world of diplomacy with
             </p>
-            <h1 className="mt-4 font-display text-display font-bold text-nowrap text-on-art">
+            {/* nowrap only from sm up — below that the display size would
+                overflow the viewport rather than wrap. */}
+            <h1 className="mt-4 font-display text-display font-bold text-on-art sm:text-nowrap">
               MERITMUN <span className="text-on-art-accent">III</span>
             </h1>
             <p className="mt-5 max-w-[34ch] text-lg leading-snug text-on-art-muted">
