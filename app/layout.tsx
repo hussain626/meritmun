@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { HelpWidget } from "@/components/layout/HelpWidget";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { SkipLink } from "@/components/layout/SkipLink";
+import { conference, navItems, socials } from "@/content/site";
+import { quickHelpFaqs } from "@/content/faq";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -68,7 +74,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col bg-canvas text-fg">
+        <SkipLink />
+        <SiteHeader items={navItems} />
         {children}
+        <SiteFooter
+          items={navItems}
+          conference={{
+            fullName: conference.fullName,
+            city: conference.city,
+            country: conference.country,
+            datesLabel: conference.datesLabel,
+            venue: conference.venue,
+          }}
+          socials={socials}
+        />
+        <HelpWidget faqs={quickHelpFaqs} />
       </body>
     </html>
   );

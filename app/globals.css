@@ -11,8 +11,9 @@
 :root {
   color-scheme: dark;
 
-  /* surfaces — L values are OKLab, which is NOT Lab L*/100. These were tuned
-     empirically so `--bg` reads as deep emerald (#12251d), not black. */
+  /* surfaces — L values are OKLab lightness, which is NOT the same scale as
+     CIE Lab lightness divided by 100. These were tuned empirically so that
+     --bg resolves to a deep emerald (#12251d) rather than to black. */
   --bg: oklch(0.245 0.03 165);
   --bg-subtle: oklch(0.285 0.034 165);
   --surface: oklch(0.315 0.036 166);
