@@ -61,7 +61,7 @@ export default function AboutPage() {
     <main id="content">
       <PageHero
         title={`About ${conference.fullName}`}
-        lead={`${conference.longName}. Twelve committees, ${conference.durationDays} days, and ${formatNumber(conference.seatCount)} seats in ${conference.city}.`}
+        lead={`${conference.longName}. ${conference.committeeCount} committees, ${conference.durationDays} days, and ${formatNumber(conference.seatCount)} seats in ${conference.city}.`}
       />
 
       <Section width="prose">
