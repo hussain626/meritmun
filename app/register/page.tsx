@@ -4,8 +4,9 @@ import { ArrowRight } from "@/components/icons/ArrowRight";
 import { Gavel } from "@/components/icons/Gavel";
 import { Users } from "@/components/icons/Users";
 import { PageHero } from "@/components/layout/PageHero";
+import { RegistrationComingSoon } from "@/components/register/RegistrationComingSoon";
 import { Section } from "@/components/ui/Section";
-import { conference, pricing } from "@/content/site";
+import { conference, pricing, registrationOpen } from "@/content/site";
 import { formatNumber } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -15,6 +16,20 @@ export const metadata: Metadata = {
 };
 
 export default function RegisterPage() {
+  if (!registrationOpen) {
+    return (
+      <main id="content">
+        <PageHero
+          title="Registration coming soon"
+          lead={`${conference.committeeCount} committees, three days in ${conference.city}, six hundred seats. Registration opens here — we're not quite ready yet.`}
+        />
+        <Section>
+          <RegistrationComingSoon />
+        </Section>
+      </main>
+    );
+  }
+
   const paths = [
     {
       href: "/register/delegate",

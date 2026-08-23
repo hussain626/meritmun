@@ -6,6 +6,7 @@ import { ScheduleTimeline } from "@/components/schedule/ScheduleTimeline";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { ButtonLink } from "@/components/ui/Button";
+import { registrationOpen } from "@/content/site";
 import type { ScheduleDay } from "@/lib/types";
 
 /** Shared by the tablist and every panel — they must agree or the wiring breaks. */
@@ -24,9 +25,15 @@ export function DayTabs({ days }: DayTabsProps) {
         title="The running order is not published yet"
         body="The three days are set but the hour-by-hour schedule has not been released. It goes up here, and registrants are emailed when it does."
         action={
-          <ButtonLink href="/register" variant="outline">
-            Register as a delegate
-          </ButtonLink>
+          registrationOpen ? (
+            <ButtonLink href="/register" variant="outline">
+              Register as a delegate
+            </ButtonLink>
+          ) : (
+            <ButtonLink href="/register" variant="outline">
+              Registration coming soon
+            </ButtonLink>
+          )
         }
       />
     );

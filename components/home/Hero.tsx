@@ -5,6 +5,7 @@ import { FlagArray } from "@/components/home/FlagArray";
 import { HeroBackdrop } from "@/components/home/HeroBackdrop";
 import { StatsBar } from "@/components/home/StatsBar";
 import { ButtonLink } from "@/components/ui/Button";
+import { registrationOpen } from "@/content/site";
 import type { Stat } from "@/lib/types";
 
 type HeroProps = {
@@ -42,10 +43,16 @@ export function Hero({ stats, city, datesLabel, committeeCount }: HeroProps) {
             </p>
 
             <div className="mt-9 flex animate-rise flex-col items-start gap-5 sm:flex-row sm:items-center">
-              <ButtonLink href="/register/delegate" size="lg">
-                Register now
-                <ArrowRight className="size-5" />
-              </ButtonLink>
+              {registrationOpen ? (
+                <ButtonLink href="/register/delegate" size="lg">
+                  Register now
+                  <ArrowRight className="size-5" />
+                </ButtonLink>
+              ) : (
+                <ButtonLink href="/register" size="lg" variant="secondary">
+                  Registration coming soon
+                </ButtonLink>
+              )}
 
               <p className="text-sm text-on-art-muted">
                 Already applied?{" "}

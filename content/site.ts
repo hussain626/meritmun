@@ -1,5 +1,8 @@
 import type { ContactChannel, NavItem } from "@/lib/types";
 
+/** Flip to true when delegate and delegation forms should go live. */
+export const registrationOpen = false;
+
 export const conference = {
   name: "MERITMUN",
   iteration: "III",

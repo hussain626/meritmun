@@ -10,6 +10,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Wordmark } from "@/components/layout/Wordmark";
 import { ButtonLink } from "@/components/ui/Button";
+import { registrationOpen } from "@/content/site";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "@/lib/types";
 
@@ -81,10 +82,16 @@ export function SiteHeader({ items }: SiteHeaderProps) {
         <div className="flex items-center gap-1 lg:gap-3">
           <MainNav items={items} className="hidden lg:block" />
           <ThemeToggle />
-          <ButtonLink href="/register" size="sm">
-            Register
-            <ArrowRight className="size-4" />
-          </ButtonLink>
+          {registrationOpen ? (
+            <ButtonLink href="/register" size="sm">
+              Register
+              <ArrowRight className="size-4" />
+            </ButtonLink>
+          ) : (
+            <ButtonLink href="/register" size="sm" variant="outline">
+              Coming soon
+            </ButtonLink>
+          )}
           <MobileNav items={items} />
         </div>
       </div>

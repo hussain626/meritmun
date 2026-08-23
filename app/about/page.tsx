@@ -5,7 +5,7 @@ import { Alert } from "@/components/ui/Alert";
 import { ButtonLink } from "@/components/ui/Button";
 import { Prose } from "@/components/ui/Prose";
 import { Section } from "@/components/ui/Section";
-import { conference } from "@/content/site";
+import { conference, registrationOpen } from "@/content/site";
 import { heroStats } from "@/content/stats";
 import { formatNumber } from "@/lib/utils";
 
@@ -227,13 +227,14 @@ export default function AboutPage() {
         <div className="grid gap-10 lg:grid-cols-[7fr_5fr] lg:items-end">
           <div>
             <h2 className="font-display text-h2 text-on-brand text-balance">
-              Registration for {conference.fullName} is open
+              {registrationOpen
+                ? `Registration for ${conference.fullName} is open`
+                : `Registration for ${conference.fullName} is coming soon`}
             </h2>
             <p className="mt-4 max-w-[52ch] leading-relaxed text-on-brand/75">
-              {conference.committeeCount} committees and{" "}
-              {formatNumber(conference.seatCount)} seats, allocated in the order
-              applications arrive. Delegates and delegations start at the same
-              place.
+              {registrationOpen
+                ? `${conference.committeeCount} committees and ${formatNumber(conference.seatCount)} seats, allocated in the order applications arrive. Delegates and delegations start at the same place.`
+                : `${conference.committeeCount} committees and ${formatNumber(conference.seatCount)} seats. Registration opens here — follow us on social media for the announcement.`}
             </p>
           </div>
           <div className="lg:justify-self-end">
@@ -242,7 +243,9 @@ export default function AboutPage() {
               size="lg"
               iconEnd={<ArrowRight className="size-5" />}
             >
-              Register for {conference.fullName}
+              {registrationOpen
+                ? `Register for ${conference.fullName}`
+                : "Registration coming soon"}
             </ButtonLink>
           </div>
         </div>

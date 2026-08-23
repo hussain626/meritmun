@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { DelegationForm } from "@/components/forms/DelegationForm";
 import { PageHero } from "@/components/layout/PageHero";
+import { RegistrationComingSoon } from "@/components/register/RegistrationComingSoon";
 import { Section } from "@/components/ui/Section";
 import { committees } from "@/content/committees";
-import { pricing } from "@/content/site";
+import { pricing, registrationOpen } from "@/content/site";
 import { submitDelegation } from "@/lib/actions";
 
 export const metadata: Metadata = {
@@ -13,6 +14,20 @@ export const metadata: Metadata = {
 };
 
 export default function RegisterDelegationPage() {
+  if (!registrationOpen) {
+    return (
+      <main id="content">
+        <PageHero
+          title="Registration coming soon"
+          lead="Delegation registration is not open yet. Check back here soon."
+        />
+        <Section width="prose">
+          <RegistrationComingSoon />
+        </Section>
+      </main>
+    );
+  }
+
   return (
     <main id="content">
       <PageHero

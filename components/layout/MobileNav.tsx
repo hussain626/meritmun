@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Close } from "@/components/icons/Close";
 import { Menu } from "@/components/icons/Menu";
 import { Wordmark } from "@/components/layout/Wordmark";
+import { registrationOpen } from "@/content/site";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "@/lib/types";
 
@@ -145,31 +146,46 @@ export function MobileNav({ items }: MobileNavProps) {
               <p className="mt-8 mb-3 px-3 text-xs font-semibold tracking-caps text-fg-faint uppercase">
                 Register
               </p>
-              <ul className="space-y-2">
-                {items
-                  .find((item) => item.href === "/register")
-                  ?.children?.map((child) => (
-                    <li key={child.href}>
-                      <Link
-                        href={child.href}
-                        onClick={() => setIsOpen(false)}
-                        className={cn(
-                          "block rounded-md border border-line bg-surface p-3",
-                          "transition-colors duration-[var(--dur-fast)] ease-out",
-                          "hover:border-line-strong",
-                          pathname === child.href && "border-brand bg-brand-soft",
-                        )}
-                      >
-                        <span className="block text-sm font-semibold text-fg">
-                          {child.label}
-                        </span>
-                        <span className="mt-0.5 block text-xs text-fg-muted">
-                          {child.description}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
+              {registrationOpen ? (
+                <ul className="space-y-2">
+                  {items
+                    .find((item) => item.href === "/register")
+                    ?.children?.map((child) => (
+                      <li key={child.href}>
+                        <Link
+                          href={child.href}
+                          onClick={() => setIsOpen(false)}
+                          className={cn(
+                            "block rounded-md border border-line bg-surface p-3",
+                            "transition-colors duration-[var(--dur-fast)] ease-out",
+                            "hover:border-line-strong",
+                            pathname === child.href && "border-brand bg-brand-soft",
+                          )}
+                        >
+                          <span className="block text-sm font-semibold text-fg">
+                            {child.label}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-fg-muted">
+                            {child.description}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <Link
+                  href="/register"
+                  onClick={() => setIsOpen(false)}
+                  className="block rounded-md border border-line bg-surface p-3 transition-colors duration-[var(--dur-fast)] ease-out hover:border-line-strong"
+                >
+                  <span className="block text-sm font-semibold text-fg">
+                    Registration coming soon
+                  </span>
+                  <span className="mt-0.5 block text-xs text-fg-muted">
+                    Delegate and delegation forms will open here.
+                  </span>
+                </Link>
+              )}
             </nav>
           </div>
         </div>

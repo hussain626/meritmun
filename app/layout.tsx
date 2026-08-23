@@ -61,14 +61,14 @@ export const metadata: Metadata = {
     siteName: "MERITMUN III",
     title: "MERITMUN III — Discover the World of Diplomacy",
     description:
-      "Twelve committees, three days, six hundred seats. Registration is open for delegates and delegations.",
+      "Twelve committees, three days, six hundred seats. Registration coming soon.",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "MERITMUN III — Discover the World of Diplomacy",
     description:
-      "Twelve committees, three days, six hundred seats. Registration is open.",
+      "Twelve committees, three days, six hundred seats. Registration coming soon.",
   },
 };
 

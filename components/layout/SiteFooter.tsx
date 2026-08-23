@@ -3,6 +3,7 @@ import { Instagram } from "@/components/icons/Instagram";
 import { Linkedin } from "@/components/icons/Linkedin";
 import { MapPin } from "@/components/icons/MapPin";
 import { Wordmark } from "@/components/layout/Wordmark";
+import { registrationOpen } from "@/content/site";
 import type { NavItem } from "@/lib/types";
 
 type SiteFooterProps = {
@@ -70,18 +71,30 @@ export function SiteFooter({ items, conference, socials }: SiteFooterProps) {
             <h2 className="text-xs font-semibold tracking-caps text-on-brand/60 uppercase">
               Register
             </h2>
-            <ul className="mt-4 space-y-2.5">
-              {registerItem?.children?.map((child) => (
-                <li key={child.href}>
-                  <Link
-                    href={child.href}
-                    className="text-sm text-on-brand/80 underline-offset-4 transition-colors duration-[var(--dur-fast)] ease-out hover:text-on-brand hover:underline focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
-                  >
-                    {child.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {registrationOpen ? (
+              <ul className="mt-4 space-y-2.5">
+                {registerItem?.children?.map((child) => (
+                  <li key={child.href}>
+                    <Link
+                      href={child.href}
+                      className="text-sm text-on-brand/80 underline-offset-4 transition-colors duration-[var(--dur-fast)] ease-out hover:text-on-brand hover:underline focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
+                    >
+                      {child.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm text-on-brand/75">
+                Coming soon.{" "}
+                <Link
+                  href="/register"
+                  className="font-semibold text-on-brand underline underline-offset-4 transition-colors duration-[var(--dur-fast)] ease-out hover:text-on-art-accent focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
+                >
+                  Learn more
+                </Link>
+              </p>
+            )}
           </div>
 
           <div>
@@ -89,8 +102,10 @@ export function SiteFooter({ items, conference, socials }: SiteFooterProps) {
               Stay in the loop
             </h2>
             <p className="mt-4 text-sm leading-normal text-on-brand/75">
-              {conference.datesLabel}. Register and we will email you the moment
-              they are confirmed.
+              {conference.datesLabel}.
+              {registrationOpen
+                ? " Register and we will email you the moment they are confirmed."
+                : " Registration opens soon — follow us for the announcement."}
             </p>
             <ul className="mt-5 flex gap-2">
               {socials.map((social) => {

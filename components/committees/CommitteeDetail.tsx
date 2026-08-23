@@ -12,6 +12,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Prose } from "@/components/ui/Prose";
+import { registrationOpen } from "@/content/site";
 import type { Committee } from "@/lib/types";
 
 type CommitteeDetailProps = {
@@ -90,10 +91,12 @@ export function CommitteeDetail({ committee }: CommitteeDetailProps) {
               first gives it the strongest weighting in allocation.
             </p>
             <ButtonLink
-              href={`/register/delegate?committee=${committee.slug}`}
+              href={registrationOpen ? `/register/delegate?committee=${committee.slug}` : "/register"}
               className="mt-5"
             >
-              Register for this committee
+              {registrationOpen
+                ? "Register for this committee"
+                : "Registration coming soon"}
             </ButtonLink>
           </div>
         </aside>
