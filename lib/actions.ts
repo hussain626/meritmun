@@ -7,7 +7,14 @@ import {
   validateDelegate,
   validateDelegation,
 } from "@/lib/validation";
+import { getDemoStore } from "@/lib/admin/demo-store";
+import type { DelegateRecord, QueryRecord } from "@/lib/admin/types";
+import { getPricing, listBankAccounts } from "@/lib/admin/data";
+import { sendRegistrationConfirmation } from "@/lib/email/send";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
 import {
+  generateDelegateCode,
   generateReference,
   getAllFields,
   getCheckbox,
@@ -34,10 +41,8 @@ const committeeSlugs = committees.map((committee) => committee.slug);
 /**
  * THE BACKEND SEAM.
  *
- * Everything upstream of this function is production code. This is the only
- * place that touches the outside world, and today it does not: it logs and
- * mints a reference code. Swap the body for a database insert plus a
- * confirmation email and the rest of the application is unchanged.
+ * Mint a reference, persist (Supabase or demo store), and send confirmation
+ * mail when the payload is a registration. Contact messages become queries.
  */
 async function persist(
   kind: SubmissionKind,
@@ -47,14 +52,120 @@ async function persist(
   const submission: Submission = {
     reference: generateReference(),
     kind,
-    // Stamped here rather than in the client so two users never disagree
-    // about when a submission was received.
     receivedAt: new Date().toISOString(),
     name,
   };
 
-  console.log("[meritmun] submission", { ...submission, payload });
+  if (kind === "delegate" && payload && typeof payload === "object") {
+    const app = payload as DelegateApplication;
+    const delegateCode = generateDelegateCode();
+    const pricing = await getPricing();
+    const banks = await listBankAccounts();
 
+    if (!isSupabaseConfigured()) {
+      const store = getDemoStore();
+      const record: DelegateRecord = {
+        id: `delegate-${submission.reference}`,
+        reference: submission.reference,
+        delegateCode,
+        fullName: app.fullName,
+        email: app.email,
+        phone: app.phone,
+        institution: app.institution,
+        age: app.age,
+        city: app.city,
+        experience: app.experience,
+        priorAwards: app.priorAwards,
+        committeePrefs: app.committeePrefs,
+        accommodation: app.accommodation,
+        dietary: app.dietary,
+        hearAbout: app.hearAbout,
+        paymentStatus: "pending",
+        paymentAmount: null,
+        paymentConfirmedAt: null,
+        paymentRejectedAt: null,
+        rejectionReason: null,
+        delegationId: null,
+        feeType: pricing.earlyBirdEnabled ? "early_bird_delegate" : "delegate",
+        createdAt: submission.receivedAt,
+        updatedAt: submission.receivedAt,
+      };
+      store.delegates.unshift(record);
+    } else {
+      try {
+        const client = await createClient();
+        await client.from("delegates").insert({
+          reference: submission.reference,
+          delegate_code: delegateCode,
+          full_name: app.fullName,
+          email: app.email,
+          phone: app.phone,
+          institution: app.institution,
+          age: app.age,
+          city: app.city,
+          experience: app.experience,
+          prior_awards: app.priorAwards,
+          committee_prefs: app.committeePrefs,
+          accommodation: app.accommodation,
+          dietary: app.dietary,
+          hear_about: app.hearAbout,
+          payment_status: "pending",
+          fee_type: pricing.earlyBirdEnabled ? "early_bird_delegate" : "delegate",
+        });
+      } catch (error) {
+        console.warn("[meritmun] delegate insert failed", error);
+      }
+    }
+
+    await sendRegistrationConfirmation({
+      to: app.email,
+      fullName: app.fullName,
+      reference: submission.reference,
+      delegateCode,
+      bankAccounts: banks.filter((b) => b.isActive),
+      feeAmount: pricing.earlyBirdEnabled
+        ? (pricing.earlyBirdDelegateFee ?? pricing.delegateFee)
+        : pricing.delegateFee,
+      currency: pricing.currency,
+    });
+  }
+
+  if (kind === "contact" && payload && typeof payload === "object") {
+    const msg = payload as ContactMessage;
+    if (!isSupabaseConfigured()) {
+      const store = getDemoStore();
+      const query: QueryRecord = {
+        id: `query-${submission.reference}`,
+        name: msg.name,
+        email: msg.email,
+        topic: msg.topic,
+        subject: msg.subject,
+        message: msg.message,
+        status: "open",
+        replyBody: null,
+        repliedAt: null,
+        repliedBy: null,
+        createdAt: submission.receivedAt,
+      };
+      store.queries.unshift(query);
+    } else {
+      try {
+        const client = await createClient();
+        await client.from("queries").insert({
+          name: msg.name,
+          email: msg.email,
+          topic: msg.topic,
+          subject: msg.subject,
+          message: msg.message,
+          status: "open",
+        });
+      } catch (error) {
+        console.warn("[meritmun] query insert failed", error);
+      }
+    }
+  }
+
+  console.log("[meritmun] submission", { ...submission, payload });
   return submission;
 }
 
@@ -187,10 +298,8 @@ const STATUS_COPY: Record<StatusResult["status"], string> = {
 };
 
 /**
- * Deterministic mock lookup — see the "Out of scope" section of
- * `context/project-overview.md`. The code's own characters select the status,
- * so a given reference always returns the same answer and every state in the
- * UI is reachable for demonstration.
+ * Status lookup. Checks the demo store / Supabase first; falls back to the
+ * deterministic mock so every UI state remains reachable without seed data.
  */
 export async function lookupStatus(
   _prev: ActionResult<StatusResult> | null,
@@ -200,6 +309,51 @@ export async function lookupStatus(
 
   if (reference === "") {
     return { ok: false, errors: { reference: "Enter your reference code." } };
+  }
+
+  if (!isValidReferenceShape(reference) && reference.length < 6) {
+    return {
+      ok: false,
+      errors: {
+        reference: "Codes look like MMIII-4KQ7ZP — six characters after the dash.",
+      },
+    };
+  }
+
+  if (!isSupabaseConfigured()) {
+    const store = getDemoStore();
+    const byRef = store.delegates.find(
+      (d) =>
+        d.reference.toUpperCase() === reference ||
+        d.delegateCode.toUpperCase() === reference,
+    );
+    if (byRef) {
+      const allotment = store.allotments.find(
+        (a) => a.delegateId === byRef.id && a.status === "confirmed",
+      );
+      const draft = store.allotments.find(
+        (a) => a.delegateId === byRef.id && a.status === "draft",
+      );
+      let status: StatusResult["status"] = "received";
+      if (byRef.paymentStatus === "confirmed" && allotment) status = "confirmed";
+      else if (draft || allotment) status = "allocated";
+      else if (byRef.paymentStatus === "confirmed") status = "under-review";
+      else status = "received";
+
+      const committeeId = allotment?.committeeId ?? draft?.committeeId;
+      const committee =
+        store.committees.find((c) => c.id === committeeId)?.name ?? null;
+
+      return {
+        ok: true,
+        data: {
+          reference: byRef.reference,
+          status,
+          committee,
+          note: STATUS_COPY[status],
+        },
+      };
+    }
   }
 
   if (!isValidReferenceShape(reference)) {

@@ -299,6 +299,8 @@ Semantic, never ad-hoc. A raw `z-50` in a component is a defect.
 | Token | Value |
 |---|---|
 | `--header-h` | `72px` desktop / `60px` mobile |
+| `--announce-h` | `0` by default; `2.75rem` when `[data-announce=on]` |
+| `--chrome-h` | `calc(var(--header-h) + var(--announce-h))` — sticky header + announcement |
 | `--hero-min-h` | `clamp(560px, 78vh, 780px)` |
 | `--statsbar-overlap` | `-56px` — how far the floating stats bar sits over the hero base |
 

@@ -90,12 +90,54 @@ export function generateReference(): string {
   return `MMIII-${body}`;
 }
 
+/** Short code shown in confirmation email and used for support lookups. */
+export function generateDelegateCode(): string {
+  let body = "";
+  for (let index = 0; index < 8; index += 1) {
+    body += REFERENCE_ALPHABET.charAt(
+      Math.floor(Math.random() * REFERENCE_ALPHABET.length),
+    );
+  }
+  return body;
+}
+
 export function isValidReferenceShape(value: string): boolean {
   return /^MMIII-[A-HJ-NP-Z2-9]{6}$/i.test(value.trim());
 }
 
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
+}
+
+export function formatPkr(value: number): string {
+  return `PKR ${formatNumber(value)}`;
+}
+
+export function formatAdminDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso));
+}
+
+export function formatAdminDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+}
+
+export function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const first = parts[0]?.[0] ?? "";
+  const last = parts[parts.length - 1]?.[0] ?? "";
+  return `${first}${last}`.toUpperCase();
 }
 
 export function pluralise(count: number, one: string, many: string): string {

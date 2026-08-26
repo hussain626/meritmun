@@ -10,12 +10,12 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Wordmark } from "@/components/layout/Wordmark";
 import { ButtonLink } from "@/components/ui/Button";
-import { registrationOpen } from "@/content/site";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "@/lib/types";
 
 type SiteHeaderProps = {
   items: NavItem[];
+  registrationOpen: boolean;
 };
 
 /**
@@ -33,7 +33,7 @@ const overArtTokens = {
   "--surface-raised": "color-mix(in oklch, var(--on-art) 14%, transparent)",
 } as CSSProperties;
 
-export function SiteHeader({ items }: SiteHeaderProps) {
+export function SiteHeader({ items, registrationOpen }: SiteHeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
   const isOverArt = pathname === "/" && !isScrolled;
@@ -51,10 +51,8 @@ export function SiteHeader({ items }: SiteHeaderProps) {
     <header
       style={isOverArt ? overArtTokens : undefined}
       className={cn(
-        // Negative margin keeps the header sticky while taking no space in
-        // flow, so page content starts underneath it. Every page's first
-        // section therefore owns a top offset of --header-h.
-        "sticky top-0 z-[var(--z-sticky)] -mb-[var(--header-h)] h-[var(--header-h)]",
+        // Pulled out of flow by the sticky chrome wrapper in the site layout.
+        "h-[var(--header-h)]",
         "transition-[background-color,border-color,box-shadow] duration-[var(--dur-base)] ease-out",
         // Glass is permitted here only because content genuinely scrolls beneath.
         isScrolled
@@ -92,7 +90,7 @@ export function SiteHeader({ items }: SiteHeaderProps) {
               Coming soon
             </ButtonLink>
           )}
-          <MobileNav items={items} />
+          <MobileNav items={items} registrationOpen={registrationOpen} />
         </div>
       </div>
     </header>

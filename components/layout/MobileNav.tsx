@@ -6,18 +6,18 @@ import { useEffect, useRef, useState } from "react";
 import { Close } from "@/components/icons/Close";
 import { Menu } from "@/components/icons/Menu";
 import { Wordmark } from "@/components/layout/Wordmark";
-import { registrationOpen } from "@/content/site";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "@/lib/types";
 
 type MobileNavProps = {
   items: NavItem[];
+  registrationOpen: boolean;
 };
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export function MobileNav({ items }: MobileNavProps) {
+export function MobileNav({ items, registrationOpen }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const triggerRef = useRef<HTMLButtonElement>(null);

@@ -12,14 +12,14 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Prose } from "@/components/ui/Prose";
-import { registrationOpen } from "@/content/site";
 import type { Committee } from "@/lib/types";
 
 type CommitteeDetailProps = {
   committee: Committee;
+  registrationOpen: boolean;
 };
 
-export function CommitteeDetail({ committee }: CommitteeDetailProps) {
+export function CommitteeDetail({ committee, registrationOpen }: CommitteeDetailProps) {
   const guideUrl = committee.backgroundGuideUrl;
 
   return (
@@ -61,7 +61,7 @@ export function CommitteeDetail({ committee }: CommitteeDetailProps) {
         </div>
 
         <aside className="lg:col-span-5">
-          <h2 className="text-h3 text-fg">Chaired by</h2>
+          <h2 className="text-h3 text-fg">Secretariat</h2>
           <div className="mt-5">
             <ChairList chairs={committee.chairs} />
           </div>

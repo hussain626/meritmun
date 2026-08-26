@@ -3,11 +3,11 @@ import { Instagram } from "@/components/icons/Instagram";
 import { Linkedin } from "@/components/icons/Linkedin";
 import { MapPin } from "@/components/icons/MapPin";
 import { Wordmark } from "@/components/layout/Wordmark";
-import { registrationOpen } from "@/content/site";
 import type { NavItem } from "@/lib/types";
 
 type SiteFooterProps = {
   items: NavItem[];
+  registrationOpen: boolean;
   conference: {
     fullName: string;
     city: string;
@@ -20,7 +20,7 @@ type SiteFooterProps = {
 
 const socialIcons = { instagram: Instagram, linkedin: Linkedin } as const;
 
-export function SiteFooter({ items, conference, socials }: SiteFooterProps) {
+export function SiteFooter({ items, conference, socials, registrationOpen }: SiteFooterProps) {
   const registerItem = items.find((item) => item.href === "/register");
   const pageItems = items.filter((item) => item.href !== "/register");
   const year = 2026; // Static build — no Date() so output stays deterministic.

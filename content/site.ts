@@ -1,6 +1,9 @@
 import type { ContactChannel, NavItem } from "@/lib/types";
 
-/** Flip to true when delegate and delegation forms should go live. */
+/**
+ * Fallback only — the live gate is `conference_settings.registration_open`,
+ * toggled from /admin/registrations.
+ */
 export const registrationOpen = false;
 
 export const conference = {
@@ -34,7 +37,7 @@ export const pricing = {
 
 export const navItems: NavItem[] = [
   { label: "About", href: "/about" },
-  { label: "Executive Board", href: "/executive-board" },
+  { label: "EB", href: "/executive-board" },
   { label: "Committees", href: "/committees" },
   { label: "Schedule", href: "/schedule" },
   { label: "Contact", href: "/contact" },

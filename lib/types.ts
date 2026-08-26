@@ -71,7 +71,7 @@ export type ScheduleItem = {
  * consumer renders the "to be announced" state rather than inventing a date.
  */
 export type ScheduleDay = {
-  id: "day-1" | "day-2" | "day-3";
+  id: string;
   date: string | null;
   label: string;
   theme: string;

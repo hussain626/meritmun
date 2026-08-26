@@ -5,7 +5,6 @@ import { FlagArray } from "@/components/home/FlagArray";
 import { HeroBackdrop } from "@/components/home/HeroBackdrop";
 import { StatsBar } from "@/components/home/StatsBar";
 import { ButtonLink } from "@/components/ui/Button";
-import { registrationOpen } from "@/content/site";
 import type { Stat } from "@/lib/types";
 
 type HeroProps = {
@@ -13,16 +12,17 @@ type HeroProps = {
   city: string;
   datesLabel: string;
   committeeCount: number;
+  registrationOpen: boolean;
 };
 
-export function Hero({ stats, city, datesLabel, committeeCount }: HeroProps) {
+export function Hero({ stats, city, datesLabel, committeeCount, registrationOpen }: HeroProps) {
   return (
     <section className="relative">
       <div className="relative min-h-[var(--hero-min-h)] overflow-hidden">
         <HeroBackdrop />
         <FlagArray />
 
-        <div className="relative container-page grid min-h-[var(--hero-min-h)] items-center gap-8 pt-[calc(var(--header-h)+2.5rem)] pb-44 lg:grid-cols-[7fr_5fr] lg:gap-4 lg:pb-40">
+        <div className="relative container-page grid min-h-[var(--hero-min-h)] items-center gap-8 pt-[calc(var(--chrome-h)+2.5rem)] pb-44 lg:grid-cols-[7fr_5fr] lg:gap-4 lg:pb-40">
           {/* Left — the pitch. Staggered rather than risen as one block: this is
               a single ordered sequence (label → name → offer → action), which is
               what a stagger is for. The global reduced-motion reset collapses

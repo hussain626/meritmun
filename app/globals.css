@@ -74,6 +74,8 @@
 
   /* layout */
   --header-h: 72px;
+  --announce-h: 0px;
+  --chrome-h: calc(var(--header-h) + var(--announce-h));
   --hero-min-h: clamp(560px, 78vh, 780px);
   --statsbar-overlap: -56px;
   --section-y: clamp(4rem, 3rem + 5vw, 8rem);
@@ -96,6 +98,14 @@
   --dur-base: 260ms;
   --dur-slow: 520ms;
   --stagger: 70ms;
+
+  /* admin rail — always a near-black forest, independent of theme */
+  --admin-rail: oklch(0.155 0.032 158);
+  --admin-rail-hover: oklch(0.22 0.038 158);
+  --admin-rail-fg: oklch(0.97 0.008 160);
+  --admin-rail-muted: oklch(0.72 0.028 160);
+  --admin-rail-faint: oklch(0.55 0.024 160);
+  --admin-selected: oklch(0.96 0.016 90);
 }
 
 [data-theme="light"] {
@@ -147,12 +157,69 @@
   --art-mid: oklch(0.35 0.07 161);
   --art-fore: oklch(0.43 0.086 159);
   --art-scrim: oklch(0.19 0.036 165 / 0.84);
+
+  --admin-rail: oklch(0.155 0.032 158);
+  --admin-rail-hover: oklch(0.22 0.038 158);
+  --admin-rail-fg: oklch(0.97 0.008 160);
+  --admin-rail-muted: oklch(0.72 0.028 160);
+  --admin-rail-faint: oklch(0.55 0.024 160);
+  --admin-selected: oklch(0.96 0.016 90);
+}
+
+/* Admin ops console: light canvas + dark forest rail, matching the
+   conference-admin mockups. Tokens remapped on the subtree so the public
+   site’s dark default is unchanged. */
+[data-admin-root] {
+  color-scheme: light;
+
+  --bg: oklch(0.97 0.006 162);
+  --bg-subtle: oklch(0.955 0.008 162);
+  --surface: oklch(1 0 0);
+  --surface-raised: oklch(1 0 0);
+  --surface-inset: oklch(0.94 0.01 163);
+
+  --line: oklch(0.9 0.012 165);
+  --line-strong: oklch(0.82 0.018 165);
+
+  --fg: oklch(0.22 0.04 165);
+  --fg-muted: oklch(0.47 0.034 165);
+  --fg-faint: oklch(0.55 0.026 165);
+  --on-accent: oklch(0.24 0.04 90);
+  --on-brand: oklch(0.99 0.004 160);
+
+  --brand: oklch(0.32 0.072 158);
+  --brand-strong: oklch(0.26 0.064 158);
+  --brand-soft: oklch(0.94 0.026 163);
+  --brand-fg: oklch(0.36 0.08 158);
+  --forest: oklch(0.22 0.05 158);
+
+  --accent: oklch(0.82 0.145 88);
+  --accent-strong: oklch(0.74 0.15 86);
+  --accent-fg: oklch(0.48 0.12 78);
+
+  --success: oklch(0.52 0.13 155);
+  --success-fg: oklch(0.38 0.12 155);
+  --warning: oklch(0.72 0.14 78);
+  --warning-fg: oklch(0.46 0.13 70);
+  --danger: oklch(0.55 0.19 24);
+  --danger-fg: oklch(0.46 0.18 25);
+  --focus: oklch(0.52 0.14 80);
+
+  --shadow-sm: 0 1px 2px oklch(0.3 0.04 165 / 0.06);
+  --shadow-md: 0 4px 12px oklch(0.3 0.04 165 / 0.08);
+  --shadow-lg: 0 12px 32px oklch(0.3 0.04 165 / 0.1);
+  --shadow-xl: 0 24px 64px oklch(0.3 0.04 165 / 0.12);
+  --shadow-accent: 0 6px 20px oklch(0.76 0.145 86 / 0.28);
 }
 
 @media (max-width: 767px) {
   :root {
     --header-h: 60px;
   }
+}
+
+[data-announce="on"] {
+  --announce-h: 2.75rem;
 }
 
 @theme inline {
@@ -190,6 +257,12 @@
   --color-on-art: var(--on-art);
   --color-on-art-muted: var(--on-art-muted);
   --color-on-art-accent: var(--on-art-accent);
+  --color-admin-rail: var(--admin-rail);
+  --color-admin-rail-hover: var(--admin-rail-hover);
+  --color-admin-rail-fg: var(--admin-rail-fg);
+  --color-admin-rail-muted: var(--admin-rail-muted);
+  --color-admin-rail-faint: var(--admin-rail-faint);
+  --color-admin-selected: var(--admin-selected);
 
   /* typography */
   --font-display: var(--font-eczar), Georgia, serif;
@@ -261,6 +334,9 @@
   --animate-slide-in: slide-in var(--dur-base) var(--ease-out) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
   --animate-spin-slow: spin 700ms linear infinite;
+  --animate-sponsor-marquee: sponsor-marquee 40s linear infinite;
+  --animate-announce-marquee: sponsor-marquee 42s linear infinite;
+  --animate-login-words: login-word-cycle 14s var(--ease-out) infinite;
 }
 
 /* ==========================================================================
@@ -310,6 +386,48 @@
   }
 }
 
+@keyframes sponsor-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Vertical word cycle for the login headline. Holds on each line, then
+   eases to the next. The last line duplicates the first so the loop is silent. */
+@keyframes login-word-cycle {
+  0%,
+  11% {
+    transform: translateY(0);
+  }
+  14%,
+  25% {
+    transform: translateY(-1.15em);
+  }
+  28%,
+  39% {
+    transform: translateY(-2.3em);
+  }
+  42%,
+  53% {
+    transform: translateY(-3.45em);
+  }
+  56%,
+  67% {
+    transform: translateY(-4.6em);
+  }
+  70%,
+  81% {
+    transform: translateY(-5.75em);
+  }
+  84%,
+  100% {
+    transform: translateY(-6.9em);
+  }
+}
+
 @layer base {
   *,
   *::before,
@@ -320,7 +438,7 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
-    scroll-padding-top: calc(var(--header-h) + 1rem);
+    scroll-padding-top: calc(var(--chrome-h) + 1rem);
   }
 
   body {

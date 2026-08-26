@@ -14,6 +14,10 @@ Already scaffolded and committed (`c8f2f82`). Do not re-init, do not swap.
 | Validation | Hand-written validators in `lib/validation.ts` | — | Zod is not a dependency and will not be added. The form shapes are small and fully known; a 120-line typed validator module beats a dependency. |
 | Icons | Local SVG components in `components/icons/` | — | No icon library. Every icon is authored to the project's stroke weight. |
 | State | React `useState` / `useActionState` / one context for theme | — | No state library. Nothing in this site justifies one. |
+| Backend | Supabase (Postgres + Auth + Storage + RLS) | — | Admin panel + real registration persistence. See `context/doc/admin-panel.md`. |
+| Supabase client | `@supabase/supabase-js` + `@supabase/ssr` | — | Official clients; SSR cookie sessions for App Router middleware and server actions. |
+| Email | `resend` | — | Transactional mail (registration, payment, allotment, query reply). Auth invites stay on Supabase Auth. |
+| Merit AI | `@google/generative-ai` | — | Server-only Gemini ranking for country allotments. Never expose the API key. |
 
 **No new runtime dependencies may be added without recording the reason here first.**
 
@@ -95,10 +99,12 @@ content/*       typed data modules. Import nothing but lib/types.
    exception: `components/forms/*` may import the action type, never the implementation.
 3. **Server Components by default.** `'use client'` is a deliberate act. It is permitted only
    in: `ThemeToggle`, `HelpWidget`, `MobileNav`, `CommitteeFilters`, `DayTabs`, `Tabs`,
-   `Disclosure`, `app/error.tsx`, and everything under `components/forms/`. If a new file
-   needs it, justify it in this document first.
-4. **No data fetching in components.** There is no database. `content/` modules are imported
-   at the route level and are statically analysable.
+   `Disclosure`, `app/error.tsx`, everything under `components/forms/`, and everything under
+   `components/admin/` that needs interactivity (tables filters, drawers, sidebars, forms).
+   Admin pages remain Server Components that compose those islands.
+4. **No data fetching in presentational components.** Marketing routes still read `content/`
+   at the route level. Admin routes fetch via `lib/admin/*` / `lib/supabase/*` in Server
+   Components or server actions — never inside dumb UI atoms.
 5. **Server actions return a discriminated result, never throw for user error.**
    `type ActionResult<T> = { ok: true; data: T } | { ok: false; errors: FieldErrors; message?: string }`.
    Thrown errors are reserved for genuine faults and are caught by `app/error.tsx`.
@@ -108,8 +114,9 @@ content/*       typed data modules. Import nothing but lib/types.
 7. **No hard-coded colors, spacing, radii, or shadows in any component.** Every value is a
    token from `ui-tokens.md`, consumed via a Tailwind utility that maps to a CSS variable.
    A literal hex code in a `.tsx` file is a build defect.
-8. **All routes are statically rendered.** Nothing is dynamic; committee detail pages use
-   `generateStaticParams`. If a route needs to opt out, record why here.
+8. **Marketing routes are statically rendered** where possible; committee detail pages use
+   `generateStaticParams`. **`/admin/*` is dynamic** — auth session, RLS-backed data, and
+   mutations require a request-time render (`force-dynamic` / uncached fetches).
 
 ## Data flow
 

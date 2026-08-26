@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type BadgeTone = "brand" | "success" | "warning" | "neutral" | "accent";
+export type BadgeTone =
+  | "brand"
+  | "success"
+  | "warning"
+  | "neutral"
+  | "accent"
+  | "danger";
 
 const tones: Record<BadgeTone, string> = {
   brand: "bg-brand-soft text-brand-fg",
@@ -9,6 +15,7 @@ const tones: Record<BadgeTone, string> = {
   warning: "bg-surface-inset text-warning-fg",
   neutral: "bg-surface-inset text-fg-muted",
   accent: "bg-surface-inset text-accent-fg",
+  danger: "bg-surface-inset text-danger-fg",
 };
 
 type BadgeProps = {

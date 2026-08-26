@@ -1,11 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 import { Archivo, Eczar } from "next/font/google";
-import { HelpWidget } from "@/components/layout/HelpWidget";
-import { SiteFooter } from "@/components/layout/SiteFooter";
-import { SiteHeader } from "@/components/layout/SiteHeader";
-import { SkipLink } from "@/components/layout/SkipLink";
-import { conference, navItems, socials } from "@/content/site";
-import { quickHelpFaqs } from "@/content/faq";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -15,16 +10,7 @@ import "./globals.css";
  * The object is a committee placard and an engraved rostrum nameplate:
  * engraved, deliberate, meant to be spoken aloud.
  *
- * Eczar carries the display. It was drawn for multilingual typesetting across
- * the Indian subcontinent, which gives a Karachi conference a real typographic
- * lineage rather than a costume one, and its high stroke contrast has genuine
- * vigour at headline sizes. Archivo takes the text and the UI: a sturdy
- * grotesque built for signage and forms, so it holds up in a four-step
- * registration flow where Eczar would not.
- *
- * This replaced a Fraunces/Inter pair. Both are training-data defaults, and the
- * serif-display-over-neutral-sans move is the saturated editorial lane — the
- * exact reflex a diplomatic brand should be avoiding.
+ * Eczar carries the display. Archivo takes the text and the UI.
  */
 const eczar = Eczar({
   variable: "--font-eczar",
@@ -74,14 +60,17 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    // The only sanctioned hex literals in the codebase: browser-chrome colour
-    // cannot read a CSS variable. Kept in sync with --bg in each theme.
     { media: "(prefers-color-scheme: dark)", color: "#12251d" },
     { media: "(prefers-color-scheme: light)", color: "#fafdfb" },
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/** Root shell: fonts + theme only. Marketing chrome lives in `(site)`; admin has its own layout. */
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <html
       lang="en"
@@ -91,23 +80,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="flex min-h-full flex-col bg-canvas text-fg">
-        <SkipLink />
-        <SiteHeader items={navItems} />
-        {children}
-        <SiteFooter
-          items={navItems}
-          conference={{
-            fullName: conference.fullName,
-            city: conference.city,
-            country: conference.country,
-            datesLabel: conference.datesLabel,
-            venue: conference.venue,
-          }}
-          socials={socials}
-        />
-        <HelpWidget faqs={quickHelpFaqs} />
-      </body>
+      <body className="flex min-h-full flex-col bg-canvas text-fg">{children}</body>
     </html>
   );
 }

@@ -3,11 +3,11 @@ import { ArrowRight } from "@/components/icons/ArrowRight";
 import { Users } from "@/components/icons/Users";
 import { Gavel } from "@/components/icons/Gavel";
 import { Section } from "@/components/ui/Section";
-import { registrationOpen } from "@/content/site";
 
 type HomeCtaProps = {
   delegateFee: string;
   delegationFee: string;
+  registrationOpen: boolean;
 };
 
 const paths = [
@@ -27,7 +27,7 @@ const paths = [
   },
 ] as const;
 
-export function HomeCta({ delegateFee, delegationFee }: HomeCtaProps) {
+export function HomeCta({ delegateFee, delegationFee, registrationOpen }: HomeCtaProps) {
   const fees = [delegateFee, delegationFee];
 
   return (

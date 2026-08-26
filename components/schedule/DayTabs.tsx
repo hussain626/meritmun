@@ -6,15 +6,25 @@ import { ScheduleTimeline } from "@/components/schedule/ScheduleTimeline";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { ButtonLink } from "@/components/ui/Button";
-import { registrationOpen } from "@/content/site";
 import type { ScheduleDay } from "@/lib/types";
 
 /** Shared by the tablist and every panel — they must agree or the wiring breaks. */
 const ID_BASE = "schedule";
 
-type DayTabsProps = { days: ScheduleDay[] };
+type DayTabsProps = { days: ScheduleDay[]; registrationOpen: boolean };
 
-export function DayTabs({ days }: DayTabsProps) {
+function formatScheduleDate(value: string | null): string {
+  if (!value) return "Calendar date to be announced";
+  const parsed = Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value);
+  if (Number.isNaN(parsed)) return value;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(parsed));
+}
+
+export function DayTabs({ days, registrationOpen }: DayTabsProps) {
   const [activeDayId, setActiveDayId] = useState<string>(days[0]?.id ?? "");
 
   const activeDay = days.find((day) => day.id === activeDayId) ?? days[0];
@@ -64,7 +74,7 @@ export function DayTabs({ days }: DayTabsProps) {
           </p>
           <p className="flex items-center gap-2 text-sm text-fg-faint">
             <Calendar className="size-4 shrink-0" />
-            {activeDay.date ?? "Calendar date to be announced"}
+            {formatScheduleDate(activeDay.date)}
           </p>
         </div>
 

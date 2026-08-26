@@ -10,8 +10,8 @@ type PageHeroProps = {
 };
 
 /**
- * The interior-page counterpart to the home hero. Owns the --header-h top
- * offset that every page's first section must carry, because the site header
+ * The interior-page counterpart to the home hero. Owns the --chrome-h top
+ * offset that every page's first section must carry, because the site chrome
  * is pulled out of flow with a negative margin.
  */
 export function PageHero({ title, lead, meta, action, className }: PageHeroProps) {
@@ -19,7 +19,7 @@ export function PageHero({ title, lead, meta, action, className }: PageHeroProps
     <section
       className={cn(
         "relative overflow-hidden border-b border-line bg-canvas-subtle",
-        "pt-[calc(var(--header-h)+3.5rem)] pb-14 sm:pb-16",
+        "pt-[calc(var(--chrome-h)+3.5rem)] pb-14 sm:pb-16",
         className,
       )}
     >

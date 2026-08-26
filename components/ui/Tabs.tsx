@@ -18,6 +18,7 @@ type TabsProps = {
   /** Shared id prefix. Pass the SAME string to every matching <TabPanel>. */
   idBase: string;
   className?: string;
+  variant?: "pills" | "underline";
 };
 
 /**
@@ -31,6 +32,7 @@ export function Tabs({
   label,
   idBase,
   className,
+  variant = "pills",
 }: TabsProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +75,9 @@ export function Tabs({
       role="tablist"
       aria-label={label}
       className={cn(
-        "flex flex-wrap gap-2 rounded-lg border border-line bg-surface p-1.5",
+        variant === "underline"
+          ? "flex gap-6 border-b border-line"
+          : "flex flex-wrap gap-2 rounded-lg border border-line bg-surface p-1.5",
         className,
       )}
     >
@@ -92,11 +96,21 @@ export function Tabs({
             onClick={() => onChange(tab.id)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              "flex-1 rounded-md px-4 py-2.5 text-left transition-colors duration-[var(--dur-fast)] ease-out",
+              "transition-colors duration-[var(--dur-fast)] ease-out",
               "focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2",
-              isSelected
-                ? "bg-brand text-on-brand"
-                : "text-fg-muted hover:bg-surface-raised hover:text-fg",
+              variant === "underline"
+                ? cn(
+                    "-mb-px border-b-2 px-0.5 pb-2.5 text-sm font-semibold",
+                    isSelected
+                      ? "border-fg text-fg"
+                      : "border-transparent text-fg-muted hover:text-fg",
+                  )
+                : cn(
+                    "flex-1 rounded-md px-4 py-2.5 text-left",
+                    isSelected
+                      ? "bg-brand text-on-brand"
+                      : "text-fg-muted hover:bg-surface-raised hover:text-fg",
+                  ),
             )}
           >
             <span className="block text-sm font-semibold">{tab.label}</span>
@@ -104,7 +118,11 @@ export function Tabs({
               <span
                 className={cn(
                   "mt-0.5 block text-xs",
-                  isSelected ? "text-on-brand/80" : "text-fg-faint",
+                  isSelected
+                    ? variant === "underline"
+                      ? "text-fg-muted"
+                      : "text-on-brand/80"
+                    : "text-fg-faint",
                 )}
               >
                 {tab.hint}
