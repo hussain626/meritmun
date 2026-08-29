@@ -1,9 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import "server-only";
 import {
   getSupabaseAnonKey,
-  getSupabaseServiceRoleKey,
   getSupabaseUrl,
   isSupabaseConfigured,
 } from "@/lib/supabase/env";
@@ -50,7 +50,7 @@ export function createServiceClient() {
     return null;
   }
 
-  const serviceKey = getSupabaseServiceRoleKey();
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
   if (!serviceKey) {
     return null;
   }

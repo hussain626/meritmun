@@ -24,7 +24,3 @@ export function getSupabaseUrl(): string {
 export function getSupabaseAnonKey(): string {
   return readPublicSupabaseKey();
 }
-
-export function getSupabaseServiceRoleKey(): string {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
-}
