@@ -24,10 +24,10 @@ export default function ExecutiveBoardPage() {
       />
 
       <Section>
-        <SectionHeading
-          title="EB"
-          lead="Eight officers who own the academic standard, the schedule, and the money. Each one holds a single portfolio and is accountable for it."
-        />
+        <p className="max-w-[54ch] text-lg leading-normal text-fg-muted">
+          Eight officers who own the academic standard, the schedule, and the
+          money. Each one holds a single portfolio and is accountable for it.
+        </p>
 
         <div className={cn("mt-10", boardGrid)}>
           {secretariat.map((member) => {

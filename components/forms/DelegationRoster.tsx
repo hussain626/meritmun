@@ -18,7 +18,6 @@ export const EMPTY_MEMBER: DelegationMember = {
   fullName: "",
   email: "",
   phone: "",
-  age: Number.NaN,
   experience: "" as ExperienceLevel,
   priorAwards: null,
   committeePrefs: ["", "", ""],
@@ -124,7 +123,12 @@ export function DelegationRoster({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Full name" htmlFor={id("fullName")} error={err("fullName")}>
+              <Field
+                label="Full name"
+                htmlFor={id("fullName")}
+                error={err("fullName")}
+                className="sm:col-span-2"
+              >
                 <Input
                   id={id("fullName")}
                   value={member.fullName}
@@ -132,19 +136,6 @@ export function DelegationRoster({
                   aria-describedby={describedBy(id("fullName"), err("fullName"))}
                   onChange={(e) => update(index, { fullName: e.target.value })}
                   onBlur={() => touch("fullName")}
-                />
-              </Field>
-
-              <Field label="Age" htmlFor={id("age")} error={err("age")}>
-                <Input
-                  id={id("age")}
-                  type="number"
-                  inputMode="numeric"
-                  value={Number.isNaN(member.age) ? "" : member.age}
-                  invalid={Boolean(err("age"))}
-                  aria-describedby={describedBy(id("age"), err("age"))}
-                  onChange={(e) => update(index, { age: e.target.valueAsNumber })}
-                  onBlur={() => touch("age")}
                 />
               </Field>
 

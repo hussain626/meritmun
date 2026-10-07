@@ -72,7 +72,6 @@ const EMPTY: DelegateApplication = {
   email: "",
   phone: "",
   institution: "",
-  age: Number.NaN,
   city: "",
   experience: "" as ExperienceLevel,
   priorAwards: null,
@@ -190,7 +189,6 @@ export function DelegateForm({
         { label: "Full name", value: values.fullName },
         { label: "Email", value: values.email },
         { label: "Phone", value: values.phone },
-        { label: "Age", value: Number.isNaN(values.age) ? "" : String(values.age) },
         { label: "City", value: values.city },
         { label: "Institution", value: values.institution },
       ],
@@ -247,7 +245,12 @@ export function DelegateForm({
         active={step === 0}
       >
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Full name" htmlFor="fullName" error={errorFor("fullName")}>
+          <Field
+            label="Full name"
+            htmlFor="fullName"
+            error={errorFor("fullName")}
+            className="sm:col-span-2"
+          >
             <Input
               id="fullName"
               name="fullName"
@@ -257,31 +260,6 @@ export function DelegateForm({
               aria-describedby={describedBy("fullName", errorFor("fullName"))}
               onChange={(event) => set("fullName", event.target.value)}
               onBlur={() => setTouched((c) => new Set([...c, "fullName"]))}
-            />
-          </Field>
-
-          <Field
-            label="Age"
-            htmlFor="age"
-            helper="Delegates must be 13 or older."
-            error={errorFor("age")}
-          >
-            <Input
-              id="age"
-              name="age"
-              type="number"
-              inputMode="numeric"
-              min={13}
-              max={30}
-              value={Number.isNaN(values.age) ? "" : values.age}
-              invalid={Boolean(errorFor("age"))}
-              aria-describedby={describedBy(
-                "age",
-                errorFor("age"),
-                "Delegates must be 13 or older.",
-              )}
-              onChange={(event) => set("age", event.target.valueAsNumber)}
-              onBlur={() => setTouched((c) => new Set([...c, "age"]))}
             />
           </Field>
 

@@ -15,8 +15,6 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // rejecting a real number is far more costly than accepting a malformed one.
 const PHONE = /^[+\d][\d\s()+-]{7,19}$/;
 
-export const MIN_AGE = 13;
-export const MAX_AGE = 30;
 export const MIN_DELEGATION = 5;
 export const MAX_DELEGATION = 30;
 
@@ -129,7 +127,7 @@ export const CONTACT_TOPICS = [
  * reached yet.
  */
 export const DELEGATE_STEP_FIELDS: string[][] = [
-  ["fullName", "email", "phone", "age", "city", "institution"],
+  ["fullName", "email", "phone", "city", "institution"],
   ["experience", "hearAbout"],
   ["committeePrefs"],
   ["consent"],
@@ -194,7 +192,6 @@ function validateMembers(
     errors[memberField(index, "fullName")] = minLength(member.fullName, 2, "Full name");
     errors[memberField(index, "email")] = emailError;
     errors[memberField(index, "phone")] = validPhone(member.phone);
-    errors[memberField(index, "age")] = inRange(member.age, MIN_AGE, MAX_AGE, "Age");
     errors[memberField(index, "experience")] = oneOf(
       member.experience,
       EXPERIENCE_LEVELS,
@@ -221,7 +218,6 @@ export function validateDelegate(
     fullName: minLength(values.fullName, 2, "Full name"),
     email: validEmail(values.email),
     phone: validPhone(values.phone),
-    age: inRange(values.age, MIN_AGE, MAX_AGE, "Age"),
     city: required(values.city, "City"),
     institution: minLength(values.institution, 2, "Institution"),
     experience: oneOf(values.experience, EXPERIENCE_LEVELS, "Experience level"),

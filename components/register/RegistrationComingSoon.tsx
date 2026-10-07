@@ -10,7 +10,7 @@ export function RegistrationComingSoon({ className }: RegistrationComingSoonProp
   return (
     <EmptyState
       className={className}
-      title="Registration coming soon"
+      title="Opening date to be announced"
       body={`We're putting the finishing touches on registration for ${conference.fullName}. Check back here soon — we'll announce the opening date on our social channels.`}
       action={
         <Link

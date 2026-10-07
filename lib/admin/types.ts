@@ -83,7 +83,7 @@ export type DelegateRecord = {
   email: string;
   phone: string;
   institution: string;
-  age: number;
+  age: number | null;
   city: string;
   experience: ExperienceLevel;
   priorAwards: string | null;

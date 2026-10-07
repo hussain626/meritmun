@@ -110,7 +110,7 @@ function mapDelegate(row: Record<string, unknown>): DelegateRecord {
     email: String(row.email),
     phone: String(row.phone),
     institution: String(row.institution),
-    age: Number(row.age),
+    age: row.age == null ? null : Number(row.age),
     city: String(row.city),
     experience: row.experience as DelegateRecord["experience"],
     priorAwards: row.prior_awards == null ? null : String(row.prior_awards),

@@ -125,7 +125,6 @@ export type DelegateApplication = {
   email: string;
   phone: string;
   institution: string;
-  age: number;
   city: string;
   experience: ExperienceLevel;
   priorAwards: string | null;
@@ -148,7 +147,6 @@ export type DelegationMember = {
   fullName: string;
   email: string;
   phone: string;
-  age: number;
   experience: ExperienceLevel;
   priorAwards: string | null;
   committeePrefs: string[];
