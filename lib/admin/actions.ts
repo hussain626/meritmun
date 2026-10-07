@@ -15,16 +15,16 @@ import {
   parseCountryList,
 } from "@/lib/admin/portfolio-list";
 import type {
-  AllotmentRecord,
   BankAccount,
+  FeeType,
   Portfolio,
   PricingSettings,
 } from "@/lib/admin/types";
 import { getPricing } from "@/lib/admin/data";
 import { getAdminSession } from "@/lib/admin/auth";
 import { sendPaymentConfirmed } from "@/lib/email/send";
+import { runMeritEngineAction } from "@/lib/admin/allotment-actions";
 import { isP5Country } from "@/lib/merit/p5";
-import { runMeritEngine } from "@/lib/merit/run";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
@@ -40,66 +40,6 @@ function revalidateAdmin(): void {
   revalidatePath("/admin/pricing");
   revalidatePath("/admin/committees");
   revalidatePath("/admin/team");
-}
-
-async function runMeritForDelegateDemo(delegateId: string): Promise<void> {
-  const store = getDemoStore();
-  const delegate = store.delegates.find((d) => d.id === delegateId);
-  if (!delegate) return;
-
-  const taken = new Set(
-    store.allotments
-      .filter((a) => a.status === "draft" || a.status === "confirmed")
-      .map((a) => a.portfolioId),
-  );
-
-  const candidates = store.portfolios.map((portfolio) => {
-    const committee = store.committees.find((c) => c.id === portfolio.committeeId);
-    return {
-      portfolio,
-      committeeId: portfolio.committeeId,
-      committeeSlug: committee?.slug,
-      agenda: committee?.agenda,
-      hardnessScore: committee?.hardnessScore,
-    };
-  });
-
-  const result = await runMeritEngine({
-    delegate,
-    candidates,
-    takenPortfolioIds: taken,
-  });
-
-  if (!result.ok) {
-    console.warn("[meritmun/merit]", result.error);
-    return;
-  }
-
-  // Replace existing draft merit allotment for this delegate only.
-  store.allotments = store.allotments.filter(
-    (a) =>
-      !(
-        a.delegateId === delegateId &&
-        a.source === "merit" &&
-        a.status === "draft"
-      ),
-  );
-
-  const draft: AllotmentRecord = {
-    id: `allot-${delegateId}-${result.allotment.portfolioId}`,
-    delegateId: result.allotment.delegateId,
-    committeeId: result.allotment.committeeId,
-    portfolioId: result.allotment.portfolioId,
-    source: "merit",
-    status: "draft",
-    rationale: result.allotment.rationale,
-    score: result.allotment.score,
-    confirmedAt: null,
-    confirmedBy: null,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  };
-  store.allotments.push(draft);
 }
 
 export type SignInState = { message: string } | null;
@@ -208,6 +148,25 @@ export async function signOutAdmin(): Promise<void> {
   redirect("/admin/login");
 }
 
+function feeForType(feeType: FeeType, pricing: PricingSettings): number {
+  switch (feeType) {
+    case "early_bird_delegate":
+      return pricing.earlyBirdDelegateFee ?? pricing.delegateFee;
+    case "delegation_member":
+      return pricing.perDelegateFee;
+    case "early_bird_delegation_member":
+      return pricing.earlyBirdPerDelegateFee ?? pricing.perDelegateFee;
+    default:
+      return pricing.delegateFee;
+  }
+}
+
+/** Auto-run merit for newly paid delegates; payment stays confirmed even if this fails. */
+async function queueMerit(delegateIds: string[]): Promise<string> {
+  const result = await runMeritEngineAction({ delegateIds, keepDrafts: true });
+  return result.ok ? result.message : `Merit run did not complete: ${result.message}`;
+}
+
 export async function confirmDelegatePayment(
   id: string,
 ): Promise<{ ok: boolean; message: string }> {
@@ -217,28 +176,23 @@ export async function confirmDelegatePayment(
     if (!delegate) {
       return { ok: false, message: "Delegate not found." };
     }
-    const pricing = store.pricing;
-    const amount =
-      delegate.paymentAmount ??
-      (delegate.feeType.includes("delegation")
-        ? pricing.perDelegateFee
-        : pricing.delegateFee);
     delegate.paymentStatus = "confirmed";
-    delegate.paymentAmount = amount;
+    delegate.paymentAmount =
+      delegate.paymentAmount ?? feeForType(delegate.feeType, store.pricing);
     delegate.paymentConfirmedAt = nowIso();
     delegate.paymentRejectedAt = null;
     delegate.rejectionReason = null;
     delegate.updatedAt = nowIso();
 
-    await runMeritForDelegateDemo(id);
     await sendPaymentConfirmed({
       to: delegate.email,
       fullName: delegate.fullName,
       reference: delegate.reference,
     });
+    const merit = await queueMerit([id]);
 
     revalidateAdmin();
-    return { ok: true, message: "Payment confirmed; merit draft queued." };
+    return { ok: true, message: `Payment confirmed (demo). ${merit}` };
   }
 
   try {
@@ -256,7 +210,7 @@ export async function confirmDelegatePayment(
       .from("delegates")
       .update({
         payment_status: "confirmed",
-        payment_amount: pricing.delegateFee,
+        payment_amount: feeForType(delegate.fee_type as FeeType, pricing),
         payment_confirmed_at: nowIso(),
         payment_rejected_at: null,
         rejection_reason: null,
@@ -270,12 +224,177 @@ export async function confirmDelegatePayment(
       fullName: String(delegate.full_name),
       reference: String(delegate.reference),
     });
+    const merit = await queueMerit([id]);
 
     revalidateAdmin();
-    return { ok: true, message: "Payment confirmed." };
+    return { ok: true, message: `Payment confirmed. ${merit}` };
   } catch (error) {
     console.warn("[meritmun/admin] confirmDelegatePayment", error);
     return { ok: false, message: "Could not confirm payment." };
+  }
+}
+
+/**
+ * One payment covers a whole delegation: confirm the delegation and every
+ * member on its roster, email the head, then run merit for the members.
+ */
+export async function confirmDelegationPayment(
+  id: string,
+): Promise<{ ok: boolean; message: string }> {
+  if (!isSupabaseConfigured()) {
+    const store = getDemoStore();
+    const delegation = store.delegations.find((d) => d.id === id);
+    if (!delegation) return { ok: false, message: "Delegation not found." };
+    const members = store.delegates.filter((d) => d.delegationId === id);
+    const stamp = nowIso();
+    let total = 0;
+    for (const member of members) {
+      member.paymentStatus = "confirmed";
+      member.paymentAmount =
+        member.paymentAmount ?? feeForType(member.feeType, store.pricing);
+      member.paymentConfirmedAt = stamp;
+      member.paymentRejectedAt = null;
+      member.rejectionReason = null;
+      member.updatedAt = stamp;
+      total += member.paymentAmount;
+    }
+    delegation.paymentStatus = "confirmed";
+    delegation.paymentAmount =
+      delegation.paymentAmount ??
+      (total || delegation.delegationSize * store.pricing.perDelegateFee);
+    delegation.updatedAt = stamp;
+
+    await sendPaymentConfirmed({
+      to: delegation.headEmail,
+      fullName: delegation.headName,
+      reference: delegation.reference,
+    });
+    const merit = members.length
+      ? await queueMerit(members.map((m) => m.id))
+      : "No roster members to allot.";
+
+    revalidateAdmin();
+    return {
+      ok: true,
+      message: `Delegation confirmed with ${members.length} member${members.length === 1 ? "" : "s"} (demo). ${merit}`,
+    };
+  }
+
+  try {
+    const client = await createClient();
+    const pricing = await getPricing();
+    const { data: delegation, error: fetchError } = await client
+      .from("delegations")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+    if (!delegation) return { ok: false, message: "Delegation not found." };
+
+    const { data: members, error: membersError } = await client
+      .from("delegates")
+      .select("id, fee_type")
+      .eq("delegation_id", id);
+    if (membersError) throw membersError;
+
+    const stamp = nowIso();
+    let total = 0;
+    for (const member of members ?? []) {
+      const amount = feeForType(member.fee_type as FeeType, pricing);
+      total += amount;
+      const { error } = await client
+        .from("delegates")
+        .update({
+          payment_status: "confirmed",
+          payment_amount: amount,
+          payment_confirmed_at: stamp,
+          payment_rejected_at: null,
+          rejection_reason: null,
+          updated_at: stamp,
+        })
+        .eq("id", String(member.id));
+      if (error) throw error;
+    }
+
+    const { error } = await client
+      .from("delegations")
+      .update({
+        payment_status: "confirmed",
+        payment_amount:
+          total || Number(delegation.delegation_size) * pricing.perDelegateFee,
+        updated_at: stamp,
+      })
+      .eq("id", id);
+    if (error) throw error;
+
+    await sendPaymentConfirmed({
+      to: String(delegation.head_email),
+      fullName: String(delegation.head_name),
+      reference: String(delegation.reference),
+    });
+    const memberIds = (members ?? []).map((m) => String(m.id));
+    const merit = memberIds.length
+      ? await queueMerit(memberIds)
+      : "No roster members to allot.";
+
+    revalidateAdmin();
+    return {
+      ok: true,
+      message: `Delegation confirmed with ${memberIds.length} member${memberIds.length === 1 ? "" : "s"}. ${merit}`,
+    };
+  } catch (error) {
+    console.warn("[meritmun/admin] confirmDelegationPayment", error);
+    return { ok: false, message: "Could not confirm the delegation payment." };
+  }
+}
+
+export async function rejectDelegationPayment(
+  id: string,
+  reason?: string,
+): Promise<{ ok: boolean; message: string }> {
+  const rejection = reason?.trim() || "Rejected by admin.";
+  const stamp = nowIso();
+
+  if (!isSupabaseConfigured()) {
+    const store = getDemoStore();
+    const delegation = store.delegations.find((d) => d.id === id);
+    if (!delegation) return { ok: false, message: "Delegation not found." };
+    delegation.paymentStatus = "rejected";
+    delegation.updatedAt = stamp;
+    for (const member of store.delegates.filter((d) => d.delegationId === id)) {
+      member.paymentStatus = "rejected";
+      member.paymentRejectedAt = stamp;
+      member.rejectionReason = rejection;
+      member.paymentConfirmedAt = null;
+      member.updatedAt = stamp;
+    }
+    revalidateAdmin();
+    return { ok: true, message: "Delegation payment rejected (demo)." };
+  }
+
+  try {
+    const client = await createClient();
+    const { error } = await client
+      .from("delegations")
+      .update({ payment_status: "rejected", updated_at: stamp })
+      .eq("id", id);
+    if (error) throw error;
+    const { error: membersError } = await client
+      .from("delegates")
+      .update({
+        payment_status: "rejected",
+        payment_rejected_at: stamp,
+        rejection_reason: rejection,
+        payment_confirmed_at: null,
+        updated_at: stamp,
+      })
+      .eq("delegation_id", id);
+    if (membersError) throw membersError;
+    revalidateAdmin();
+    return { ok: true, message: "Delegation payment rejected." };
+  } catch (error) {
+    console.warn("[meritmun/admin] rejectDelegationPayment", error);
+    return { ok: false, message: "Could not reject the delegation payment." };
   }
 }
 
@@ -337,75 +456,6 @@ export async function resendRegistrationEmail(
   console.info(`[meritmun/admin] resend registration email for ${id}`);
   revalidatePath("/admin/registrations");
   return { ok: true, message: "Confirmation email queued." };
-}
-
-export async function confirmAllotment(
-  id: string,
-): Promise<{ ok: boolean; message: string }> {
-  if (!isSupabaseConfigured()) {
-    const store = getDemoStore();
-    const allotment = store.allotments.find((a) => a.id === id);
-    if (!allotment) {
-      return { ok: false, message: "Allotment not found." };
-    }
-    allotment.status = "confirmed";
-    allotment.confirmedAt = nowIso();
-    allotment.confirmedBy = "demo-admin";
-    allotment.updatedAt = nowIso();
-    revalidateAdmin();
-    return { ok: true, message: "Allotment confirmed (demo)." };
-  }
-
-  try {
-    const client = await createClient();
-    const {
-      data: { user },
-    } = await client.auth.getUser();
-    const { error } = await client
-      .from("allotments")
-      .update({
-        status: "confirmed",
-        confirmed_at: nowIso(),
-        confirmed_by: user?.id ?? null,
-        updated_at: nowIso(),
-      })
-      .eq("id", id);
-    if (error) throw error;
-    revalidateAdmin();
-    return { ok: true, message: "Allotment confirmed." };
-  } catch (error) {
-    console.warn("[meritmun/admin] confirmAllotment", error);
-    return { ok: false, message: "Could not confirm allotment." };
-  }
-}
-
-export async function updateAllotmentDraft(
-  id: string,
-  patch: { committeeId?: string; portfolioId?: string; rationale?: string },
-): Promise<{ ok: boolean; message: string }> {
-  if (!isSupabaseConfigured()) {
-    const store = getDemoStore();
-    const allotment = store.allotments.find((a) => a.id === id);
-    if (!allotment) {
-      return { ok: false, message: "Allotment not found." };
-    }
-    if (patch.committeeId) allotment.committeeId = patch.committeeId;
-    if (patch.portfolioId) {
-      allotment.portfolioId = patch.portfolioId;
-      const portfolio = store.portfolios.find((p) => p.id === patch.portfolioId);
-      if (portfolio?.isP5) {
-        allotment.source = "manual";
-      }
-    }
-    if (patch.rationale !== undefined) allotment.rationale = patch.rationale;
-    allotment.updatedAt = nowIso();
-    revalidateAdmin();
-    return { ok: true, message: "Allotment updated (demo)." };
-  }
-
-  console.info(`[meritmun/admin] updateAllotmentDraft ${id}`, patch);
-  revalidatePath("/admin/allotments");
-  return { ok: true, message: "Allotment updated." };
 }
 
 export async function replyToQuery(

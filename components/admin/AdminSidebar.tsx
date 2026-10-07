@@ -12,10 +12,12 @@ import { Close } from "@/components/icons/Close";
 import { CreditCard } from "@/components/icons/CreditCard";
 import { FileText } from "@/components/icons/FileText";
 import { Gavel } from "@/components/icons/Gavel";
+import { Globe } from "@/components/icons/Globe";
 import { Inbox } from "@/components/icons/Inbox";
 import { LayoutDashboard } from "@/components/icons/LayoutDashboard";
 import { Megaphone } from "@/components/icons/Megaphone";
 import { Menu } from "@/components/icons/Menu";
+import { Settings } from "@/components/icons/Settings";
 import { Shield } from "@/components/icons/Shield";
 import { UserPlus } from "@/components/icons/UserPlus";
 import { Users } from "@/components/icons/Users";
@@ -38,6 +40,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/registrations", label: "Registrations", icon: FileText },
   { href: "/admin/allotments", label: "Allotments", icon: Gavel },
+  { href: "/admin/allotment-rules", label: "Allotment Rules", icon: Settings },
+  { href: "/admin/countries", label: "Country Matrix", icon: Globe },
   {
     href: "/admin/queries",
     label: "Queries",

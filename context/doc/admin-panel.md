@@ -477,6 +477,22 @@ Use `auth.uid()` + `profiles.role`. Service role in server actions for: payment 
 
 ## Merit engine
 
+> **Implemented (migration 005).** The per-delegate Gemini ranker in `lib/merit/run.ts` was replaced by a batch engine:
+>
+> - `lib/merit/score.ts` scores 0–100 from experience band + awards (Gemini in chunks of 40, or a heuristic). Gemini failure fails the run closed.
+> - `lib/merit/allot.ts` is a pure planner. It seats delegates in score order, then by registration time:
+>   - It tries their top N preferences, gated by committee difficulty against the rules.
+>   - If none fits, it falls back to the emptiest eligible committee (or leaves the delegate for EB).
+>   - It caps delegation members per committee.
+>   - It picks the free portfolio whose hardness best matches merit.
+> - `lib/admin/allotment-actions.ts` is the server-action layer:
+>   - Engine actions: run engine, manual seat, clear, issue one/all with email, change an issued seat with re-email.
+>   - Settings actions: rules, committee pause, attendance.
+> - Per-delegate outcomes are logged to `merit_runs`; the latest failure shows as "Needs EB" on Allotments.
+> - Tunables live in the `allotment_rules` singleton (`/admin/allotment-rules`). Each committee has an `allotments_paused` flag.
+> - Delegation registrations now carry a full roster (name, email, phone, age, experience, three preferences per member). Each member becomes a `delegates` row linked by `delegation_id`, so allotments stay per delegate.
+> - Other pages: `/admin/countries` (country matrix + attendance per schedule day), `/admin/roll-call` and `/admin/waivers` (printable, outside the admin chrome).
+
 ### Module: `lib/merit/run.ts`
 
 **Trigger:** Automatically when a delegate’s `payment_status` becomes `confirmed` (individual confirm or delegation batch confirm that marks members paid).

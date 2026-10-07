@@ -135,28 +135,87 @@ export const DELEGATE_STEP_FIELDS: string[][] = [
   ["consent"],
 ];
 
+/**
+ * Step fields are prefixes: "members" also blocks on any "members.N.field"
+ * error, so one entry covers the whole roster.
+ */
 export const DELEGATION_STEP_FIELDS: string[][] = [
   ["institutionName", "institutionCity", "institutionType"],
   ["headName", "headEmail", "headPhone", "headRole"],
+  ["members"],
   ["delegationSize", "accommodationCount"],
   ["consent"],
 ];
+
+/** Error key for one roster field, e.g. `members.2.phone`. */
+export function memberField(index: number, field: string): string {
+  return `members.${index}.${field}`;
+}
+
+export function validateCommitteePrefs(
+  committeePrefs: string[],
+  validCommitteeSlugs: readonly string[],
+): string | null {
+  const prefs = committeePrefs.filter(Boolean);
+  const distinct = new Set(prefs);
+
+  if (prefs.length < 3) {
+    return "Rank three committees, in order of preference.";
+  }
+  if (distinct.size !== prefs.length) {
+    return "Pick three different committees.";
+  }
+  if (prefs.some((slug) => !validCommitteeSlugs.includes(slug))) {
+    return "One of those committees is no longer available.";
+  }
+  return null;
+}
+
+function validateMembers(
+  values: DelegationApplication,
+  validCommitteeSlugs: readonly string[],
+): Record<string, string | null> {
+  const errors: Record<string, string | null> = {};
+  const count = values.members.length;
+  errors.members =
+    count < MIN_DELEGATION || count > MAX_DELEGATION
+      ? `Add between ${MIN_DELEGATION} and ${MAX_DELEGATION} delegates — you have ${count}.`
+      : null;
+
+  const seenEmails = new Map<string, number>();
+  values.members.forEach((member, index) => {
+    const email = member.email.trim().toLowerCase();
+    let emailError = validEmail(member.email);
+    if (!emailError && seenEmails.has(email)) {
+      emailError = `Same email as delegate ${(seenEmails.get(email) ?? 0) + 1}. Each delegate needs their own.`;
+    }
+    if (email) seenEmails.set(email, seenEmails.get(email) ?? index);
+
+    errors[memberField(index, "fullName")] = minLength(member.fullName, 2, "Full name");
+    errors[memberField(index, "email")] = emailError;
+    errors[memberField(index, "phone")] = validPhone(member.phone);
+    errors[memberField(index, "age")] = inRange(member.age, MIN_AGE, MAX_AGE, "Age");
+    errors[memberField(index, "experience")] = oneOf(
+      member.experience,
+      EXPERIENCE_LEVELS,
+      "Experience level",
+    );
+    errors[memberField(index, "committeePrefs")] = validateCommitteePrefs(
+      member.committeePrefs,
+      validCommitteeSlugs,
+    );
+  });
+  return errors;
+}
 
 export function validateDelegate(
   values: DelegateApplication,
   validCommitteeSlugs: readonly string[],
 ): FieldErrors {
-  const prefs = values.committeePrefs.filter(Boolean);
-  const distinct = new Set(prefs);
-
-  let prefError: string | null = null;
-  if (prefs.length < 3) {
-    prefError = "Rank three committees, in order of preference.";
-  } else if (distinct.size !== prefs.length) {
-    prefError = "Pick three different committees.";
-  } else if (prefs.some((slug) => !validCommitteeSlugs.includes(slug))) {
-    prefError = "One of those committees is no longer available.";
-  }
+  const prefError = validateCommitteePrefs(
+    values.committeePrefs,
+    validCommitteeSlugs,
+  );
 
   return prune({
     fullName: minLength(values.fullName, 2, "Full name"),
@@ -203,12 +262,7 @@ export function validateDelegation(
     headEmail: validEmail(values.headEmail),
     headPhone: validPhone(values.headPhone),
     headRole: required(values.headRole, "Your role"),
-    delegationSize: inRange(
-      values.delegationSize,
-      MIN_DELEGATION,
-      MAX_DELEGATION,
-      "Delegation size",
-    ),
+    ...validateMembers(values, validCommitteeSlugs),
     accommodationCount: accommodationError,
     committeeSpread: spreadError,
     consent: values.consent

@@ -502,12 +502,12 @@ export function DelegateForm({
         ) : null}
 
         {isLastStep ? (
-          <Button type="submit" size="lg" loading={isPending} loadingLabel="Submitting your application…">
+          <Button key="submit" type="submit" size="lg" loading={isPending} loadingLabel="Submitting your application…">
             Submit my application
             <ArrowRight className="size-5" />
           </Button>
         ) : (
-          <Button type="button" onClick={handleNext}>
+          <Button key="next" type="button" onClick={handleNext}>
             Continue
             <ArrowRight className="size-4" />
           </Button>

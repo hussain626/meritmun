@@ -143,6 +143,17 @@ export type InstitutionType =
   | "mun-society"
   | "other";
 
+/** One student on a delegation roster. Every member gets their own seat. */
+export type DelegationMember = {
+  fullName: string;
+  email: string;
+  phone: string;
+  age: number;
+  experience: ExperienceLevel;
+  priorAwards: string | null;
+  committeePrefs: string[];
+};
+
 export type DelegationApplication = {
   institutionName: string;
   institutionCity: string;
@@ -151,7 +162,9 @@ export type DelegationApplication = {
   headEmail: string;
   headPhone: string;
   headRole: string;
+  /** Always equals `members.length` — derived, kept for the summary and invoice. */
   delegationSize: number;
+  members: DelegationMember[];
   facultyAccompanying: boolean;
   committeeSpread: string[];
   accommodationCount: number;

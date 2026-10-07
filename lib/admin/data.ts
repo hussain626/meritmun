@@ -7,8 +7,14 @@ import {
   deriveDemoOverviewKpis,
   getDemoStore,
 } from "@/lib/admin/demo-store";
+import {
+  DEFAULT_ALLOTMENT_RULES,
+  mapAllotmentRules,
+} from "@/lib/admin/allotment-rules";
 import type {
   AllotmentRecord,
+  AllotmentRules,
+  AttendanceRecord,
   BankAccount,
   CommitteeAdminRecord,
   DelegateFilters,
@@ -16,6 +22,7 @@ import type {
   DelegationRecord,
   EbMemberRecord,
   HodRecord,
+  MeritRunRecord,
   OverviewKpis,
   Portfolio,
   PricingSettings,
@@ -125,6 +132,7 @@ function mapDelegate(row: Record<string, unknown>): DelegateRecord {
     rejectionReason:
       row.rejection_reason == null ? null : String(row.rejection_reason),
     delegationId: row.delegation_id == null ? null : String(row.delegation_id),
+    isHeadDelegate: Boolean(row.is_head_delegate),
     feeType: row.fee_type as DelegateRecord["feeType"],
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -552,6 +560,64 @@ export async function listSecretariat(): Promise<SecretariatMemberRecord[]> {
   );
 }
 
+function mapCommittee(r: Record<string, unknown>): CommitteeAdminRecord {
+  return {
+    id: String(r.id),
+    slug: String(r.slug),
+    name: String(r.name),
+    abbr: String(r.abbr),
+    type: r.type as CommitteeAdminRecord["type"],
+    difficulty: r.difficulty as CommitteeAdminRecord["difficulty"],
+    hardnessScore: Number(r.hardness_score),
+    agenda: String(r.agenda),
+    overview: String(r.overview),
+    focusPoints: Array.isArray(r.focus_points)
+      ? (r.focus_points as string[])
+      : [],
+    seats: Number(r.seats),
+    studyGuidePath:
+      r.study_guide_path == null ? null : String(r.study_guide_path),
+    studyGuideUrl:
+      r.study_guide_url == null ? null : String(r.study_guide_url),
+    featured: Boolean(r.featured),
+    isPublished: Boolean(r.is_published),
+    allotmentsPaused: Boolean(r.allotments_paused),
+    sortOrder: Number(r.sort_order),
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+  };
+}
+
+function mapPortfolio(r: Record<string, unknown>): Portfolio {
+  return {
+    id: String(r.id),
+    committeeId: String(r.committee_id),
+    countryName: String(r.country_name),
+    isP5: Boolean(r.is_p5),
+    hardness: Number(r.hardness),
+    notes: r.notes == null ? null : String(r.notes),
+    isActive: Boolean(r.is_active),
+  };
+}
+
+function mapAllotment(r: Record<string, unknown>): AllotmentRecord {
+  return {
+    id: String(r.id),
+    delegateId: String(r.delegate_id),
+    committeeId: String(r.committee_id),
+    portfolioId: String(r.portfolio_id),
+    source: r.source as AllotmentRecord["source"],
+    status: r.status as AllotmentRecord["status"],
+    rationale: r.rationale == null ? null : String(r.rationale),
+    score: r.score == null ? null : Number(r.score),
+    confirmedAt: r.confirmed_at == null ? null : String(r.confirmed_at),
+    confirmedBy: r.confirmed_by == null ? null : String(r.confirmed_by),
+    emailSentAt: r.email_sent_at == null ? null : String(r.email_sent_at),
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+  };
+}
+
 export async function listCommitteesAdmin(): Promise<CommitteeAdminRecord[]> {
   return withSupabase(
     "listCommitteesAdmin",
@@ -561,33 +627,9 @@ export async function listCommitteesAdmin(): Promise<CommitteeAdminRecord[]> {
         .select("*")
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return (data ?? []).map((row) => {
-        const r = row as Record<string, unknown>;
-        return {
-          id: String(r.id),
-          slug: String(r.slug),
-          name: String(r.name),
-          abbr: String(r.abbr),
-          type: r.type as CommitteeAdminRecord["type"],
-          difficulty: r.difficulty as CommitteeAdminRecord["difficulty"],
-          hardnessScore: Number(r.hardness_score),
-          agenda: String(r.agenda),
-          overview: String(r.overview),
-          focusPoints: Array.isArray(r.focus_points)
-            ? (r.focus_points as string[])
-            : [],
-          seats: Number(r.seats),
-          studyGuidePath:
-            r.study_guide_path == null ? null : String(r.study_guide_path),
-          studyGuideUrl:
-            r.study_guide_url == null ? null : String(r.study_guide_url),
-          featured: Boolean(r.featured),
-          isPublished: Boolean(r.is_published),
-          sortOrder: Number(r.sort_order),
-          createdAt: String(r.created_at),
-          updatedAt: String(r.updated_at),
-        };
-      });
+      return (data ?? []).map((row) =>
+        mapCommittee(row as Record<string, unknown>),
+      );
     },
     getDemoStore().committees,
   );
@@ -602,18 +644,9 @@ export async function listPortfolios(): Promise<Portfolio[]> {
         .select("*")
         .order("country_name", { ascending: true });
       if (error) throw error;
-      return (data ?? []).map((row) => {
-        const r = row as Record<string, unknown>;
-        return {
-          id: String(r.id),
-          committeeId: String(r.committee_id),
-          countryName: String(r.country_name),
-          isP5: Boolean(r.is_p5),
-          hardness: Number(r.hardness),
-          notes: r.notes == null ? null : String(r.notes),
-          isActive: Boolean(r.is_active),
-        };
-      });
+      return (data ?? []).map((row) =>
+        mapPortfolio(row as Record<string, unknown>),
+      );
     },
     getDemoStore().portfolios,
   );
@@ -628,26 +661,61 @@ export async function listAllotments(): Promise<AllotmentRecord[]> {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((row) => {
-        const r = row as Record<string, unknown>;
-        return {
-          id: String(r.id),
-          delegateId: String(r.delegate_id),
-          committeeId: String(r.committee_id),
-          portfolioId: String(r.portfolio_id),
-          source: r.source as AllotmentRecord["source"],
-          status: r.status as AllotmentRecord["status"],
-          rationale: r.rationale == null ? null : String(r.rationale),
-          score: r.score == null ? null : Number(r.score),
-          confirmedAt: r.confirmed_at == null ? null : String(r.confirmed_at),
-          confirmedBy: r.confirmed_by == null ? null : String(r.confirmed_by),
-          createdAt: String(r.created_at),
-          updatedAt: String(r.updated_at),
-        };
-      });
+      return (data ?? []).map((row) =>
+        mapAllotment(row as Record<string, unknown>),
+      );
     },
     getDemoStore().allotments,
   );
+}
+
+export type AllotmentState = {
+  delegates: DelegateRecord[];
+  committees: CommitteeAdminRecord[];
+  portfolios: Portfolio[];
+  allotments: AllotmentRecord[];
+  rules: AllotmentRules;
+};
+
+/**
+ * Strict snapshot for allotment writes. Unlike the list* readers this never
+ * falls back to demo data — a failed read must abort the write, not seed the
+ * database with demo rows.
+ */
+export async function loadAllotmentState(
+  client: Awaited<ReturnType<typeof createClient>>,
+): Promise<AllotmentState> {
+  const [delegates, committees, portfolios, allotments, rules] =
+    await Promise.all([
+      client.from("delegates").select("*"),
+      client.from("committees").select("*").order("sort_order"),
+      client.from("portfolios").select("*"),
+      client.from("allotments").select("*"),
+      client.from("allotment_rules").select("*").eq("id", 1).maybeSingle(),
+    ]);
+  if (delegates.error) throw delegates.error;
+  if (committees.error) throw committees.error;
+  if (portfolios.error) throw portfolios.error;
+  if (allotments.error) throw allotments.error;
+  if (rules.error) throw rules.error;
+
+  return {
+    delegates: (delegates.data ?? []).map((r) =>
+      mapDelegate(r as Record<string, unknown>),
+    ),
+    committees: (committees.data ?? []).map((r) =>
+      mapCommittee(r as Record<string, unknown>),
+    ),
+    portfolios: (portfolios.data ?? []).map((r) =>
+      mapPortfolio(r as Record<string, unknown>),
+    ),
+    allotments: (allotments.data ?? []).map((r) =>
+      mapAllotment(r as Record<string, unknown>),
+    ),
+    rules: rules.data
+      ? mapAllotmentRules(rules.data as Record<string, unknown>)
+      : DEFAULT_ALLOTMENT_RULES,
+  };
 }
 
 export async function listTeamProfiles(): Promise<Profile[]> {
@@ -780,6 +848,81 @@ export async function listScheduleDays(): Promise<ScheduleDayRecord[]> {
       );
     },
     getDemoStore().schedule,
+  );
+}
+
+export async function getAllotmentRules(): Promise<AllotmentRules> {
+  return withSupabase(
+    "getAllotmentRules",
+    async (client) => {
+      const { data, error } = await client
+        .from("allotment_rules")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return DEFAULT_ALLOTMENT_RULES;
+      return mapAllotmentRules(data as Record<string, unknown>);
+    },
+    getDemoStore().allotmentRules,
+  );
+}
+
+export async function listAttendance(): Promise<AttendanceRecord[]> {
+  return withSupabase(
+    "listAttendance",
+    async (client) => {
+      const { data, error } = await client
+        .from("delegate_attendance")
+        .select("delegate_id, day_id, marked_at");
+      if (error) throw error;
+      return (data ?? []).map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          delegateId: String(r.delegate_id),
+          dayId: String(r.day_id),
+          markedAt: String(r.marked_at),
+        };
+      });
+    },
+    getDemoStore().attendance,
+  );
+}
+
+/** Latest merit-engine outcome per delegate, newest first. */
+export async function listLatestMeritRuns(): Promise<MeritRunRecord[]> {
+  const latest = (rows: MeritRunRecord[]) => {
+    const seen = new Set<string>();
+    return [...rows]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .filter((row) => {
+        if (seen.has(row.delegateId)) return false;
+        seen.add(row.delegateId);
+        return true;
+      });
+  };
+  return withSupabase(
+    "listLatestMeritRuns",
+    async (client) => {
+      const { data, error } = await client
+        .from("merit_runs")
+        .select("delegate_id, status, error, created_at")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      return latest(
+        (data ?? []).map((row) => {
+          const r = row as Record<string, unknown>;
+          return {
+            delegateId: String(r.delegate_id),
+            status: r.status as MeritRunRecord["status"],
+            error: r.error == null ? null : String(r.error),
+            createdAt: String(r.created_at),
+          };
+        }),
+      );
+    },
+    latest(getDemoStore().meritRuns),
   );
 }
 

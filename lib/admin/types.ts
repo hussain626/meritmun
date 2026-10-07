@@ -97,6 +97,8 @@ export type DelegateRecord = {
   paymentRejectedAt: string | null;
   rejectionReason: string | null;
   delegationId: string | null;
+  /** First member of a delegation roster (the head is also a delegate). */
+  isHeadDelegate: boolean;
   feeType: FeeType;
   createdAt: string;
   updatedAt: string;
@@ -141,6 +143,8 @@ export type CommitteeAdminRecord = {
   studyGuideUrl: string | null;
   featured: boolean;
   isPublished: boolean;
+  /** Merit engine skips this committee; manual placement still works. */
+  allotmentsPaused: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -167,8 +171,39 @@ export type AllotmentRecord = {
   score: number | null;
   confirmedAt: string | null;
   confirmedBy: string | null;
+  /** Null until the allotment email has been delivered. */
+  emailSentAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type AllotmentFallbackMode = "emptiest" | "none";
+
+/** Singleton `allotment_rules` row — tunes the merit engine. */
+export type AllotmentRules = {
+  advancedMinScore: number;
+  intermediateMinScore: number;
+  preferenceDepth: number;
+  fallbackMode: AllotmentFallbackMode;
+  delegationCommitteeCap: number;
+  matchHardness: boolean;
+  useAiScoring: boolean;
+  updatedAt: string;
+};
+
+/** Latest merit-engine outcome per delegate (`merit_runs`). */
+export type MeritRunRecord = {
+  delegateId: string;
+  status: "success" | "failed" | "skipped";
+  error: string | null;
+  createdAt: string;
+};
+
+/** One row = the delegate was present on that schedule day. */
+export type AttendanceRecord = {
+  delegateId: string;
+  dayId: string;
+  markedAt: string;
 };
 
 /* ── People / content CMS ────────────────────────────────────────────────── */

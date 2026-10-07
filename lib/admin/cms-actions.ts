@@ -138,6 +138,7 @@ export async function createCommittee(input: {
       studyGuideUrl: null,
       featured: false,
       isPublished: true,
+      allotmentsPaused: false,
       sortOrder: store.committees.length + 1,
       createdAt: nowIso(),
       updatedAt: nowIso(),

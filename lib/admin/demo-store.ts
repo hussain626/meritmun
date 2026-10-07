@@ -21,10 +21,14 @@ import {
   demoSponsors,
   demoTeamProfiles,
 } from "@/lib/admin/demo-data";
+import { DEFAULT_ALLOTMENT_RULES } from "@/lib/admin/allotment-rules";
 import type { AnnouncementSettings } from "@/lib/admin/announcement";
 import type { ConferenceSettings } from "@/lib/admin/conference";
 import type {
   AllotmentRecord,
+  AllotmentRules,
+  AttendanceRecord,
+  MeritRunRecord,
   BankAccount,
   CommitteeAdminRecord,
   DelegateRecord,
@@ -45,6 +49,9 @@ export type DemoStore = {
   delegates: DelegateRecord[];
   delegations: DelegationRecord[];
   allotments: AllotmentRecord[];
+  allotmentRules: AllotmentRules;
+  attendance: AttendanceRecord[];
+  meritRuns: MeritRunRecord[];
   queries: QueryRecord[];
   pricing: PricingSettings;
   announcement: AnnouncementSettings;
@@ -68,6 +75,9 @@ const store: DemoStore = {
   delegates: clone(demoDelegates),
   delegations: clone(demoDelegations),
   allotments: clone(demoAllotments),
+  allotmentRules: clone(DEFAULT_ALLOTMENT_RULES),
+  attendance: [],
+  meritRuns: [],
   queries: clone(demoQueries),
   pricing: clone(demoPricing),
   announcement: clone(demoAnnouncement),

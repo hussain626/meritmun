@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { ArrowLeft } from "@/components/icons/ArrowLeft";
 import { ArrowRight } from "@/components/icons/ArrowRight";
+import { DelegationRoster, memberControlId } from "@/components/forms/DelegationRoster";
 import { FormStep } from "@/components/forms/FormStep";
 import { FormSummary, type SummarySection } from "@/components/forms/FormSummary";
 import { PricingNote } from "@/components/forms/PricingNote";
@@ -47,6 +48,7 @@ type DelegationFormProps = {
 const STEPS = [
   { id: "institution", label: "Institution" },
   { id: "head", label: "Head delegate" },
+  { id: "delegates", label: "Delegates" },
   { id: "delegation", label: "Delegation" },
   { id: "review", label: "Review" },
 ];
@@ -67,7 +69,8 @@ const EMPTY: DelegationApplication = {
   headEmail: "",
   headPhone: "",
   headRole: "",
-  delegationSize: Number.NaN,
+  delegationSize: 0,
+  members: [],
   facultyAccompanying: false,
   committeeSpread: [],
   accommodationCount: 0,
@@ -89,14 +92,21 @@ export function DelegationForm({
   if (state?.ok) return <SubmissionResult submission={state.data} />;
 
   const clientErrors = validateDelegation(
-    values,
+    { ...values, delegationSize: values.members.length },
     committees.map((c) => c.slug),
   );
   const serverErrors: FieldErrors = state && !state.ok ? state.errors : {};
 
+  /** Touching a step prefix ("members") reveals every roster error under it. */
+  function isTouched(field: string): boolean {
+    if (touched.has(field)) return true;
+    const prefix = field.split(".")[0] ?? field;
+    return prefix !== field && touched.has(prefix);
+  }
+
   function errorFor(field: string): string | undefined {
     if (serverErrors[field]) return serverErrors[field];
-    return touched.has(field) ? clientErrors[field] : undefined;
+    return isTouched(field) ? clientErrors[field] : undefined;
   }
 
   function set<K extends keyof DelegationApplication>(
@@ -120,11 +130,18 @@ export function DelegationForm({
   function handleNext() {
     const fields = DELEGATION_STEP_FIELDS[step] ?? [];
     setTouched((current) => new Set([...current, ...fields]));
-    const firstBad = fields.find((field) => clientErrors[field]);
+    const firstBad = Object.keys(clientErrors).find((key) =>
+      fields.some((field) => key === field || key.startsWith(`${field}.`)),
+    );
     if (firstBad) {
-      formRef.current
-        ?.querySelector<HTMLElement>(`[name="${firstBad}"]`)
-        ?.focus();
+      // Roster keys look like "members.2.phone" → control id "member-2-phone".
+      const [, index, memberKey] = firstBad.split(".");
+      const target =
+        memberKey !== undefined
+          ? document.getElementById(memberControlId(Number(index), memberKey))
+          : (formRef.current?.querySelector<HTMLElement>(`[name="${firstBad}"]`) ??
+            document.getElementById(firstBad));
+      target?.focus();
       return;
     }
     goToStep(Math.min(step + 1, STEPS.length - 1));
@@ -141,7 +158,7 @@ export function DelegationForm({
 
   // Rate is live: the head delegate sees the price move as they set the size,
   // rather than discovering the bracket after they commit.
-  const size = Number.isNaN(values.delegationSize) ? 0 : values.delegationSize;
+  const size = values.members.length;
   const perHead =
     size >= pricing.largeThreshold
       ? pricing.delegationLarge
@@ -177,9 +194,27 @@ export function DelegationForm({
       ],
     },
     {
+      id: "delegates",
+      title: `Delegates (${size})`,
+      step: 2,
+      rows: values.members.map((member, index) => ({
+        label: `${index + 1}`,
+        value: [
+          member.fullName,
+          member.phone,
+          member.committeePrefs
+            .map((slug) => committees.find((c) => c.slug === slug)?.abbr)
+            .filter(Boolean)
+            .join(" › "),
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+    },
+    {
       id: "delegation",
       title: "Delegation",
-      step: 2,
+      step: 3,
       rows: [
         { label: "Size", value: size > 0 ? `${size} delegates` : "" },
         {
@@ -351,31 +386,31 @@ export function DelegationForm({
       </FormStep>
 
       <FormStep
-        title="The delegation"
-        description={`Between ${pricing.minDelegation} and ${pricing.maxDelegation} students. The per-head rate drops at ${pricing.largeThreshold}.`}
+        title="Your delegates"
+        description={`Add every student attending — between ${pricing.minDelegation} and ${pricing.maxDelegation}. Each delegate gets their own seat, so we need their own contact details and committee choices.`}
         active={step === 2}
       >
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label="How many delegates?"
-            htmlFor="delegationSize"
-            error={errorFor("delegationSize")}
-          >
-            <Input
-              id="delegationSize"
-              name="delegationSize"
-              type="number"
-              inputMode="numeric"
-              min={pricing.minDelegation}
-              max={pricing.maxDelegation}
-              value={Number.isNaN(values.delegationSize) ? "" : values.delegationSize}
-              invalid={Boolean(errorFor("delegationSize"))}
-              aria-describedby={describedBy("delegationSize", errorFor("delegationSize"))}
-              onChange={(event) => set("delegationSize", event.target.valueAsNumber)}
-              onBlur={() => touch("delegationSize")}
-            />
-          </Field>
+        <DelegationRoster
+          members={values.members}
+          committees={committees}
+          maxMembers={pricing.maxDelegation}
+          head={{
+            name: values.headName,
+            email: values.headEmail,
+            phone: values.headPhone,
+          }}
+          errorFor={errorFor}
+          onChange={(members) => set("members", members)}
+          onTouch={touch}
+        />
+      </FormStep>
 
+      <FormStep
+        title="The delegation"
+        description={`${size} delegate${size === 1 ? "" : "s"} on your roster. The per-head rate drops at ${pricing.largeThreshold}.`}
+        active={step === 3}
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
           <Field
             label="How many need accommodation?"
             htmlFor="accommodationCount"
@@ -412,7 +447,7 @@ export function DelegationForm({
                     ? `Add ${pricing.largeThreshold - size} more and the rate drops to ${pricing.currency} ${formatNumber(pricing.delegationLarge)} per head.`
                     : "This is the best rate we offer."
                 }`
-              : "Enter a delegation size to see your total. Nothing is charged now — Finance invoices after the roster is confirmed."
+              : "Add delegates to see your total. Nothing is charged now — Finance invoices after the roster is confirmed."
           }
         />
 
@@ -463,7 +498,7 @@ export function DelegationForm({
       <FormStep
         title="Check it over"
         description="One last look before this goes to Delegate Affairs and Finance."
-        active={step === 3}
+        active={step === 4}
       >
         <FormSummary sections={summary} onEdit={goToStep} />
 
@@ -494,6 +529,7 @@ export function DelegationForm({
 
         {isLastStep ? (
           <Button
+            key="submit"
             type="submit"
             size="lg"
             loading={isPending}
@@ -503,7 +539,7 @@ export function DelegationForm({
             <ArrowRight className="size-5" />
           </Button>
         ) : (
-          <Button type="button" onClick={handleNext}>
+          <Button key="next" type="button" onClick={handleNext}>
             Continue
             <ArrowRight className="size-4" />
           </Button>

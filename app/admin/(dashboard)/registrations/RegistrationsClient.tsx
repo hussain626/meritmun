@@ -17,7 +17,9 @@ import { MoreVertical } from "@/components/icons/MoreVertical";
 import { Search } from "@/components/icons/Search";
 import {
   confirmDelegatePayment,
+  confirmDelegationPayment,
   rejectDelegatePayment,
+  rejectDelegationPayment,
   resendRegistrationEmail,
 } from "@/lib/admin/actions";
 import type {
@@ -156,24 +158,32 @@ export function RegistrationsClient({
         setConfirmOpen(false);
         setRejectOpen(false);
         setSelected(null);
+        setSelectedDelegation(null);
       }
     });
   }
 
   const membersOfSelected = selectedDelegation
-    ? delegates.filter((d) => d.delegationId === selectedDelegation.id)
+    ? delegates
+        .filter((d) => d.delegationId === selectedDelegation.id)
+        .sort(
+          (a, b) =>
+            Number(b.isHeadDelegate) - Number(a.isHeadDelegate) ||
+            a.fullName.localeCompare(b.fullName),
+        )
     : [];
 
   function handleExport() {
     if (tab === "delegates") {
       exportCsv(
         "meritmun-delegates.csv",
-        "Code,Name,Email,Institution,Pref1,Experience,Payment,Amount PKR,Registered",
+        "Code,Name,Email,Phone,Institution,Pref1,Experience,Payment,Amount PKR,Registered",
         filteredDelegates.map((d) =>
           [
             d.delegateCode,
             d.fullName,
             d.email,
+            d.phone,
             d.institution,
             d.committeePrefs[0] ?? "",
             d.experience,
@@ -189,13 +199,14 @@ export function RegistrationsClient({
     }
     exportCsv(
       "meritmun-delegations.csv",
-      "Reference,Institution,Head,Email,Size,Payment,Amount PKR,Registered",
+      "Reference,Institution,Head,Email,Phone,Size,Payment,Amount PKR,Registered",
       filteredDelegations.map((d) =>
         [
           d.reference,
           d.institutionName,
           d.headName,
           d.headEmail,
+          d.headPhone,
           d.delegationSize,
           d.paymentStatus,
           d.paymentAmount ?? "",
@@ -571,6 +582,31 @@ export function RegistrationsClient({
         onClose={() => setSelectedDelegation(null)}
         title={selectedDelegation?.institutionName ?? "Delegation"}
         size="lg"
+        footer={
+          selectedDelegation &&
+          canMutate &&
+          selectedDelegation.paymentStatus === "pending" ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pending}
+                onClick={() => setRejectOpen(true)}
+                className="border-danger text-danger-fg"
+              >
+                Reject
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={pending}
+                onClick={() => setConfirmOpen(true)}
+              >
+                Confirm payment
+              </Button>
+            </>
+          ) : undefined
+        }
       >
         {selectedDelegation ? (
           <div className="flex flex-col gap-4">
@@ -600,15 +636,32 @@ export function RegistrationsClient({
               <ul className="mt-2 divide-y divide-line rounded-sm border border-line">
                 {membersOfSelected.length === 0 ? (
                   <li className="px-3 py-3 text-sm text-fg-muted">
-                    No linked delegates in demo data.
+                    No roster on file for this delegation.
                   </li>
                 ) : (
                   membersOfSelected.map((m) => (
                     <li
                       key={m.id}
-                      className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                      className="flex items-start justify-between gap-3 px-3 py-2.5 text-sm"
                     >
-                      <span className="font-medium text-fg">{m.fullName}</span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-fg">
+                          {m.fullName}
+                          {m.isHeadDelegate ? (
+                            <span className="ml-1.5 text-xs font-normal text-fg-faint">
+                              (head)
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-xs text-fg-faint">
+                          <span className="font-mono">{m.delegateCode}</span> ·{" "}
+                          {m.phone} · {m.email}
+                        </p>
+                        <p className="text-xs text-fg-faint">
+                          {EXPERIENCE_LABEL[m.experience] ?? m.experience} ·{" "}
+                          {m.committeePrefs.join(" › ").toUpperCase()}
+                        </p>
+                      </div>
                       <StatusBadge kind="payment" status={m.paymentStatus} />
                     </li>
                   ))
@@ -623,11 +676,20 @@ export function RegistrationsClient({
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={() => {
+          if (selectedDelegation) {
+            const id = selectedDelegation.id;
+            runAction(() => confirmDelegationPayment(id));
+            return;
+          }
           if (!selected) return;
           runAction(() => confirmDelegatePayment(selected.id));
         }}
-        title="Confirm payment?"
-        description="Marks this delegate as paid, snapshots the fee in PKR, and queues merit allotment."
+        title={selectedDelegation ? "Confirm delegation payment?" : "Confirm payment?"}
+        description={
+          selectedDelegation
+            ? `Marks the delegation and all ${membersOfSelected.length} roster members as paid, emails the head delegate, and runs merit allotment for every member.`
+            : "Marks this delegate as paid, snapshots the fee in PKR, and runs merit allotment for them."
+        }
         confirmLabel="Confirm payment"
         loading={pending}
       />
@@ -636,10 +698,15 @@ export function RegistrationsClient({
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
         onConfirm={() => {
+          if (selectedDelegation) {
+            const id = selectedDelegation.id;
+            runAction(() => rejectDelegationPayment(id, rejectReason));
+            return;
+          }
           if (!selected) return;
           runAction(() => rejectDelegatePayment(selected.id, rejectReason));
         }}
-        title="Reject payment?"
+        title={selectedDelegation ? "Reject delegation payment?" : "Reject payment?"}
         description={
           <div className="flex flex-col gap-2">
             <p>Optionally include a reason shown to the delegate.</p>
