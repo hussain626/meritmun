@@ -354,6 +354,17 @@ function mapAnnouncement(row: Record<string, unknown>): AnnouncementSettings {
   };
 }
 
+const EMPTY_ANNOUNCEMENT: AnnouncementSettings = {
+  id: 1,
+  isActive: false,
+  message: "",
+  linkType: "none",
+  internalPath: null,
+  externalUrl: null,
+  updatedAt: new Date(0).toISOString(),
+  updatedBy: null,
+};
+
 export async function getAnnouncementSettings(): Promise<AnnouncementSettings> {
   return withSupabase(
     "getAnnouncementSettings",
@@ -364,10 +375,12 @@ export async function getAnnouncementSettings(): Promise<AnnouncementSettings> {
         .eq("id", 1)
         .maybeSingle();
       if (error) throw error;
-      if (!data) return getDemoStore().announcement;
+      if (!data) return EMPTY_ANNOUNCEMENT;
       return mapAnnouncement(data as Record<string, unknown>);
     },
-    getDemoStore().announcement,
+    // Demo copy only in demo mode; a live read failure shows an empty editor
+    // rather than text that is not actually on the site.
+    isSupabaseConfigured() ? EMPTY_ANNOUNCEMENT : getDemoStore().announcement,
   );
 }
 
@@ -387,8 +400,9 @@ export async function getPublicAnnouncement(): Promise<PublicAnnouncement | null
     if (!data) return null;
     return toPublicAnnouncement(mapAnnouncement(data as Record<string, unknown>));
   } catch (error) {
+    // Never show demo copy on the live site — no bar beats a stale one.
     logFallbackOnce("getPublicAnnouncement", error);
-    return toPublicAnnouncement(getDemoStore().announcement);
+    return null;
   }
 }
 

@@ -3,9 +3,8 @@ import { DelegationForm } from "@/components/forms/DelegationForm";
 import { PageHero } from "@/components/layout/PageHero";
 import { RegistrationComingSoon } from "@/components/register/RegistrationComingSoon";
 import { Section } from "@/components/ui/Section";
-import { committees } from "@/content/committees";
-import { pricing } from "@/content/site";
 import { getRegistrationOpen } from "@/lib/admin/data";
+import { getPublicPricing, listPublicCommittees } from "@/lib/public/data";
 import { submitDelegation } from "@/lib/actions";
 
 export const metadata: Metadata = {
@@ -30,6 +29,11 @@ export default async function RegisterDelegationPage() {
     );
   }
 
+  const [pricing, committees] = await Promise.all([
+    getPublicPricing(),
+    listPublicCommittees(),
+  ]);
+
   return (
     <main id="content">
       <PageHero
@@ -46,9 +50,7 @@ export default async function RegisterDelegationPage() {
           }))}
           pricing={{
             currency: pricing.currency,
-            delegationStandard: pricing.delegationStandard,
-            delegationLarge: pricing.delegationLarge,
-            largeThreshold: pricing.largeThreshold,
+            perDelegate: pricing.perDelegate,
             minDelegation: pricing.minDelegation,
             maxDelegation: pricing.maxDelegation,
           }}

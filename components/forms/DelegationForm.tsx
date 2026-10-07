@@ -29,9 +29,8 @@ import type {
 
 type Pricing = {
   currency: string;
-  delegationStandard: number;
-  delegationLarge: number;
-  largeThreshold: number;
+  /** Per-head fee from /admin/pricing (early-bird already applied). */
+  perDelegate: number;
   minDelegation: number;
   maxDelegation: number;
 };
@@ -94,6 +93,7 @@ export function DelegationForm({
   const clientErrors = validateDelegation(
     { ...values, delegationSize: values.members.length },
     committees.map((c) => c.slug),
+    { min: pricing.minDelegation, max: pricing.maxDelegation },
   );
   const serverErrors: FieldErrors = state && !state.ok ? state.errors : {};
 
@@ -156,13 +156,9 @@ export function DelegationForm({
     }));
   }
 
-  // Rate is live: the head delegate sees the price move as they set the size,
-  // rather than discovering the bracket after they commit.
+  // Total is live: the head delegate sees it move as they build the roster.
   const size = values.members.length;
-  const perHead =
-    size >= pricing.largeThreshold
-      ? pricing.delegationLarge
-      : pricing.delegationStandard;
+  const perHead = pricing.perDelegate;
   const total = size > 0 ? perHead * size : 0;
 
   const summary: SummarySection[] = [
@@ -407,7 +403,7 @@ export function DelegationForm({
 
       <FormStep
         title="The delegation"
-        description={`${size} delegate${size === 1 ? "" : "s"} on your roster. The per-head rate drops at ${pricing.largeThreshold}.`}
+        description={`${size} delegate${size === 1 ? "" : "s"} on your roster at ${pricing.currency} ${formatNumber(perHead)} per head.`}
         active={step === 3}
       >
         <div className="grid gap-5 sm:grid-cols-2">
@@ -435,18 +431,10 @@ export function DelegationForm({
         <PricingNote
           currency={pricing.currency}
           perHead={perHead}
-          headline={
-            size >= pricing.largeThreshold
-              ? `Large-delegation rate, per head`
-              : `Delegation rate, per head`
-          }
+          headline="Delegation rate, per head"
           detail={
             size > 0
-              ? `${size} delegates — ${pricing.currency} ${formatNumber(total)} in total. ${
-                  size < pricing.largeThreshold
-                    ? `Add ${pricing.largeThreshold - size} more and the rate drops to ${pricing.currency} ${formatNumber(pricing.delegationLarge)} per head.`
-                    : "This is the best rate we offer."
-                }`
+              ? `${size} delegates — ${pricing.currency} ${formatNumber(total)} in total. Nothing is charged now — Finance invoices after the roster is confirmed.`
               : "Add delegates to see your total. Nothing is charged now — Finance invoices after the roster is confirmed."
           }
         />

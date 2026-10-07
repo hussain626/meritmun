@@ -18,7 +18,7 @@ export type ChairRole = "Chair" | "Vice Chair" | "Director";
 
 export type Chair = {
   name: string;
-  role: ChairRole;
+  role: ChairRole | string;
   initials: string;
 };
 
@@ -47,6 +47,8 @@ export type BoardMember = {
   bio: string;
   initials: string;
   email: string | null;
+  /** Portrait uploaded in the admin panel; initials medallion when absent. */
+  photoUrl?: string | null;
 };
 
 export type ScheduleKind =

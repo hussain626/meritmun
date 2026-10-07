@@ -3,12 +3,8 @@ import type { Metadata } from "next";
 import { CommitteeDetail } from "@/components/committees/CommitteeDetail";
 import { PageHero } from "@/components/layout/PageHero";
 import { Section } from "@/components/ui/Section";
-import { committees, getCommitteeBySlug } from "@/content/committees";
+import { getPublicCommittee } from "@/lib/public/data";
 import { getRegistrationOpen } from "@/lib/admin/data";
-
-export function generateStaticParams() {
-  return committees.map((committee) => ({ slug: committee.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -16,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const committee = getCommitteeBySlug(slug);
+  const committee = await getPublicCommittee(slug);
 
   if (!committee) {
     return { title: "Committee not found" };
@@ -34,7 +30,7 @@ export default async function CommitteePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const committee = getCommitteeBySlug(slug);
+  const committee = await getPublicCommittee(slug);
 
   if (!committee) {
     notFound();

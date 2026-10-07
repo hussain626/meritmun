@@ -28,6 +28,7 @@ import { runMeritEngineAction } from "@/lib/admin/allotment-actions";
 import { isP5Country } from "@/lib/merit/p5";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import type { CommitteeType, Difficulty } from "@/lib/types";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -821,8 +822,22 @@ export async function saveCommitteeFields(
     hardnessScore: number;
     featured: boolean;
     isPublished: boolean;
+    type: CommitteeType;
+    difficulty: Difficulty;
+    focusPoints: string[];
+    studyGuideUrl: string | null;
   }>,
 ): Promise<{ ok: boolean; message: string }> {
+  if (patch.studyGuideUrl && !isSafeHttpUrl(patch.studyGuideUrl)) {
+    return { ok: false, message: "The study guide link must start with https://." };
+  }
+  if (patch.focusPoints) {
+    patch = {
+      ...patch,
+      focusPoints: patch.focusPoints.map((p) => p.trim()).filter(Boolean),
+    };
+  }
+
   if (!isSupabaseConfigured()) {
     const store = getDemoStore();
     const committee = store.committees.find((c) => c.id === id);
@@ -852,13 +867,21 @@ export async function saveCommitteeFields(
         ...(patch.isPublished !== undefined
           ? { is_published: patch.isPublished }
           : {}),
+        ...(patch.type !== undefined ? { type: patch.type } : {}),
+        ...(patch.difficulty !== undefined ? { difficulty: patch.difficulty } : {}),
+        ...(patch.focusPoints !== undefined
+          ? { focus_points: patch.focusPoints }
+          : {}),
+        ...(patch.studyGuideUrl !== undefined
+          ? { study_guide_url: patch.studyGuideUrl }
+          : {}),
         updated_at: nowIso(),
       })
       .eq("id", id);
     if (error) throw error;
     revalidatePath("/admin/committees");
     revalidatePath(`/admin/committees/${id}`);
-    revalidatePath("/committees");
+    revalidatePath("/", "layout");
     return { ok: true, message: "Committee saved." };
   } catch (error) {
     console.warn("[meritmun/admin] saveCommitteeFields", error);
@@ -1294,6 +1317,13 @@ export async function saveAnnouncement(
     return { ok: true, message: "Announcement saved." };
   } catch (error) {
     console.warn("[meritmun/admin] saveAnnouncement", error);
-    return { ok: false, message: "Could not save the announcement." };
+    const reason =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "unknown error";
+    return {
+      ok: false,
+      message: `Could not save the announcement: ${reason}. If the table is missing, run supabase/migrations/002_announcement_settings.sql.`,
+    };
   }
 }

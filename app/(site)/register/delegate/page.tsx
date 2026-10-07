@@ -3,9 +3,8 @@ import { DelegateForm } from "@/components/forms/DelegateForm";
 import { PageHero } from "@/components/layout/PageHero";
 import { RegistrationComingSoon } from "@/components/register/RegistrationComingSoon";
 import { Section } from "@/components/ui/Section";
-import { committees } from "@/content/committees";
-import { pricing } from "@/content/site";
 import { getRegistrationOpen } from "@/lib/admin/data";
+import { getPublicPricing, listPublicCommittees } from "@/lib/public/data";
 import { submitDelegate } from "@/lib/actions";
 
 export const metadata: Metadata = {
@@ -35,7 +34,11 @@ export default async function RegisterDelegatePage({
   }
 
   // searchParams is async in Next.js 16.
-  const params = await searchParams;
+  const [params, pricing, committees] = await Promise.all([
+    searchParams,
+    getPublicPricing(),
+    listPublicCommittees(),
+  ]);
   const raw = params.committee;
   const preselect = typeof raw === "string" ? raw : undefined;
 

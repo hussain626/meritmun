@@ -1,6 +1,5 @@
 "use server";
 
-import { committees } from "@/content/committees";
 import {
   hasErrors,
   validateContact,
@@ -13,7 +12,8 @@ import type {
   DelegationRecord,
   QueryRecord,
 } from "@/lib/admin/types";
-import { getPricing, listBankAccounts } from "@/lib/admin/data";
+import { listBankAccounts } from "@/lib/admin/data";
+import { getPublicPricing, listPublicCommittees } from "@/lib/public/data";
 import {
   sendDelegationRegistrationConfirmation,
   sendRegistrationConfirmation,
@@ -44,7 +44,11 @@ import type {
   SubmissionKind,
 } from "@/lib/types";
 
-const committeeSlugs = committees.map((committee) => committee.slug);
+/** Slugs of committees currently published in the admin panel. */
+async function publishedCommitteeSlugs(): Promise<string[]> {
+  const list = await listPublicCommittees();
+  return list.map((committee) => committee.slug);
+}
 
 /**
  * Public registrations write with the service role when it is configured
@@ -63,14 +67,12 @@ async function persistDelegation(
   submission: Submission,
   app: DelegationApplication,
 ): Promise<void> {
-  const pricing = await getPricing();
+  const pricing = await getPublicPricing();
   const banks = await listBankAccounts();
-  const feeType = pricing.earlyBirdEnabled
+  const feeType = pricing.earlyBird
     ? "early_bird_delegation_member"
     : "delegation_member";
-  const perHead = pricing.earlyBirdEnabled
-    ? (pricing.earlyBirdPerDelegateFee ?? pricing.perDelegateFee)
-    : pricing.perDelegateFee;
+  const perHead = pricing.perDelegate;
   const delegationId = crypto.randomUUID();
   const headEmail = app.headEmail.trim().toLowerCase();
   const members = app.members.map((member) => ({
@@ -224,7 +226,7 @@ async function persist(
   if (kind === "delegate" && payload && typeof payload === "object") {
     const app = payload as DelegateApplication;
     const delegateCode = generateDelegateCode();
-    const pricing = await getPricing();
+    const pricing = await getPublicPricing();
     const banks = await listBankAccounts();
 
     if (!isSupabaseConfigured()) {
@@ -252,7 +254,7 @@ async function persist(
         rejectionReason: null,
         delegationId: null,
         isHeadDelegate: false,
-        feeType: pricing.earlyBirdEnabled ? "early_bird_delegate" : "delegate",
+        feeType: pricing.earlyBird ? "early_bird_delegate" : "delegate",
         createdAt: submission.receivedAt,
         updatedAt: submission.receivedAt,
       };
@@ -275,7 +277,7 @@ async function persist(
           dietary: app.dietary,
           hear_about: app.hearAbout,
           payment_status: "pending",
-          fee_type: pricing.earlyBirdEnabled ? "early_bird_delegate" : "delegate",
+          fee_type: pricing.earlyBird ? "early_bird_delegate" : "delegate",
         });
         if (error) throw error;
       } catch (error) {
@@ -290,9 +292,7 @@ async function persist(
       reference: submission.reference,
       delegateCode,
       bankAccounts: banks.filter((b) => b.isActive),
-      feeAmount: pricing.earlyBirdEnabled
-        ? (pricing.earlyBirdDelegateFee ?? pricing.delegateFee)
-        : pricing.delegateFee,
+      feeAmount: pricing.delegate,
       currency: pricing.currency,
     });
   }
@@ -368,7 +368,7 @@ export async function submitDelegate(
   formData: FormData,
 ): Promise<ActionResult<Submission>> {
   const values = readDelegateForm(formData);
-  const errors = validateDelegate(values, committeeSlugs);
+  const errors = validateDelegate(values, await publishedCommitteeSlugs());
 
   if (hasErrors(errors)) {
     return {
@@ -443,7 +443,11 @@ export async function submitDelegation(
   formData: FormData,
 ): Promise<ActionResult<Submission>> {
   const values = readDelegationForm(formData);
-  const errors = validateDelegation(values, committeeSlugs);
+  const pricing = await getPublicPricing();
+  const errors = validateDelegation(values, await publishedCommitteeSlugs(), {
+    min: pricing.minDelegation,
+    max: pricing.maxDelegation,
+  });
 
   if (hasErrors(errors)) {
     return {
@@ -507,95 +511,182 @@ const STATUS_COPY: Record<StatusResult["status"], string> = {
     "No application matches that reference code. Check it against your confirmation email — codes look like MMIII-4KQ7ZP.",
 };
 
+type StatusSource = {
+  reference: string;
+  paymentStatus: string;
+  /** Committee name of an ISSUED allotment only — drafts stay private. */
+  issuedCommittee: string | null;
+};
+
+function toStatusResult(source: StatusSource): StatusResult {
+  let status: StatusResult["status"];
+  if (source.paymentStatus === "confirmed" && source.issuedCommittee) {
+    status = "confirmed";
+  } else if (source.issuedCommittee) {
+    status = "allocated";
+  } else if (source.paymentStatus === "confirmed") {
+    status = "under-review";
+  } else {
+    status = "received";
+  }
+  return {
+    reference: source.reference,
+    status,
+    committee: source.issuedCommittee,
+    note: STATUS_COPY[status],
+  };
+}
+
+const NOT_FOUND = (reference: string): ActionResult<StatusResult> => ({
+  ok: true,
+  data: {
+    reference,
+    status: "not-found",
+    committee: null,
+    note: STATUS_COPY["not-found"],
+  },
+});
+
 /**
- * Status lookup. Checks the demo store / Supabase first; falls back to the
- * deterministic mock so every UI state remains reachable without seed data.
+ * Status lookup by registration reference (MMIII-XXXXXX), delegate code, or
+ * delegation reference. Reads the same records the admin panel edits, so a
+ * confirmed payment or an issued allotment shows here straight away.
  */
 export async function lookupStatus(
   _prev: ActionResult<StatusResult> | null,
   formData: FormData,
 ): Promise<ActionResult<StatusResult>> {
-  const reference = getField(formData, "reference").toUpperCase();
+  const reference = getField(formData, "reference").trim().toUpperCase();
 
   if (reference === "") {
     return { ok: false, errors: { reference: "Enter your reference code." } };
   }
 
-  if (!isValidReferenceShape(reference) && reference.length < 6) {
+  // Only the two code shapes we issue are accepted — this also keeps user
+  // input out of the PostgREST filter string below.
+  const isDelegateCode = /^[A-HJ-NP-Z2-9]{8}$/.test(reference);
+  if (!isValidReferenceShape(reference) && !isDelegateCode) {
     return {
       ok: false,
       errors: {
-        reference: "Codes look like MMIII-4KQ7ZP — six characters after the dash.",
+        reference:
+          "Use the reference (MMIII-4KQ7ZP) or the 8-character delegate code from your confirmation email.",
       },
     };
   }
 
   if (!isSupabaseConfigured()) {
     const store = getDemoStore();
-    const byRef = store.delegates.find(
+    const delegate = store.delegates.find(
       (d) =>
         d.reference.toUpperCase() === reference ||
         d.delegateCode.toUpperCase() === reference,
     );
-    if (byRef) {
-      const allotment = store.allotments.find(
-        (a) => a.delegateId === byRef.id && a.status === "confirmed",
+    if (delegate) {
+      const issued = store.allotments.find(
+        (a) => a.delegateId === delegate.id && a.status === "confirmed",
       );
-      const draft = store.allotments.find(
-        (a) => a.delegateId === byRef.id && a.status === "draft",
-      );
-      let status: StatusResult["status"] = "received";
-      if (byRef.paymentStatus === "confirmed" && allotment) status = "confirmed";
-      else if (draft || allotment) status = "allocated";
-      else if (byRef.paymentStatus === "confirmed") status = "under-review";
-      else status = "received";
-
-      const committeeId = allotment?.committeeId ?? draft?.committeeId;
-      const committee =
-        store.committees.find((c) => c.id === committeeId)?.name ?? null;
-
       return {
         ok: true,
-        data: {
-          reference: byRef.reference,
-          status,
-          committee,
-          note: STATUS_COPY[status],
-        },
+        data: toStatusResult({
+          reference: delegate.reference,
+          paymentStatus: delegate.paymentStatus,
+          issuedCommittee: issued
+            ? (store.committees.find((c) => c.id === issued.committeeId)?.name ?? null)
+            : null,
+        }),
       };
     }
+    const delegation = store.delegations.find(
+      (d) => d.reference.toUpperCase() === reference,
+    );
+    if (delegation) {
+      return {
+        ok: true,
+        data: toStatusResult({
+          reference: delegation.reference,
+          paymentStatus: delegation.paymentStatus,
+          issuedCommittee: null,
+        }),
+      };
+    }
+    return NOT_FOUND(reference);
   }
 
-  if (!isValidReferenceShape(reference)) {
+  // Registrations are not publicly readable under RLS, so the lookup needs
+  // the service role. It only ever returns status + committee name.
+  const service = createServiceClient();
+  if (!service) {
+    console.warn("[meritmun] lookupStatus needs SUPABASE_SERVICE_ROLE_KEY");
     return {
       ok: false,
       errors: {
-        reference: "Codes look like MMIII-4KQ7ZP — six characters after the dash.",
+        reference:
+          "Status lookup is temporarily unavailable. Check your email, or contact the secretariat.",
       },
     };
   }
 
-  const seed = reference
-    .slice(6)
-    .split("")
-    .reduce((total, char) => total + char.charCodeAt(0), 0);
+  try {
+    const { data: delegate, error } = await service
+      .from("delegates")
+      .select("id, reference, payment_status")
+      .or(`reference.eq.${reference},delegate_code.eq.${reference}`)
+      .maybeSingle();
+    if (error) throw error;
 
-  const outcomes: StatusResult["status"][] = [
-    "received",
-    "under-review",
-    "allocated",
-    "confirmed",
-    "not-found",
-  ];
-  const status = outcomes[seed % outcomes.length] ?? "received";
+    if (delegate) {
+      const { data: allotment, error: allotmentError } = await service
+        .from("allotments")
+        .select("committee_id")
+        .eq("delegate_id", String(delegate.id))
+        .eq("status", "confirmed")
+        .maybeSingle();
+      if (allotmentError) throw allotmentError;
 
-  const committee =
-    status === "allocated" || status === "confirmed"
-      ? (committees[seed % committees.length]?.name ?? null)
-      : null;
+      let issuedCommittee: string | null = null;
+      if (allotment) {
+        const { data: committee } = await service
+          .from("committees")
+          .select("name")
+          .eq("id", String(allotment.committee_id))
+          .maybeSingle();
+        issuedCommittee = committee ? String(committee.name) : null;
+      }
 
-  return {
-    ok: true,
-    data: { reference, status, committee, note: STATUS_COPY[status] },
-  };
+      return {
+        ok: true,
+        data: toStatusResult({
+          reference: String(delegate.reference),
+          paymentStatus: String(delegate.payment_status),
+          issuedCommittee,
+        }),
+      };
+    }
+
+    const { data: delegation, error: delegationError } = await service
+      .from("delegations")
+      .select("reference, payment_status")
+      .eq("reference", reference)
+      .maybeSingle();
+    if (delegationError) throw delegationError;
+    if (delegation) {
+      return {
+        ok: true,
+        data: toStatusResult({
+          reference: String(delegation.reference),
+          paymentStatus: String(delegation.payment_status),
+          issuedCommittee: null,
+        }),
+      };
+    }
+
+    return NOT_FOUND(reference);
+  } catch (error) {
+    console.warn("[meritmun] lookupStatus", error);
+    return {
+      ok: false,
+      errors: { reference: "We could not check that right now. Try again in a minute." },
+    };
+  }
 }

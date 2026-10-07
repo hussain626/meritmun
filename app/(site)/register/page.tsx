@@ -6,8 +6,9 @@ import { Users } from "@/components/icons/Users";
 import { PageHero } from "@/components/layout/PageHero";
 import { RegistrationComingSoon } from "@/components/register/RegistrationComingSoon";
 import { Section } from "@/components/ui/Section";
-import { conference, pricing } from "@/content/site";
+import { conference } from "@/content/site";
 import { getRegistrationOpen } from "@/lib/admin/data";
+import { getPublicPricing, listPublicCommittees } from "@/lib/public/data";
 import { formatNumber } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -17,13 +18,17 @@ export const metadata: Metadata = {
 };
 
 export default async function RegisterPage() {
-  const registrationOpen = await getRegistrationOpen();
+  const [registrationOpen, pricing, committees] = await Promise.all([
+    getRegistrationOpen(),
+    getPublicPricing(),
+    listPublicCommittees(),
+  ]);
   if (!registrationOpen) {
     return (
       <main id="content">
         <PageHero
           title="Registration coming soon"
-          lead={`${conference.committeeCount} committees, three days in ${conference.city}, six hundred seats. Registration opens here — we're not quite ready yet.`}
+          lead={`${committees.length} committees, three days in ${conference.city}, six hundred seats. Registration opens here — we're not quite ready yet.`}
         />
         <Section>
           <RegistrationComingSoon />
@@ -51,13 +56,13 @@ export default async function RegisterPage() {
       icon: Users,
       title: "Register a delegation",
       who: "You are a society head or faculty member.",
-      body: `Bringing between ${pricing.minDelegation} and ${pricing.maxDelegation} students from one institution. One form, one invoice, and a reduced rate per head.`,
+      body: `Bringing between ${pricing.minDelegation} and ${pricing.maxDelegation} students from one institution. One form, one invoice for the whole delegation.`,
       points: [
         "Six minutes, four steps",
         "A single invoice for the whole delegation",
-        `Rate drops again at ${pricing.largeThreshold} delegates`,
+        "Every member gets their own seat and allotment",
       ],
-      fee: `From ${pricing.currency} ${formatNumber(pricing.delegationLarge)} per head`,
+      fee: `${pricing.currency} ${formatNumber(pricing.perDelegate)} per head`,
     },
   ];
 
@@ -65,7 +70,7 @@ export default async function RegisterPage() {
     <main id="content">
       <PageHero
         title="Register for MERITMUN III"
-        lead={`${conference.committeeCount} committees, three days in ${conference.city}, six hundred seats. Two ways in — pick the one that describes you.`}
+        lead={`${committees.length} committees, three days in ${conference.city}, six hundred seats. Two ways in — pick the one that describes you.`}
         meta={
           <p className="text-sm text-fg-faint">
             {conference.datesLabel}. Registering now secures your seat and we

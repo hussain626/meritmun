@@ -169,15 +169,20 @@ export function validateCommitteePrefs(
   return null;
 }
 
+export type DelegationLimits = { min: number; max: number };
+
+const DEFAULT_LIMITS: DelegationLimits = { min: MIN_DELEGATION, max: MAX_DELEGATION };
+
 function validateMembers(
   values: DelegationApplication,
   validCommitteeSlugs: readonly string[],
+  limits: DelegationLimits,
 ): Record<string, string | null> {
   const errors: Record<string, string | null> = {};
   const count = values.members.length;
   errors.members =
-    count < MIN_DELEGATION || count > MAX_DELEGATION
-      ? `Add between ${MIN_DELEGATION} and ${MAX_DELEGATION} delegates — you have ${count}.`
+    count < limits.min || count > limits.max
+      ? `Add between ${limits.min} and ${limits.max} delegates — you have ${count}.`
       : null;
 
   const seenEmails = new Map<string, number>();
@@ -232,12 +237,13 @@ export function validateDelegate(
 export function validateDelegation(
   values: DelegationApplication,
   validCommitteeSlugs: readonly string[],
+  limits: DelegationLimits = DEFAULT_LIMITS,
 ): FieldErrors {
   const accommodationError =
     Number.isNaN(values.accommodationCount) ||
     values.accommodationCount < 0 ||
     values.accommodationCount > values.delegationSize
-      ? `Between 0 and your delegation size (${values.delegationSize || MAX_DELEGATION}).`
+      ? `Between 0 and your delegation size (${values.delegationSize || limits.max}).`
       : null;
 
   const spreadError = values.committeeSpread.some(
@@ -258,7 +264,7 @@ export function validateDelegation(
     headEmail: validEmail(values.headEmail),
     headPhone: validPhone(values.headPhone),
     headRole: required(values.headRole, "Your role"),
-    ...validateMembers(values, validCommitteeSlugs),
+    ...validateMembers(values, validCommitteeSlugs, limits),
     accommodationCount: accommodationError,
     committeeSpread: spreadError,
     consent: values.consent

@@ -8,24 +8,26 @@ import { ValueProp } from "@/components/home/ValueProp";
 import { ButtonLink } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { featuredCommittees } from "@/content/committees";
-import { aftermovie, conference, pricing, valueProps } from "@/content/site";
-import { sponsors } from "@/content/sponsors";
+import { aftermovie, conference, valueProps } from "@/content/site";
 import { heroStats } from "@/content/stats";
 import { getRegistrationOpen } from "@/lib/admin/data";
+import {
+  getPublicPricing,
+  listPublicCommittees,
+  listPublicSponsors,
+} from "@/lib/public/data";
 import { formatNumber } from "@/lib/utils";
 
 export default async function HomePage() {
-  const registrationOpen = await getRegistrationOpen();
-  const activeSponsors = sponsors
-    .filter((s) => s.isActive)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((s) => ({
-      id: s.id,
-      name: s.name,
-      logoUrl: s.logoUrl,
-      url: s.url,
-    }));
+  const [registrationOpen, activeSponsors, committees, pricing] =
+    await Promise.all([
+      getRegistrationOpen(),
+      listPublicSponsors(),
+      listPublicCommittees(),
+      getPublicPricing(),
+    ]);
+  const featured = committees.filter((c) => c.featured);
+  const featuredCommittees = (featured.length > 0 ? featured : committees).slice(0, 3);
 
   return (
     <main id="content">
@@ -33,7 +35,7 @@ export default async function HomePage() {
         stats={heroStats}
         city={conference.city}
         datesLabel={conference.datesLabel}
-        committeeCount={conference.committeeCount}
+        committeeCount={committees.length}
         registrationOpen={registrationOpen}
       />
 
@@ -65,10 +67,10 @@ export default async function HomePage() {
       <Section band="subtle">
         <SectionHeading
           title="Where you might end up"
-          lead="Twelve committees, each with one researched agenda. Three of them, to give you the range."
+          lead={`${committees.length} committees, each with one researched agenda. ${featuredCommittees.length < committees.length ? `${featuredCommittees.length} of them, to give you the range.` : ""}`}
           action={
             <ButtonLink href="/committees" variant="outline">
-              See all twelve
+              See all {committees.length}
               <ArrowRight className="size-4" />
             </ButtonLink>
           }
@@ -86,7 +88,7 @@ export default async function HomePage() {
 
       <HomeCta
         delegateFee={`${pricing.currency} ${formatNumber(pricing.delegate)}`}
-        delegationFee={`From ${pricing.currency} ${formatNumber(pricing.delegationLarge)} per head`}
+        delegationFee={`${pricing.currency} ${formatNumber(pricing.perDelegate)} per head`}
         registrationOpen={registrationOpen}
       />
     </main>

@@ -150,7 +150,7 @@ export function CommitteeFilters({ committees }: CommitteeFiltersProps) {
         <EmptyState
           className="mt-8"
           title="No committees match those filters"
-          body="Every committee is either a different type or a different level from the pair you picked. Clear the filters to see all twelve."
+          body="Every committee is either a different type or a different level from the pair you picked. Clear the filters to see them all."
           action={
             <Button variant="outline" size="sm" onClick={handleClear}>
               Clear filters

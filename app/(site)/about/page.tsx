@@ -8,6 +8,7 @@ import { Section } from "@/components/ui/Section";
 import { conference } from "@/content/site";
 import { heroStats } from "@/content/stats";
 import { getRegistrationOpen } from "@/lib/admin/data";
+import { listPublicCommittees } from "@/lib/public/data";
 import { formatNumber } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -25,7 +26,7 @@ const differences = [
   {
     id: "committees",
     title: "One agenda per committee, researched before you arrive",
-    body: "Each of the twelve committees debates a single question for three days, not a rotating menu of five. The background guide is written by the chair who will run the room, published before allocations go out, and long enough to actually prepare from. That is why the speeches in a MERITMUN committee tend to cite something.",
+    body: "Every committee debates a single question for three days, not a rotating menu of five. The background guide is written by the chair who will run the room, published before allocations go out, and long enough to actually prepare from. That is why the speeches in a MERITMUN committee tend to cite something.",
   },
   {
     id: "beginners",
@@ -45,7 +46,12 @@ const differences = [
 ] as const;
 
 export default async function AboutPage() {
-  const registrationOpen = await getRegistrationOpen();
+  const [registrationOpen, committees] = await Promise.all([
+    getRegistrationOpen(),
+    listPublicCommittees(),
+  ]);
+  const committeeCount = committees.length;
+  const seatCount = committees.reduce((sum, c) => sum + c.seats, 0);
   const institutions = heroStats.find((stat) => stat.id === "institutions");
   const alumni = heroStats.find((stat) => stat.id === "alumni");
 
@@ -55,15 +61,15 @@ export default async function AboutPage() {
     { label: "Venue", value: conference.venue },
     { label: "Dates", value: conference.datesLabel },
     { label: "Length", value: `${conference.durationDays} days` },
-    { label: "Committees", value: String(conference.committeeCount) },
-    { label: "Delegate seats", value: formatNumber(conference.seatCount) },
+    { label: "Committees", value: String(committeeCount) },
+    { label: "Delegate seats", value: formatNumber(seatCount) },
   ];
 
   return (
     <main id="content">
       <PageHero
         title={`About ${conference.fullName}`}
-        lead={`${conference.longName}. ${conference.committeeCount} committees, ${conference.durationDays} days, and ${formatNumber(conference.seatCount)} seats in ${conference.city}.`}
+        lead={`${conference.longName}. ${committeeCount} committees, ${conference.durationDays} days, and ${formatNumber(seatCount)} seats in ${conference.city}.`}
       />
 
       <Section width="prose">
@@ -97,8 +103,8 @@ export default async function AboutPage() {
           <p>
             MERITMUN is the Meritorious Model United Nations conference. This is{" "}
             {conference.fullName} — the third iteration, and the first at this
-            scale: {conference.committeeCount} committees and{" "}
-            {formatNumber(conference.seatCount)} delegate seats across{" "}
+            scale: {committeeCount} committees and{" "}
+            {formatNumber(seatCount)} delegate seats across{" "}
             {conference.durationDays} days.
           </p>
           <p>
@@ -235,8 +241,8 @@ export default async function AboutPage() {
             </h2>
             <p className="mt-4 max-w-[52ch] leading-relaxed text-on-brand/75">
               {registrationOpen
-                ? `${conference.committeeCount} committees and ${formatNumber(conference.seatCount)} seats, allocated in the order applications arrive. Delegates and delegations start at the same place.`
-                : `${conference.committeeCount} committees and ${formatNumber(conference.seatCount)} seats. Registration opens here — follow us on social media for the announcement.`}
+                ? `${committeeCount} committees and ${formatNumber(seatCount)} seats, allocated in the order applications arrive. Delegates and delegations start at the same place.`
+                : `${committeeCount} committees and ${formatNumber(seatCount)} seats. Registration opens here — follow us on social media for the announcement.`}
             </p>
           </div>
           <div className="lg:justify-self-end">

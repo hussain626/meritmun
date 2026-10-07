@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { PortfolioManager } from "@/components/admin/PortfolioManager";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { saveCommitteeFields } from "@/lib/admin/actions";
 import type {
@@ -12,7 +13,7 @@ import type {
   CommitteeAdminRecord,
   Portfolio,
 } from "@/lib/admin/types";
-import { titleCase } from "@/lib/utils";
+import type { CommitteeType, Difficulty } from "@/lib/types";
 
 type CommitteeDetailClientProps = {
   committee: CommitteeAdminRecord;
@@ -35,7 +36,11 @@ export function CommitteeDetailClient({
     hardnessScore: committee.hardnessScore,
     featured: committee.featured,
     isPublished: committee.isPublished,
+    type: committee.type,
+    difficulty: committee.difficulty,
+    studyGuideUrl: committee.studyGuideUrl ?? "",
   });
+  const [focusText, setFocusText] = useState(committee.focusPoints.join("\n"));
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -52,7 +57,11 @@ export function CommitteeDetailClient({
               loading={pending}
               onClick={() => {
                 startTransition(async () => {
-                  const result = await saveCommitteeFields(committee.id, form);
+                  const result = await saveCommitteeFields(committee.id, {
+                    ...form,
+                    studyGuideUrl: form.studyGuideUrl.trim() || null,
+                    focusPoints: focusText.split("\n"),
+                  });
                   setMessage(result.message);
                 });
               }}
@@ -149,6 +158,66 @@ export function CommitteeDetailClient({
                 onChange={(e) => setForm({ ...form, overview: e.target.value })}
               />
             </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
+                  Type
+                </span>
+                <Select
+                  value={form.type}
+                  disabled={!canEdit}
+                  onChange={(e) =>
+                    setForm({ ...form, type: e.target.value as CommitteeType })
+                  }
+                  options={[
+                    { value: "general-assembly", label: "General Assembly" },
+                    { value: "specialised", label: "Specialised" },
+                    { value: "crisis", label: "Crisis" },
+                    { value: "press", label: "Press" },
+                  ]}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
+                  Difficulty
+                </span>
+                <Select
+                  value={form.difficulty}
+                  disabled={!canEdit}
+                  onChange={(e) =>
+                    setForm({ ...form, difficulty: e.target.value as Difficulty })
+                  }
+                  options={[
+                    { value: "beginner", label: "Beginner" },
+                    { value: "intermediate", label: "Intermediate" },
+                    { value: "advanced", label: "Advanced" },
+                  ]}
+                />
+              </label>
+            </div>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
+                Focus points (one per line)
+              </span>
+              <Textarea
+                rows={4}
+                value={focusText}
+                disabled={!canEdit}
+                onChange={(e) => setFocusText(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
+                Study guide link
+              </span>
+              <Input
+                type="url"
+                placeholder="https://drive.google.com/…"
+                value={form.studyGuideUrl}
+                disabled={!canEdit}
+                onChange={(e) => setForm({ ...form, studyGuideUrl: e.target.value })}
+              />
+            </label>
             <div className="flex flex-wrap gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -176,8 +245,7 @@ export function CommitteeDetailClient({
               </label>
             </div>
             <p className="text-xs text-fg-faint">
-              {titleCase(committee.type)} · {titleCase(committee.difficulty)} ·
-              slug {committee.slug}
+              Public page: /committees/{committee.slug}
             </p>
           </div>
         </section>

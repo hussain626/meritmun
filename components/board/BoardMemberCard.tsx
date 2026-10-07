@@ -17,10 +17,23 @@ export function BoardMemberCard({
   return (
     <Card padding={featured ? "lg" : "md"} className="flex h-full flex-col">
       <div className={cn("flex items-start gap-4", featured && "sm:gap-5")}>
-        <InitialsMedallion
-          initials={member.initials}
-          size={featured ? "lg" : "md"}
-        />
+        {member.photoUrl ? (
+          // Admin-uploaded portrait; decorative because the name is adjacent.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={member.photoUrl}
+            alt=""
+            className={cn(
+              "shrink-0 rounded-full object-cover",
+              featured ? "size-16" : "size-12",
+            )}
+          />
+        ) : (
+          <InitialsMedallion
+            initials={member.initials}
+            size={featured ? "lg" : "md"}
+          />
+        )}
         <div className="min-w-0">
           <h3
             className={cn(

@@ -36,8 +36,8 @@ export function SiteFooter({ items, conference, socials, registrationOpen }: Sit
               <Wordmark />
             </div>
             <p className="mt-4 max-w-[34ch] text-sm leading-normal text-on-brand/75">
-              The third iteration of Meritorious Model United Nations. Twelve
-              committees, three days, six hundred seats.
+              The third iteration of Meritorious Model United Nations. Three
+              days of committees in {conference.city}.
             </p>
             <p className="mt-5 flex items-start gap-2 text-sm text-on-brand/75">
               <MapPin className="mt-0.5 size-4 shrink-0" />
