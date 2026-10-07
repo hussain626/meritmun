@@ -22,6 +22,7 @@ import type {
 } from "@/lib/admin/types";
 import { getPricing } from "@/lib/admin/data";
 import { getAdminSession } from "@/lib/admin/auth";
+import { isTeamOwner, TEAM_OWNER_EMAIL } from "@/lib/admin/team";
 import { sendPaymentConfirmed } from "@/lib/email/send";
 import { runMeritEngineAction } from "@/lib/admin/allotment-actions";
 import { isP5Country } from "@/lib/merit/p5";
@@ -703,6 +704,94 @@ export async function createTeamMember(input: {
   } catch (error) {
     console.warn("[meritmun/admin] createTeamMember", error);
     return { ok: false, message: "Could not create the account." };
+  }
+}
+
+/** Audit columns that point at a profile; cleared so the delete is not blocked. */
+const PROFILE_REFERENCES: { table: string; column: string }[] = [
+  { table: "pricing_settings", column: "updated_by" },
+  { table: "announcement_settings", column: "updated_by" },
+  { table: "conference_settings", column: "updated_by" },
+  { table: "allotment_rules", column: "updated_by" },
+  { table: "allotments", column: "confirmed_by" },
+  { table: "queries", column: "replied_by" },
+  { table: "delegate_attendance", column: "marked_by" },
+];
+
+/**
+ * Permanently remove a team member's login. Restricted to the team owner
+ * (`TEAM_OWNER_EMAIL`); nobody can remove themselves.
+ */
+export async function removeTeamMember(
+  profileId: string,
+): Promise<{ ok: boolean; message: string }> {
+  const session = await getAdminSession();
+  if (!session || !isTeamOwner(session.user.email)) {
+    return {
+      ok: false,
+      message: `Only ${TEAM_OWNER_EMAIL} can remove team members.`,
+    };
+  }
+  if (profileId === session.user.id) {
+    return { ok: false, message: "You cannot remove your own account." };
+  }
+
+  if (!isSupabaseConfigured()) {
+    const store = getDemoStore();
+    const member = store.teamProfiles.find((p) => p.id === profileId);
+    if (!member) return { ok: false, message: "Team member not found." };
+    if (isTeamOwner(member.email)) {
+      return { ok: false, message: "The team owner cannot be removed." };
+    }
+    store.teamProfiles = store.teamProfiles.filter((p) => p.id !== profileId);
+    revalidatePath("/admin/team");
+    return { ok: true, message: `${member.fullName} was removed (demo).` };
+  }
+
+  const service = createServiceClient();
+  if (!service) {
+    return {
+      ok: false,
+      message:
+        "Add SUPABASE_SERVICE_ROLE_KEY to the environment so this page can remove logins.",
+    };
+  }
+
+  try {
+    const { data: member, error: fetchError } = await service
+      .from("profiles")
+      .select("id, email, full_name")
+      .eq("id", profileId)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+    if (!member) return { ok: false, message: "Team member not found." };
+    if (isTeamOwner(String(member.email))) {
+      return { ok: false, message: "The team owner cannot be removed." };
+    }
+
+    for (const ref of PROFILE_REFERENCES) {
+      const { error } = await service
+        .from(ref.table)
+        .update({ [ref.column]: null })
+        .eq(ref.column, profileId);
+      // A missing table (migration not run yet) holds no references.
+      if (error && error.code !== "42P01" && error.code !== "PGRST205") {
+        throw error;
+      }
+    }
+
+    // Deleting the auth user cascades to public.profiles.
+    const { error } = await service.auth.admin.deleteUser(profileId);
+    if (error) throw error;
+
+    revalidatePath("/admin/team");
+    return {
+      ok: true,
+      message: `${String(member.full_name)} was removed and can no longer sign in.`,
+    };
+  } catch (error) {
+    console.warn("[meritmun/admin] removeTeamMember", error);
+    return { ok: false, message: "Could not remove the team member." };
   }
 }
 

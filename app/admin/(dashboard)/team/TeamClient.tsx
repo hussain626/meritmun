@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { InitialsMedallion } from "@/components/board/InitialsMedallion";
 import { Eye } from "@/components/icons/Eye";
 import { EyeOff } from "@/components/icons/EyeOff";
 import { MoreVertical } from "@/components/icons/MoreVertical";
 import { UserPlus } from "@/components/icons/UserPlus";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
@@ -14,14 +15,85 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { createTeamMember } from "@/lib/admin/actions";
+import { createTeamMember, removeTeamMember } from "@/lib/admin/actions";
+import { isTeamOwner, TEAM_OWNER_EMAIL } from "@/lib/admin/team";
 import type { AdminRole, Profile } from "@/lib/admin/types";
 import { formatAdminDate, initialsFromName, titleCase } from "@/lib/utils";
 
 type TeamClientProps = {
   profiles: Profile[];
   role: AdminRole;
+  currentUserId: string;
+  /** Only the team owner may remove members. */
+  canRemove: boolean;
 };
+
+/** Three-dots menu for one team row. Closes on outside click or Escape. */
+function RowActions({
+  member,
+  disabledReason,
+  onRemove,
+}: {
+  member: Profile;
+  disabledReason: string | null;
+  onRemove: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointer(event: PointerEvent) {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        type="button"
+        aria-label={`Actions for ${member.fullName}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="grid size-8 place-items-center rounded-sm text-fg-faint hover:bg-surface-inset hover:text-fg"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <MoreVertical className="size-4" />
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 w-56 rounded-sm border border-line bg-surface p-1 shadow-md"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            disabled={Boolean(disabledReason)}
+            className="w-full rounded-sm px-3 py-2 text-left text-sm text-danger-fg hover:bg-surface-inset disabled:cursor-not-allowed disabled:text-fg-faint disabled:hover:bg-transparent"
+            onClick={() => {
+              setOpen(false);
+              onRemove();
+            }}
+          >
+            Remove member
+          </button>
+          {disabledReason ? (
+            <p className="px-3 pb-2 text-xs text-fg-faint">{disabledReason}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 const ROLE_TONE: Record<AdminRole, "neutral" | "accent"> = {
   admin: "neutral",
@@ -73,8 +145,21 @@ function PasswordField({
   );
 }
 
-export function TeamClient({ profiles, role }: TeamClientProps) {
+export function TeamClient({
+  profiles,
+  role,
+  currentUserId,
+  canRemove,
+}: TeamClientProps) {
   const isAdmin = role === "admin";
+  const [removing, setRemoving] = useState<Profile | null>(null);
+
+  function removeBlockedReason(member: Profile): string | null {
+    if (!canRemove) return `Only ${TEAM_OWNER_EMAIL} can remove members.`;
+    if (member.id === currentUserId) return "You cannot remove yourself.";
+    if (isTeamOwner(member.email)) return "The team owner cannot be removed.";
+    return null;
+  }
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
@@ -297,13 +382,11 @@ export function TeamClient({ profiles, role }: TeamClientProps) {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      aria-label={`Actions for ${row.fullName}`}
-                      className="grid size-8 place-items-center rounded-sm text-fg-faint hover:bg-surface-inset hover:text-fg"
-                    >
-                      <MoreVertical className="size-4" />
-                    </button>
+                    <RowActions
+                      member={row}
+                      disabledReason={removeBlockedReason(row)}
+                      onRemove={() => setRemoving(row)}
+                    />
                   </td>
                 </tr>
               ))}
@@ -319,6 +402,25 @@ export function TeamClient({ profiles, role }: TeamClientProps) {
           />
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(removing)}
+        onClose={() => setRemoving(null)}
+        onConfirm={() => {
+          if (!removing) return;
+          const id = removing.id;
+          startTransition(async () => {
+            const result = await removeTeamMember(id);
+            setMessage(result.message);
+            setRemoving(null);
+          });
+        }}
+        title={`Remove ${removing?.fullName ?? "this member"}?`}
+        description={`${removing?.email ?? "They"} will lose access to the admin panel immediately. Their login is deleted and cannot be restored — you would need to create a new account.`}
+        confirmLabel="Remove member"
+        tone="danger"
+        loading={pending}
+      />
     </div>
   );
 }
