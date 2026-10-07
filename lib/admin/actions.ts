@@ -691,8 +691,11 @@ export async function createTeamMember(input: {
       console.warn("[meritmun/admin] createTeamMember profile", profileError);
       return {
         ok: false,
-        message:
-          "Login was created, but the admin profile row failed. Run migration 001, then insert public.profiles for this user.",
+        message: `Login was created, but saving the admin profile failed: ${profileError.message}.${
+          /permission denied/i.test(profileError.message)
+            ? " Run supabase/migrations/007_service_role_grants.sql in the Supabase SQL editor."
+            : ""
+        }`,
       };
     }
 
@@ -703,7 +706,8 @@ export async function createTeamMember(input: {
     };
   } catch (error) {
     console.warn("[meritmun/admin] createTeamMember", error);
-    return { ok: false, message: "Could not create the account." };
+    const reason = error instanceof Error ? error.message : "unknown error";
+    return { ok: false, message: `Could not create the account: ${reason}.` };
   }
 }
 
