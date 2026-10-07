@@ -44,7 +44,6 @@ export default async function AllotmentRulesPage() {
       rules={rules}
       pool={pool}
       role={session.role}
-      aiAvailable={Boolean(process.env.GEMINI_API_KEY?.trim())}
     />
   );
 }

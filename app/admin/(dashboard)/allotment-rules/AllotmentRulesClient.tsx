@@ -36,7 +36,6 @@ type AllotmentRulesClientProps = {
   rules: AllotmentRules;
   pool: PoolHealthRow[];
   role: AdminRole;
-  aiAvailable: boolean;
 };
 
 function RuleField({
@@ -92,7 +91,6 @@ export function AllotmentRulesClient({
   rules,
   pool,
   role,
-  aiAvailable,
 }: AllotmentRulesClientProps) {
   const canMutate = role === "admin" || role === "eb";
   const [form, setForm] = useState(rules);
@@ -246,17 +244,6 @@ export function AllotmentRulesClient({
               checked={form.matchHardness}
               disabled={!canMutate}
               onChange={(next) => patch("matchHardness", next)}
-            />
-            <ToggleRule
-              label="Score experience with Gemini"
-              hint={
-                aiAvailable
-                  ? "Gemini reads each delegate's experience band and awards. If it fails, the run stops and nothing changes."
-                  : "GEMINI_API_KEY is not set, so the built-in heuristic scores delegates regardless of this switch."
-              }
-              checked={form.useAiScoring}
-              disabled={!canMutate}
-              onChange={(next) => patch("useAiScoring", next)}
             />
           </div>
         </section>
