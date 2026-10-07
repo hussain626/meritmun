@@ -19,33 +19,37 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet, headers) {
-        cookiesToSet.forEach(({ name, value }) => {
-          request.cookies.set(name, value);
-        });
-        supabaseResponse = NextResponse.next({
-          request,
-        });
-        cookiesToSet.forEach(({ name, value, options }) => {
-          supabaseResponse.cookies.set(name, value, options);
-        });
-        if (headers) {
-          Object.entries(headers).forEach(([key, value]) => {
-            supabaseResponse.headers.set(key, value);
+  try {
+    const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet, headers) {
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
           });
-        }
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            supabaseResponse.cookies.set(name, value, options);
+          });
+          if (headers) {
+            Object.entries(headers).forEach(([key, value]) => {
+              supabaseResponse.headers.set(key, value);
+            });
+          }
+        },
       },
-    },
-  });
+    });
 
-  // Do not add logic between createServerClient and getUser — a simple
-  // getSession() can leave a stale token that getUser would have refreshed.
-  await supabase.auth.getUser();
+    // Do not add logic between createServerClient and getUser — a simple
+    // getSession() can leave a stale token that getUser would have refreshed.
+    await supabase.auth.getUser();
+  } catch {
+    return NextResponse.next({ request });
+  }
 
   return supabaseResponse;
 }
