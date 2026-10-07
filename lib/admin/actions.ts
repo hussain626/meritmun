@@ -791,7 +791,18 @@ export async function removeTeamMember(
     };
   } catch (error) {
     console.warn("[meritmun/admin] removeTeamMember", error);
-    return { ok: false, message: "Could not remove the team member." };
+    // Owner-only action, so surfacing the database reason is safe and useful.
+    const reason =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "unknown error";
+    const hint = /permission denied/i.test(reason)
+      ? " Run supabase/migrations/007_service_role_grants.sql in the Supabase SQL editor."
+      : "";
+    return {
+      ok: false,
+      message: `Could not remove the team member: ${reason}.${hint}`,
+    };
   }
 }
 
