@@ -9,6 +9,7 @@ import { RegistrationGateCard } from "@/components/admin/RegistrationGateCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
@@ -16,8 +17,8 @@ import { Download } from "@/components/icons/Download";
 import { MoreVertical } from "@/components/icons/MoreVertical";
 import { Search } from "@/components/icons/Search";
 import {
-  confirmDelegatePayment,
-  confirmDelegationPayment,
+  confirmPayment,
+  getPaymentProofUrl,
   rejectDelegatePayment,
   rejectDelegationPayment,
   resendRegistrationEmail,
@@ -44,6 +45,8 @@ type RegistrationsClientProps = {
   registrationOpen: boolean;
   /** Committee slug → abbreviation, so preferences read "HCC", not a slug. */
   committeeAbbr: Record<string, string>;
+  /** Fee owed per registration id (quote, or current pricing for old rows). */
+  owedById: Record<string, number>;
 };
 
 const EXPERIENCE_LABEL: Record<string, string> = {
@@ -82,6 +85,7 @@ export function RegistrationsClient({
   role,
   registrationOpen,
   committeeAbbr,
+  owedById,
 }: RegistrationsClientProps) {
   const canMutate = role === "admin" || role === "eb";
   const prefLabel = (slug: string) => committeeAbbr[slug] ?? slug.toUpperCase();
@@ -97,6 +101,13 @@ export function RegistrationsClient({
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Confirm-payment form: amount received (editable for discounts), a note,
+  // and the transfer screenshot, which is required.
+  const [payAmount, setPayAmount] = useState("");
+  const [payNote, setPayNote] = useState("");
+  const [payProof, setPayProof] = useState<File | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [proofView, setProofView] = useState<{ url: string; title: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   // Failures shown inside the open drawer, where the admin is looking.
   const [drawerNote, setDrawerNote] = useState<string | null>(null);
@@ -172,6 +183,80 @@ export function RegistrationsClient({
         setSelectedDelegation(null);
       }
     });
+  }
+
+  /** The registration the confirm / proof / transcript buttons act on. */
+  function target(): { kind: "delegate" | "delegation"; id: string } | null {
+    if (selectedDelegation) return { kind: "delegation", id: selectedDelegation.id };
+    if (selected) return { kind: "delegate", id: selected.id };
+    return null;
+  }
+
+  function owedFor(): number {
+    const t = target();
+    return t ? (owedById[t.id] ?? 0) : 0;
+  }
+
+  function amountChanged(): boolean {
+    const typed = payAmount.replace(/[,\s]/g, "");
+    return typed !== "" && Number(typed) !== owedFor();
+  }
+
+  function openConfirm() {
+    setPayAmount(String(owedFor()));
+    setPayNote("");
+    setPayProof(null);
+    setPayError(null);
+    setConfirmOpen(true);
+  }
+
+  function submitConfirm() {
+    const t = target();
+    if (!t) return;
+    if (!payProof) {
+      setPayError("Attach the payment screenshot before confirming.");
+      return;
+    }
+    if (amountChanged() && !payNote.trim()) {
+      setPayError("Add a note explaining why the amount differs from the quote.");
+      return;
+    }
+    const form = new FormData();
+    form.set("kind", t.kind);
+    form.set("id", t.id);
+    form.set("amount", payAmount);
+    form.set("note", payNote);
+    form.set("proof", payProof);
+    setPayError(null);
+    startTransition(async () => {
+      const result = await confirmPayment(form);
+      setMessage(result.message);
+      if (result.ok) {
+        setConfirmOpen(false);
+        setSelected(null);
+        setSelectedDelegation(null);
+        setDrawerNote(null);
+      } else {
+        // Keep the dialog open so the screenshot and amount are not lost.
+        setPayError(result.message);
+      }
+    });
+  }
+
+  function viewProof() {
+    const t = target();
+    if (!t) return;
+    const title = `Payment screenshot · ${selectedDelegation?.reference ?? selected?.reference ?? ""}`;
+    startTransition(async () => {
+      const result = await getPaymentProofUrl(t.kind, t.id);
+      if (result.ok && result.url) setProofView({ url: result.url, title });
+      else setDrawerNote(result.message);
+    });
+  }
+
+  function openTranscript() {
+    const t = target();
+    if (t) window.open(`/admin/transcript/${t.kind}/${t.id}`, "_blank", "noopener");
   }
 
   const membersOfSelected = selectedDelegation
@@ -530,6 +615,14 @@ export function RegistrationsClient({
               >
                 Resend email
               </Button>
+              <Button variant="ghost" size="sm" onClick={openTranscript}>
+                Transcript
+              </Button>
+              {selected.paymentProofPath ? (
+                <Button variant="ghost" size="sm" disabled={pending} onClick={viewProof}>
+                  View screenshot
+                </Button>
+              ) : null}
               {selected.paymentStatus === "pending" && !selected.delegationId ? (
                 <>
                   <Button
@@ -548,7 +641,7 @@ export function RegistrationsClient({
                     variant="primary"
                     size="sm"
                     disabled={pending}
-                    onClick={() => setConfirmOpen(true)}
+                    onClick={openConfirm}
                   >
                     Confirm payment
                   </Button>
@@ -582,11 +675,7 @@ export function RegistrationsClient({
             />
             <DetailRow
               label="Quoted fee"
-              value={
-                selected.quotedAmount != null
-                  ? formatPkr(selected.quotedAmount)
-                  : "—"
-              }
+              value={formatPkr(owedById[selected.id] ?? selected.quotedAmount ?? 0)}
             />
             <DetailRow
               label="Payment"
@@ -601,6 +690,9 @@ export function RegistrationsClient({
                 label="Delegation"
                 value={`${delegations.find((d) => d.id === selected.delegationId)?.institutionName ?? "Delegation"} — payment is confirmed on the Delegations tab`}
               />
+            ) : null}
+            {selected.paymentNote ? (
+              <DetailRow label="Payment note" value={selected.paymentNote} />
             ) : null}
             {selected.rejectionReason ? (
               <DetailRow label="Rejection" value={selected.rejectionReason} />
@@ -622,10 +714,18 @@ export function RegistrationsClient({
         title={selectedDelegation?.institutionName ?? "Delegation"}
         size="lg"
         footer={
-          selectedDelegation &&
-          canMutate &&
-          selectedDelegation.paymentStatus === "pending" ? (
+          selectedDelegation && canMutate ? (
             <>
+              <Button variant="ghost" size="sm" onClick={openTranscript}>
+                Transcript
+              </Button>
+              {selectedDelegation.paymentProofPath ? (
+                <Button variant="ghost" size="sm" disabled={pending} onClick={viewProof}>
+                  View screenshot
+                </Button>
+              ) : null}
+              {selectedDelegation.paymentStatus === "pending" ? (
+              <>
               <Button
                 variant="outline"
                 size="sm"
@@ -642,10 +742,12 @@ export function RegistrationsClient({
                 variant="primary"
                 size="sm"
                 disabled={pending}
-                onClick={() => setConfirmOpen(true)}
+                onClick={openConfirm}
               >
                 Confirm payment
               </Button>
+              </>
+              ) : null}
             </>
           ) : undefined
         }
@@ -668,11 +770,9 @@ export function RegistrationsClient({
               />
               <DetailRow
                 label="Quoted fee"
-                value={
-                  selectedDelegation.quotedAmount != null
-                    ? formatPkr(selectedDelegation.quotedAmount)
-                    : "—"
-                }
+                value={formatPkr(
+                  owedById[selectedDelegation.id] ?? selectedDelegation.quotedAmount ?? 0,
+                )}
               />
               <DetailRow
                 label="Payment"
@@ -682,6 +782,9 @@ export function RegistrationsClient({
                     : (selectedDelegation.paymentStatus as PaymentStatus)
                 }
               />
+              {selectedDelegation.paymentNote ? (
+                <DetailRow label="Payment note" value={selectedDelegation.paymentNote} />
+              ) : null}
               <DetailRow label="Notes" value={selectedDelegation.notes ?? "—"} />
             </dl>
             <div>
@@ -730,24 +833,85 @@ export function RegistrationsClient({
       <ConfirmDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          if (selectedDelegation) {
-            const id = selectedDelegation.id;
-            runAction(() => confirmDelegationPayment(id));
-            return;
-          }
-          if (!selected) return;
-          runAction(() => confirmDelegatePayment(selected.id));
-        }}
-        title={selectedDelegation ? "Confirm delegation payment?" : "Confirm payment?"}
+        onConfirm={submitConfirm}
+        title={selectedDelegation ? "Confirm delegation payment" : "Confirm payment"}
         description={
-          selectedDelegation
-            ? `Marks the delegation and all ${membersOfSelected.length} roster members as paid, emails the head delegate, and runs merit allotment for every member.`
-            : "Marks this delegate as paid, snapshots the fee in PKR, and runs merit allotment for them."
+          <div className="flex flex-col gap-3">
+            <p>
+              {selectedDelegation
+                ? `Marks the delegation and all ${membersOfSelected.length} roster members as paid, emails the head delegate, and runs merit allotment for every member.`
+                : "Marks this delegate as paid, emails them, and runs merit allotment."}
+            </p>
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="font-medium text-fg">Amount received (PKR)</span>
+              <Input
+                inputMode="numeric"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+              />
+              <span className="text-xs text-fg-faint">
+                Quoted fee: {formatPkr(owedFor())}. Change it for a discount or a
+                part waiver.
+              </span>
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="font-medium text-fg">
+                Note{amountChanged() ? " (required — why is it different?)" : " (optional)"}
+              </span>
+              <Textarea
+                rows={2}
+                value={payNote}
+                onChange={(e) => setPayNote(e.target.value)}
+                placeholder="e.g. 10% sibling discount approved by the SG"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="font-medium text-fg">Payment screenshot (required)</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/heic,application/pdf"
+                onChange={(e) => setPayProof(e.target.files?.[0] ?? null)}
+                className="text-sm text-fg-muted file:mr-3 file:rounded-sm file:border file:border-line file:bg-surface file:px-3 file:py-1.5 file:text-sm file:text-fg"
+              />
+              <span className="text-xs text-fg-faint">
+                PNG, JPG, WEBP, HEIC or PDF, up to 4 MB.
+              </span>
+            </label>
+            {payError ? (
+              <p role="alert" className="text-sm text-danger-fg">
+                {payError}
+              </p>
+            ) : null}
+          </div>
         }
         confirmLabel="Confirm payment"
         loading={pending}
       />
+
+      <Drawer
+        open={Boolean(proofView)}
+        onClose={() => setProofView(null)}
+        title={proofView?.title ?? "Payment screenshot"}
+        size="lg"
+      >
+        {proofView ? (
+          proofView.url.startsWith("data:application/pdf") ||
+          /\.pdf(\?|$)/i.test(proofView.url) ? (
+            <iframe
+              src={proofView.url}
+              title={proofView.title}
+              className="h-[70vh] w-full rounded-sm border border-line"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
+            <img
+              src={proofView.url}
+              alt={proofView.title}
+              className="w-full rounded-sm border border-line object-contain"
+            />
+          )
+        ) : null}
+      </Drawer>
 
       <ConfirmDialog
         open={rejectOpen}

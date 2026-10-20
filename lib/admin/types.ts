@@ -98,6 +98,10 @@ export type DelegateRecord = {
   paymentConfirmedAt: string | null;
   paymentRejectedAt: string | null;
   rejectionReason: string | null;
+  /** Storage path of the transfer screenshot attached at confirmation. */
+  paymentProofPath?: string | null;
+  /** Why the confirmed amount differs from the quote (discount etc.). */
+  paymentNote?: string | null;
   delegationId: string | null;
   /** First member of a delegation roster (the head is also a delegate). */
   isHeadDelegate: boolean;
@@ -125,6 +129,9 @@ export type DelegationRecord = {
   paymentAmount: number | null;
   /** Whole-delegation fee quoted at registration. */
   quotedAmount?: number | null;
+  paymentProofPath?: string | null;
+  paymentNote?: string | null;
+  paymentConfirmedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };

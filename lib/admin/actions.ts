@@ -44,6 +44,14 @@ import {
   sendRegistrationConfirmation,
 } from "@/lib/email/send";
 import { runMeritEngineAction } from "@/lib/admin/allotment-actions";
+import {
+  proofUrl,
+  removeProof,
+  saveProof,
+  validateProof,
+  type ProofKind,
+} from "@/lib/admin/payment-proof";
+import { owedAmount, owedAmountTotal } from "@/lib/admin/fees";
 import { isP5Country } from "@/lib/merit/p5";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -174,33 +182,6 @@ const STAFF: AdminRole[] = ["admin", "eb"];
 /** Fees and bank accounts are admin-only (RLS: pricing/bank admin write). */
 const ADMIN_ONLY: AdminRole[] = ["admin"];
 
-function feeForType(feeType: FeeType, pricing: PricingSettings): number {
-  switch (feeType) {
-    case "early_bird_delegate":
-      return pricing.earlyBirdDelegateFee ?? pricing.delegateFee;
-    case "delegation_member":
-      return pricing.perDelegateFee;
-    case "early_bird_delegation_member":
-      return pricing.earlyBirdPerDelegateFee ?? pricing.perDelegateFee;
-    default:
-      return pricing.delegateFee;
-  }
-}
-
-/**
- * The amount owed is what the registrant was quoted (and emailed). Rows from
- * before migration 008 have no quote, so they fall back to current pricing.
- */
-function owedAmount(
-  quoted: unknown,
-  feeType: FeeType,
-  pricing: PricingSettings,
-): number {
-  return typeof quoted === "number" && Number.isFinite(quoted)
-    ? quoted
-    : feeForType(feeType, pricing);
-}
-
 /**
  * Re-plan drafts after a payment so the newly paid delegates compete on merit
  * with everyone else still in draft (issued and manual seats never move).
@@ -242,25 +223,108 @@ function releasedNote(count: number): string {
     : "";
 }
 
-export async function confirmDelegatePayment(
-  id: string,
+/** Largest fee staff can record, to catch an extra zero typed by mistake. */
+const MAX_PAYMENT = 1_000_000;
+
+type ConfirmInput = {
+  kind: ProofKind;
+  id: string;
+  /** Amount actually received, in PKR (may be below the quote for a discount). */
+  amount: number;
+  note: string | null;
+  proof: File;
+};
+
+/** Parse and check the confirm form; returns the input or a reason it is invalid. */
+function readConfirmForm(formData: FormData): ConfirmInput | string {
+  const kind = String(formData.get("kind") ?? "");
+  const id = String(formData.get("id") ?? "").trim();
+  if ((kind !== "delegate" && kind !== "delegation") || !id) {
+    return "Registration not found.";
+  }
+  const rawAmount = String(formData.get("amount") ?? "").replace(/[,\s]/g, "");
+  if (!/^\d+$/.test(rawAmount)) {
+    return "Enter the amount received in whole rupees.";
+  }
+  const amount = Number(rawAmount);
+  if (amount > MAX_PAYMENT) {
+    return `That amount is above PKR ${MAX_PAYMENT.toLocaleString("en-US")} — check for an extra zero.`;
+  }
+  const proof = formData.get("proof");
+  const proofError = validateProof(proof);
+  if (proofError) return proofError;
+  const note = String(formData.get("note") ?? "").trim().slice(0, 500) || null;
+  return { kind, id, amount, note, proof: proof as File };
+}
+
+/** A changed amount must say why, so Finance can reconcile it later. */
+function amountNoteError(amount: number, owed: number, note: string | null): string | null {
+  if (amount !== owed && !note) {
+    return `The quoted fee is PKR ${owed.toLocaleString("en-US")}. Add a note explaining the different amount (for example the discount given).`;
+  }
+  return null;
+}
+
+function amountSummary(amount: number, owed: number): string {
+  return amount === owed
+    ? `PKR ${amount.toLocaleString("en-US")} recorded.`
+    : `PKR ${amount.toLocaleString("en-US")} recorded (quoted PKR ${owed.toLocaleString("en-US")}).`;
+}
+
+function missingProofColumns(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  return (
+    e?.code === "PGRST204" ||
+    e?.code === "42703" ||
+    /payment_proof_path|payment_note|payment_confirmed_by/i.test(e?.message ?? "")
+  );
+}
+
+const MIGRATION_009 =
+  "Payment proofs are not set up yet. Run supabase/migrations/009_payment_proofs.sql in the Supabase SQL editor, then confirm again.";
+
+/**
+ * Confirm a payment. Staff must attach the transfer screenshot, and may record
+ * a different amount than quoted (a discount) as long as they say why. One
+ * payment covers a whole delegation: its members are confirmed with it.
+ */
+export async function confirmPayment(
+  formData: FormData,
 ): Promise<{ ok: boolean; message: string }> {
   const auth = await authorizeAction(STAFF, "confirm payments");
   if (!auth.ok) return auth;
 
+  const input = readConfirmForm(formData);
+  if (typeof input === "string") return { ok: false, message: input };
+
+  return input.kind === "delegate"
+    ? confirmDelegate(input, auth.session.user.id)
+    : confirmDelegation(input, auth.session.user.id);
+}
+
+async function confirmDelegate(
+  input: ConfirmInput,
+  userId: string,
+): Promise<{ ok: boolean; message: string }> {
+  const { id, amount, note } = input;
+
   if (!isSupabaseConfigured()) {
     const store = getDemoStore();
     const delegate = store.delegates.find((d) => d.id === id);
-    if (!delegate) {
-      return { ok: false, message: "Delegate not found." };
-    }
+    if (!delegate) return { ok: false, message: "Delegate not found." };
     if (delegate.delegationId) return { ok: false, message: MEMBER_PAYMENT };
+    if (delegate.paymentStatus === "confirmed") {
+      return { ok: false, message: "This payment is already confirmed." };
+    }
+    const owed = owedAmount(delegate.quotedAmount, delegate.feeType, store.pricing);
+    const noteError = amountNoteError(amount, owed, note);
+    if (noteError) return { ok: false, message: noteError };
+
+    const proofPath = await saveProof("delegate", id, input.proof);
     delegate.paymentStatus = "confirmed";
-    delegate.paymentAmount = owedAmount(
-      delegate.quotedAmount ?? delegate.paymentAmount,
-      delegate.feeType,
-      store.pricing,
-    );
+    delegate.paymentAmount = amount;
+    delegate.paymentProofPath = proofPath;
+    delegate.paymentNote = note;
     delegate.paymentConfirmedAt = nowIso();
     delegate.paymentRejectedAt = null;
     delegate.rejectionReason = null;
@@ -270,17 +334,19 @@ export async function confirmDelegatePayment(
       to: delegate.email,
       fullName: delegate.fullName,
       reference: delegate.reference,
+      amount,
     });
     const merit = await queueMerit([id]);
 
     revalidateAdmin();
     return {
       ok: true,
-      message: `Payment confirmed (demo). ${deliveryNote(sent)} ${merit}`,
+      message: `Payment confirmed (demo). ${amountSummary(amount, owed)} ${deliveryNote(sent)} ${merit}`,
     };
   }
 
   let confirmed = false;
+  let proofPath: string | null = null;
   try {
     const client = await createClient();
     const pricing = await getPricing();
@@ -292,6 +358,14 @@ export async function confirmDelegatePayment(
     if (fetchError) throw fetchError;
     if (!delegate) return { ok: false, message: "Delegate not found." };
     if (delegate.delegation_id) return { ok: false, message: MEMBER_PAYMENT };
+    if (delegate.payment_status === "confirmed") {
+      return { ok: false, message: "This payment is already confirmed." };
+    }
+    const owed = owedAmount(delegate.quoted_amount, delegate.fee_type as FeeType, pricing);
+    const noteError = amountNoteError(amount, owed, note);
+    if (noteError) return { ok: false, message: noteError };
+
+    proofPath = await saveProof("delegate", id, input.proof);
 
     // `.select()` returns the rows actually changed: RLS can turn an UPDATE
     // into a silent no-op, and nobody must be emailed "confirmed" then.
@@ -299,11 +373,10 @@ export async function confirmDelegatePayment(
       .from("delegates")
       .update({
         payment_status: "confirmed",
-        payment_amount: owedAmount(
-          delegate.quoted_amount,
-          delegate.fee_type as FeeType,
-          pricing,
-        ),
+        payment_amount: amount,
+        payment_proof_path: proofPath,
+        payment_note: note,
+        payment_confirmed_by: userId,
         payment_confirmed_at: nowIso(),
         payment_rejected_at: null,
         rejection_reason: null,
@@ -313,6 +386,7 @@ export async function confirmDelegatePayment(
       .select("id");
     if (error) throw error;
     if (!updated?.length) {
+      await removeProof(proofPath);
       return { ok: false, message: "You do not have permission to confirm payments." };
     }
     confirmed = true;
@@ -321,62 +395,79 @@ export async function confirmDelegatePayment(
       to: String(delegate.email),
       fullName: String(delegate.full_name),
       reference: String(delegate.reference),
+      amount,
       related: { type: "delegate", id },
     });
     const merit = await queueMerit([id]);
 
     revalidateAdmin();
-    return { ok: true, message: `Payment confirmed. ${deliveryNote(sent)} ${merit}` };
+    return {
+      ok: true,
+      message: `Payment confirmed. ${amountSummary(amount, owed)} ${deliveryNote(sent)} ${merit}`,
+    };
   } catch (error) {
-    console.warn("[meritmun/admin] confirmDelegatePayment", error);
+    console.warn("[meritmun/admin] confirmDelegate", error);
+    if (!confirmed && proofPath) await removeProof(proofPath);
     revalidateAdmin();
-    return confirmed
-      ? { ok: true, message: "Payment confirmed, but a follow-up step failed — check the email log and run merit from Allotments." }
-      : { ok: false, message: "Could not confirm payment." };
+    if (confirmed) {
+      return {
+        ok: true,
+        message: "Payment confirmed, but a follow-up step failed — check the email log and run merit from Allotments.",
+      };
+    }
+    if (missingProofColumns(error) || isMissingBucket(error)) {
+      return { ok: false, message: MIGRATION_009 };
+    }
+    return { ok: false, message: "Could not confirm payment." };
   }
 }
 
-/**
- * One payment covers a whole delegation: confirm the delegation and every
- * member on its roster, email the head, then run merit for the members.
- */
-export async function confirmDelegationPayment(
-  id: string,
+async function confirmDelegation(
+  input: ConfirmInput,
+  userId: string,
 ): Promise<{ ok: boolean; message: string }> {
-  const auth = await authorizeAction(STAFF, "confirm payments");
-  if (!auth.ok) return auth;
+  const { id, amount, note } = input;
 
   if (!isSupabaseConfigured()) {
     const store = getDemoStore();
     const delegation = store.delegations.find((d) => d.id === id);
     if (!delegation) return { ok: false, message: "Delegation not found." };
+    if (delegation.paymentStatus === "confirmed") {
+      return { ok: false, message: "This payment is already confirmed." };
+    }
     const members = store.delegates.filter((d) => d.delegationId === id);
+    const owed = owedAmountTotal(
+      delegation.quotedAmount,
+      members.reduce(
+        (sum, m) => sum + owedAmount(m.quotedAmount, m.feeType, store.pricing),
+        0,
+      ) + store.pricing.delegationFee,
+    );
+    const noteError = amountNoteError(amount, owed, note);
+    if (noteError) return { ok: false, message: noteError };
+
+    const proofPath = await saveProof("delegation", id, input.proof);
     const stamp = nowIso();
-    let total = 0;
     for (const member of members) {
       member.paymentStatus = "confirmed";
-      member.paymentAmount = owedAmount(
-        member.quotedAmount ?? member.paymentAmount,
-        member.feeType,
-        store.pricing,
-      );
+      member.paymentAmount = owedAmount(member.quotedAmount, member.feeType, store.pricing);
       member.paymentConfirmedAt = stamp;
       member.paymentRejectedAt = null;
       member.rejectionReason = null;
       member.updatedAt = stamp;
-      total += member.paymentAmount;
     }
     delegation.paymentStatus = "confirmed";
-    delegation.paymentAmount =
-      delegation.quotedAmount ??
-      delegation.paymentAmount ??
-      total + store.pricing.delegationFee;
+    delegation.paymentAmount = amount;
+    delegation.paymentProofPath = proofPath;
+    delegation.paymentNote = note;
+    delegation.paymentConfirmedAt = stamp;
     delegation.updatedAt = stamp;
 
     const sent = await sendPaymentConfirmed({
       to: delegation.headEmail,
       fullName: delegation.headName,
       reference: delegation.reference,
+      amount,
     });
     const merit = members.length
       ? await queueMerit(members.map((m) => m.id))
@@ -385,11 +476,12 @@ export async function confirmDelegationPayment(
     revalidateAdmin();
     return {
       ok: true,
-      message: `Delegation confirmed with ${members.length} member${members.length === 1 ? "" : "s"} (demo). ${deliveryNote(sent)} ${merit}`,
+      message: `Delegation confirmed with ${members.length} member${members.length === 1 ? "" : "s"} (demo). ${amountSummary(amount, owed)} ${deliveryNote(sent)} ${merit}`,
     };
   }
 
   let confirmed = false;
+  let proofPath: string | null = null;
   try {
     const client = await createClient();
     const pricing = await getPricing();
@@ -400,6 +492,9 @@ export async function confirmDelegationPayment(
       .maybeSingle();
     if (fetchError) throw fetchError;
     if (!delegation) return { ok: false, message: "Delegation not found." };
+    if (delegation.payment_status === "confirmed") {
+      return { ok: false, message: "This payment is already confirmed." };
+    }
 
     const { data: members, error: membersError } = await client
       .from("delegates")
@@ -407,60 +502,65 @@ export async function confirmDelegationPayment(
       .eq("delegation_id", id);
     if (membersError) throw membersError;
 
+    const memberAmounts = (members ?? []).map((m) => ({
+      id: String(m.id),
+      amount: owedAmount(m.quoted_amount, m.fee_type as FeeType, pricing),
+    }));
+    const owed = owedAmountTotal(
+      delegation.quoted_amount,
+      memberAmounts.reduce((sum, m) => sum + m.amount, 0) + pricing.delegationFee,
+    );
+    const noteError = amountNoteError(amount, owed, note);
+    if (noteError) return { ok: false, message: noteError };
+
+    proofPath = await saveProof("delegation", id, input.proof);
+
     const stamp = nowIso();
+    // The delegation row carries the whole payment (what was actually
+    // received); revenue KPIs count this row, not its members.
     const { data: updatedDelegation, error } = await client
       .from("delegations")
-      .update({ payment_status: "confirmed", updated_at: stamp })
+      .update({
+        payment_status: "confirmed",
+        payment_amount: amount,
+        payment_proof_path: proofPath,
+        payment_note: note,
+        payment_confirmed_by: userId,
+        payment_confirmed_at: stamp,
+        updated_at: stamp,
+      })
       .eq("id", id)
       .select("id");
     if (error) throw error;
     if (!updatedDelegation?.length) {
+      await removeProof(proofPath);
       return { ok: false, message: "You do not have permission to confirm payments." };
     }
     confirmed = true;
 
-    let total = 0;
-    for (const member of members ?? []) {
-      const amount = owedAmount(
-        member.quoted_amount,
-        member.fee_type as FeeType,
-        pricing,
-      );
-      total += amount;
+    for (const member of memberAmounts) {
       const { error: memberError } = await client
         .from("delegates")
         .update({
           payment_status: "confirmed",
-          payment_amount: amount,
+          payment_amount: member.amount,
           payment_confirmed_at: stamp,
           payment_rejected_at: null,
           rejection_reason: null,
           updated_at: stamp,
         })
-        .eq("id", String(member.id));
+        .eq("id", member.id);
       if (memberError) throw memberError;
     }
-
-    // The delegation row carries the whole-delegation payment (per-head fees
-    // plus the flat delegation fee); revenue KPIs count this row, not members.
-    const { error: amountError } = await client
-      .from("delegations")
-      .update({
-        payment_amount: owedAmountTotal(
-          delegation.quoted_amount,
-          total + pricing.delegationFee,
-        ),
-      })
-      .eq("id", id);
-    if (amountError) throw amountError;
 
     const sent = await sendPaymentConfirmed({
       to: String(delegation.head_email),
       fullName: String(delegation.head_name),
       reference: String(delegation.reference),
+      amount,
       related: { type: "delegation", id },
     });
-    const memberIds = (members ?? []).map((m) => String(m.id));
+    const memberIds = memberAmounts.map((m) => m.id);
     const merit = memberIds.length
       ? await queueMerit(memberIds)
       : "No roster members to allot.";
@@ -468,19 +568,66 @@ export async function confirmDelegationPayment(
     revalidateAdmin();
     return {
       ok: true,
-      message: `Delegation confirmed with ${memberIds.length} member${memberIds.length === 1 ? "" : "s"}. ${deliveryNote(sent)} ${merit}`,
+      message: `Delegation confirmed with ${memberIds.length} member${memberIds.length === 1 ? "" : "s"}. ${amountSummary(amount, owed)} ${deliveryNote(sent)} ${merit}`,
     };
   } catch (error) {
-    console.warn("[meritmun/admin] confirmDelegationPayment", error);
+    console.warn("[meritmun/admin] confirmDelegation", error);
+    if (!confirmed && proofPath) await removeProof(proofPath);
     revalidateAdmin();
-    return confirmed
-      ? { ok: false, message: "The delegation was marked confirmed, but updating its members failed. Open it again and re-confirm." }
-      : { ok: false, message: "Could not confirm the delegation payment." };
+    if (confirmed) {
+      return {
+        ok: false,
+        message: "The delegation was marked confirmed, but updating its members failed. Ask an admin to check the roster.",
+      };
+    }
+    if (missingProofColumns(error) || isMissingBucket(error)) {
+      return { ok: false, message: MIGRATION_009 };
+    }
+    return { ok: false, message: "Could not confirm the delegation payment." };
   }
 }
 
-function owedAmountTotal(quoted: unknown, computed: number): number {
-  return typeof quoted === "number" && Number.isFinite(quoted) ? quoted : computed;
+function isMissingBucket(error: unknown): boolean {
+  const e = error as { message?: string; statusCode?: string | number } | null;
+  return /bucket not found/i.test(e?.message ?? "");
+}
+
+/** Short-lived link to view a confirmed payment's screenshot. */
+export async function getPaymentProofUrl(
+  kind: ProofKind,
+  id: string,
+): Promise<{ ok: boolean; message: string; url?: string }> {
+  const auth = await authorizeAction(STAFF, "view payment proofs");
+  if (!auth.ok) return auth;
+
+  let path: string | null | undefined;
+  if (!isSupabaseConfigured()) {
+    const store = getDemoStore();
+    path =
+      kind === "delegate"
+        ? store.delegates.find((d) => d.id === id)?.paymentProofPath
+        : store.delegations.find((d) => d.id === id)?.paymentProofPath;
+  } else {
+    const client = await createClient();
+    const { data, error } = await client
+      .from(kind === "delegate" ? "delegates" : "delegations")
+      .select("payment_proof_path")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) {
+      return {
+        ok: false,
+        message: missingProofColumns(error) ? MIGRATION_009 : "Could not load the proof.",
+      };
+    }
+    path = data?.payment_proof_path == null ? null : String(data.payment_proof_path);
+  }
+
+  if (!path) return { ok: false, message: "No payment screenshot is attached." };
+  const url = await proofUrl(path);
+  return url
+    ? { ok: true, message: "Opened.", url }
+    : { ok: false, message: "The screenshot could not be found in storage." };
 }
 
 export async function rejectDelegationPayment(

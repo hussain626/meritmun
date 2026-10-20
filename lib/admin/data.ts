@@ -132,6 +132,9 @@ export function mapDelegateRow(row: Record<string, unknown>): DelegateRecord {
       row.payment_rejected_at == null ? null : String(row.payment_rejected_at),
     rejectionReason:
       row.rejection_reason == null ? null : String(row.rejection_reason),
+    paymentProofPath:
+      row.payment_proof_path == null ? null : String(row.payment_proof_path),
+    paymentNote: row.payment_note == null ? null : String(row.payment_note),
     delegationId: row.delegation_id == null ? null : String(row.delegation_id),
     isHeadDelegate: Boolean(row.is_head_delegate),
     feeType: row.fee_type as DelegateRecord["feeType"],
@@ -161,6 +164,11 @@ function mapDelegation(row: Record<string, unknown>): DelegationRecord {
     paymentStatus: row.payment_status as DelegationRecord["paymentStatus"],
     paymentAmount:
       row.payment_amount == null ? null : Number(row.payment_amount),
+    paymentProofPath:
+      row.payment_proof_path == null ? null : String(row.payment_proof_path),
+    paymentNote: row.payment_note == null ? null : String(row.payment_note),
+    paymentConfirmedAt:
+      row.payment_confirmed_at == null ? null : String(row.payment_confirmed_at),
     quotedAmount:
       row.quoted_amount == null ? null : Number(row.quoted_amount),
     createdAt: String(row.created_at),

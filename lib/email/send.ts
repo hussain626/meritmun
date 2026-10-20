@@ -250,16 +250,20 @@ export async function sendPaymentConfirmed(input: {
   to: string;
   fullName: string;
   reference: string;
+  /** Amount recorded as received, in PKR. */
+  amount?: number;
 }): Promise<SendResult> {
   const subject = `MERITMUN III — Payment confirmed (${input.reference})`;
+  const paid =
+    input.amount != null ? ` of PKR ${input.amount.toLocaleString("en-US")}` : "";
   const text =
     `Hello ${input.fullName},\n\n` +
-    `We have received your payment for ${input.reference}. ` +
+    `We have received your payment${paid} for ${input.reference}. ` +
     `Committee allotment will follow once the Executive Board confirms your seat.\n\n` +
     `— MERITMUN Secretariat`;
   const html =
     `<p>Hello ${escapeHtml(input.fullName)},</p>` +
-    `<p>We have received your payment for <strong>${escapeHtml(input.reference)}</strong>. ` +
+    `<p>We have received your payment${escapeHtml(paid)} for <strong>${escapeHtml(input.reference)}</strong>. ` +
     `Committee allotment will follow once the Executive Board confirms your seat.</p>` +
     `<p>— MERITMUN Secretariat</p>`;
 

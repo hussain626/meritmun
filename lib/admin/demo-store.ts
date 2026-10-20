@@ -65,6 +65,8 @@ export type DemoStore = {
   secretariat: SecretariatMemberRecord[];
   sponsors: SponsorRecord[];
   teamProfiles: Profile[];
+  /** Demo payment screenshots by storage path. */
+  paymentProofs: Record<string, { contentType: string; base64: string }>;
 };
 
 function clone<T>(value: T): T {
@@ -92,6 +94,7 @@ function createStore(): DemoStore {
     secretariat: clone(demoSecretariat),
     sponsors: clone(demoSponsors),
     teamProfiles: clone(demoTeamProfiles),
+    paymentProofs: {},
   };
 }
 
