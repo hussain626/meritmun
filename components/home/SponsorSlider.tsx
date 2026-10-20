@@ -21,6 +21,9 @@ type SponsorSliderProps = {
  */
 export function SponsorSlider({ sponsors, className }: SponsorSliderProps) {
   const [paused, setPaused] = useState(false);
+  // Logos that failed to load fall back to the sponsor's name instead of a
+  // broken-image icon (admins paste remote URLs that can move or expire).
+  const [broken, setBroken] = useState<Set<string>>(() => new Set());
 
   if (sponsors.length === 0) return null;
 
@@ -69,7 +72,7 @@ export function SponsorSlider({ sponsors, className }: SponsorSliderProps) {
                   "focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-4",
                 )}
               >
-                {sponsor.logoUrl ? (
+                {sponsor.logoUrl && !broken.has(sponsor.id) ? (
                   // eslint-disable-next-line @next/next/no-img-element -- remote sponsor URLs vary by storage host
                   <img
                     src={sponsor.logoUrl}
@@ -79,6 +82,9 @@ export function SponsorSlider({ sponsors, className }: SponsorSliderProps) {
                     className="h-10 w-auto max-w-[9rem] object-contain sm:h-12 sm:max-w-[11rem]"
                     loading="lazy"
                     decoding="async"
+                    onError={() =>
+                      setBroken((prev) => new Set(prev).add(sponsor.id))
+                    }
                   />
                 ) : (
                   <span className="px-2 font-display text-lg tracking-tight text-fg-muted group-hover:text-fg sm:text-xl">

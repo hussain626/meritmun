@@ -2,15 +2,21 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Filter } from "@/components/icons/Filter";
-import { GripVertical } from "@/components/icons/GripVertical";
 import { Plus } from "@/components/icons/Plus";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Drawer } from "@/components/admin/Drawer";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { RowControls } from "@/components/admin/RowControls";
 import { Switch } from "@/components/admin/Switch";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
-import { createSponsor, setSponsorActive } from "@/lib/admin/cms-actions";
+import {
+  deleteSponsor,
+  moveSponsor,
+  saveSponsor,
+  setSponsorActive,
+} from "@/lib/admin/cms-actions";
 import type { SponsorRecord } from "@/lib/admin/types";
 import { initialsFromName } from "@/lib/utils";
 
@@ -18,49 +24,40 @@ type SponsorsClientProps = {
   sponsors: SponsorRecord[];
 };
 
-function tierLabel(index: number): { label: string; className: string } {
-  if (index === 0) {
-    return {
-      label: "Title Sponsor",
-      className: "bg-fg text-accent",
-    };
-  }
-  if (index === 1) {
-    return {
-      label: "Gold Tier",
-      className: "bg-accent/20 text-accent-fg",
-    };
-  }
-  if (index === 2) {
-    return {
-      label: "Silver Tier",
-      className: "bg-surface-inset text-fg-muted",
-    };
-  }
-  return {
-    label: "Partner",
-    className: "bg-surface-inset text-fg-muted",
-  };
-}
-
 export function SponsorsClient({ sponsors }: SponsorsClientProps) {
   const [activeOnly, setActiveOnly] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createStatus, setCreateStatus] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<SponsorRecord | null>(null);
+  const [editorError, setEditorError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<SponsorRecord | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const rows = useMemo(() => {
-    const sorted = [...sponsors].sort((a, b) => a.sortOrder - b.sortOrder);
-    return activeOnly ? sorted.filter((s) => s.isActive) : sorted;
-  }, [sponsors, activeOnly]);
-
+  const ordered = useMemo(
+    () => [...sponsors].sort((a, b) => a.sortOrder - b.sortOrder),
+    [sponsors],
+  );
+  const rows = activeOnly ? ordered.filter((s) => s.isActive) : ordered;
   const activeCount = sponsors.filter((s) => s.isActive).length;
+
+  function run(action: () => Promise<{ ok: boolean; message: string }>) {
+    startTransition(async () => {
+      const result = await action();
+      setMessage(result.message);
+    });
+  }
+
+  function openEditor(sponsor: SponsorRecord | null) {
+    setEditing(sponsor);
+    setEditorError(null);
+    setEditorOpen(true);
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Sponsors Management"
-        description="Drag and drop to reorder display hierarchy on the main site."
+        description="Active sponsors appear in the homepage slider in this order. Use the arrows to reorder."
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -74,21 +71,24 @@ export function SponsorsClient({ sponsors }: SponsorsClientProps) {
             iconStart={<Filter className="size-4" />}
             onClick={() => setActiveOnly((v) => !v)}
           >
-            {activeOnly ? "Show all" : "Filter"}
+            {activeOnly ? "Show all" : "Active only"}
           </Button>
           <Button
             variant="secondary"
             size="sm"
             iconStart={<Plus className="size-4" />}
-            onClick={() => {
-              setCreateStatus(null);
-              setCreateOpen(true);
-            }}
+            onClick={() => openEditor(null)}
           >
             Add Sponsor
           </Button>
         </div>
       </div>
+
+      {message ? (
+        <p className="text-sm text-fg-muted" role="status">
+          {message}
+        </p>
+      ) : null}
 
       {sponsors.length === 0 ? (
         <EmptyState
@@ -101,19 +101,19 @@ export function SponsorsClient({ sponsors }: SponsorsClientProps) {
             <thead className="bg-surface-inset">
               <tr className="border-b border-line">
                 <th className="w-12 px-3 py-2.5 text-xs font-semibold text-fg-muted">
-                  Sort
+                  #
                 </th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-fg-muted">
                   Logo
                 </th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-fg-muted">
-                  Name & Tier
+                  Name
                 </th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-fg-muted">
                   URL
                 </th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-fg-muted">
-                  Status
+                  Active
                 </th>
                 <th className="px-3 py-2.5 text-xs font-semibold text-fg-muted">
                   Actions
@@ -121,12 +121,12 @@ export function SponsorsClient({ sponsors }: SponsorsClientProps) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => {
-                const tier = tierLabel(index);
+              {rows.map((row) => {
+                const position = ordered.indexOf(row);
                 return (
                   <tr key={row.id} className="border-b border-line last:border-0">
-                    <td className="px-3 py-3 text-fg-faint">
-                      <GripVertical className="size-4" />
+                    <td className="px-3 py-3 tabular-nums text-fg-faint">
+                      {position + 1}
                     </td>
                     <td className="px-3 py-3">
                       {row.logoUrl ? (
@@ -144,11 +144,6 @@ export function SponsorsClient({ sponsors }: SponsorsClientProps) {
                     </td>
                     <td className="px-3 py-3">
                       <p className="font-semibold text-fg">{row.name}</p>
-                      <span
-                        className={`mt-1 inline-flex rounded-sm px-1.5 py-0.5 text-[0.6875rem] font-semibold ${tier.className}`}
-                      >
-                        {tier.label}
-                      </span>
                     </td>
                     <td className="px-3 py-3">
                       <a
@@ -164,14 +159,26 @@ export function SponsorsClient({ sponsors }: SponsorsClientProps) {
                       <Switch
                         checked={row.isActive}
                         label={`${row.name} active`}
-                        onChange={(next) => {
-                          startTransition(async () => {
-                            await setSponsorActive(row.id, next);
-                          });
-                        }}
+                        disabled={pending}
+                        onChange={(next) => run(() => setSponsorActive(row.id, next))}
                       />
                     </td>
-                    <td className="px-3 py-3" />
+                    <td className="px-3 py-3">
+                      <RowControls
+                        label={row.name}
+                        disabled={pending}
+                        onEdit={() => openEditor(row)}
+                        onMoveUp={
+                          position > 0 ? () => run(() => moveSponsor(row.id, -1)) : undefined
+                        }
+                        onMoveDown={
+                          position < ordered.length - 1
+                            ? () => run(() => moveSponsor(row.id, 1))
+                            : undefined
+                        }
+                        onDelete={() => setDeleting(row)}
+                      />
+                    </td>
                   </tr>
                 );
               })}
@@ -181,58 +188,102 @@ export function SponsorsClient({ sponsors }: SponsorsClientProps) {
       )}
 
       <Drawer
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Add sponsor"
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        title={editing ? `Edit ${editing.name}` : "Add sponsor"}
         footer={
           <Button
             type="submit"
-            form="create-sponsor"
+            form="sponsor-editor"
             variant="primary"
             size="sm"
             loading={pending}
-            loadingLabel="Adding"
+            loadingLabel="Saving"
           >
-            Add sponsor
+            {editing ? "Save changes" : "Add sponsor"}
           </Button>
         }
       >
         <form
-          id="create-sponsor"
+          id="sponsor-editor"
+          key={editing?.id ?? "new"}
           className="flex flex-col gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
+            setEditorError(null);
             startTransition(async () => {
-              const result = await createSponsor({
+              const result = await saveSponsor({
+                id: editing?.id,
                 name: String(form.get("name") ?? ""),
                 url: String(form.get("url") ?? ""),
                 logoUrl: String(form.get("logoUrl") ?? ""),
               });
-              setCreateStatus(result.message);
-              if (result.ok) setCreateOpen(false);
+              if (result.ok) {
+                setMessage(result.message);
+                setEditorOpen(false);
+              } else {
+                setEditorError(result.message);
+              }
             });
           }}
         >
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-fg">Name</span>
-            <Input name="name" required placeholder="SystemSummit" />
+            <Input
+              name="name"
+              required
+              defaultValue={editing?.name ?? ""}
+              placeholder="SystemSummit"
+            />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-fg">Website</span>
-            <Input name="url" type="url" required placeholder="https://" />
+            <Input
+              name="url"
+              type="url"
+              required
+              defaultValue={editing?.url ?? ""}
+              placeholder="https://"
+            />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-fg">Logo URL</span>
-            <Input name="logoUrl" type="url" placeholder="https://…/logo.png" />
+            <span className="font-medium text-fg">Logo link</span>
+            <Input
+              name="logoUrl"
+              defaultValue={editing?.logoUrl ?? ""}
+              placeholder="https://…/logo.png"
+            />
+            <span className="text-xs text-fg-faint">
+              Optional. Without a logo the slider shows the sponsor&apos;s name.
+            </span>
           </label>
-          {createStatus ? (
-            <p className="text-sm text-fg-muted" role="status">
-              {createStatus}
+          {editorError ? (
+            <p className="text-sm text-danger-fg" role="alert">
+              {editorError}
             </p>
           ) : null}
         </form>
       </Drawer>
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (!deleting) return;
+          const id = deleting.id;
+          startTransition(async () => {
+            const result = await deleteSponsor(id);
+            setMessage(result.message);
+            setDeleting(null);
+          });
+        }}
+        title={`Remove ${deleting?.name ?? "this sponsor"}?`}
+        description="It leaves the homepage slider. To hide it temporarily, switch Active off instead."
+        confirmLabel="Remove"
+        tone="danger"
+        loading={pending}
+      />
     </div>
   );
 }

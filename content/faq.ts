@@ -1,6 +1,51 @@
 import type { FaqEntry } from "@/lib/types";
 
-export const faqs: FaqEntry[] = [
+/** The live fee numbers the FAQ quotes (from /admin/pricing). */
+export type FaqPricing = {
+  currency: string;
+  delegate: number;
+  perDelegate: number;
+  delegationFlat: number;
+  minDelegation: number;
+  maxDelegation: number;
+  earlyBird: { endsAt: string | null } | null;
+};
+
+function money(pricing: FaqPricing, amount: number): string {
+  return `${pricing.currency} ${amount.toLocaleString("en-US")}`;
+}
+
+function feesAnswer(pricing: FaqPricing | null): string {
+  if (!pricing) {
+    return "Current fees are shown on the registration page and in your confirmation email. The fee covers all three days, lunches, the delegate dinner, and conference materials.";
+  }
+  const flat =
+    pricing.delegationFlat > 0
+      ? `, plus ${money(pricing, pricing.delegationFlat)} once per delegation`
+      : "";
+  const early = pricing.earlyBird
+    ? ` These are early-bird rates${pricing.earlyBird.endsAt ? ` until ${new Date(pricing.earlyBird.endsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "Asia/Karachi" })}` : ""}.`
+    : "";
+  return (
+    `${money(pricing, pricing.delegate)} for an individual delegate. Delegations of ${pricing.minDelegation} to ${pricing.maxDelegation} students pay ${money(pricing, pricing.perDelegate)} per head${flat}.${early} ` +
+    "You pay by bank transfer after registering — the account details arrive in your confirmation email. The fee covers all three days, lunches, the delegate dinner, and conference materials."
+  );
+}
+
+/** FAQ with the fee and delegation-size answers filled from live pricing. */
+export function buildFaqs(pricing: FaqPricing | null): FaqEntry[] {
+  const minimum = pricing ? String(pricing.minDelegation) : "five";
+  return faqs.map((faq) => {
+    if (faq.id === "fees") return { ...faq, answer: feesAnswer(pricing) };
+    if (faq.id === "delegate-vs-delegation") {
+      return { ...faq, answer: faq.answer.replace("five or more", `${minimum} or more`) };
+    }
+    return faq;
+  });
+}
+
+/** Static copy; use `buildFaqs` so fee answers match /admin/pricing. */
+const faqs: FaqEntry[] = [
   {
     id: "when",
     question: "When is MERITMUN III?",
@@ -33,7 +78,7 @@ export const faqs: FaqEntry[] = [
     id: "fees",
     question: "What does registration cost?",
     answer:
-      "PKR 4,500 for an individual delegate. Delegations of five or more pay PKR 4,000 per head, and delegations of fifteen or more pay PKR 3,500 per head. The fee covers all three days, lunches, the delegate dinner, and conference materials.",
+      "Built from live pricing — see feesAnswer().",
     topics: ["fees", "registration"],
   },
   {
@@ -54,12 +99,14 @@ export const faqs: FaqEntry[] = [
     id: "status",
     question: "I already applied. How do I check my status?",
     answer:
-      "Use the reference code from your confirmation screen or email on the status page. It shows whether your application has been received, is under review, has been allocated, or is confirmed.",
+      "Use the reference or delegate code from your confirmation screen or email on the status page. It shows whether your application has been received, whether your payment is confirmed, and your committee and portfolio once your seat is issued.",
     topics: ["registration"],
   },
 ];
 
 /** The three shown in the floating help widget before "see all". */
-export const quickHelpFaqs = faqs.filter((faq) =>
-  ["when", "delegate-vs-delegation", "fees"].includes(faq.id),
-);
+export function quickHelpFaqs(all: FaqEntry[]): FaqEntry[] {
+  return all.filter((faq) =>
+    ["when", "delegate-vs-delegation", "fees"].includes(faq.id),
+  );
+}

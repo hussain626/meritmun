@@ -1,10 +1,13 @@
 /**
  * Resend wrappers for admin / registration transactional mail.
- * Without RESEND_API_KEY, logs the payload and returns a mocked success.
+ * Without RESEND_API_KEY, logs the payload and returns `mocked: true` — callers
+ * must not report that an email went out in that case. Every send is recorded
+ * in `email_logs` when the service role is available.
  */
 
 import { Resend } from "resend";
 import type { BankAccount } from "@/lib/admin/types";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export type SendResult =
   | { ok: true; mocked: true }
@@ -24,13 +27,43 @@ function getResendClient(): Resend | null {
   return new Resend(key);
 }
 
+/** Links a sent email to the row it concerns, for `email_logs`. */
+export type EmailRelated = { type: string; id: string };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Best-effort audit row; a logging failure never fails the send. */
+async function logEmail(
+  input: { template: string; to: string; related?: EmailRelated },
+  result: SendResult,
+): Promise<void> {
+  const service = createServiceClient();
+  if (!service) return;
+  try {
+    const { error } = await service.from("email_logs").insert({
+      to_email: input.to,
+      template: input.template,
+      related_type: input.related?.type ?? null,
+      related_id:
+        input.related && UUID.test(input.related.id) ? input.related.id : null,
+      provider_id: result.ok && !result.mocked ? result.id : null,
+      status: !result.ok ? "failed" : result.mocked ? "mocked" : "sent",
+    });
+    if (error) console.warn("[meritmun/email] email_logs insert", error.message);
+  } catch (error) {
+    console.warn("[meritmun/email] email_logs insert", error);
+  }
+}
+
 async function sendMail(input: {
   template: string;
   to: string;
   subject: string;
   html: string;
   text: string;
+  related?: EmailRelated;
 }): Promise<SendResult> {
+  let result: SendResult;
   const client = getResendClient();
   if (!client) {
     console.log("[meritmun/email] mocked send (no RESEND_API_KEY)", {
@@ -39,22 +72,41 @@ async function sendMail(input: {
       subject: input.subject,
       text: input.text,
     });
-    return { ok: true, mocked: true };
+    result = { ok: true, mocked: true };
+  } else {
+    // Resend reports API errors in `error`, but network failures throw; both
+    // become { ok: false } so a send can never abort the caller mid-batch.
+    try {
+      const { data, error } = await client.emails.send({
+        from: getFromAddress(),
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+        text: input.text,
+      });
+      result = error
+        ? { ok: false, error: error.message }
+        : { ok: true, mocked: false, id: data?.id ?? "unknown" };
+    } catch (error) {
+      result = {
+        ok: false,
+        error: error instanceof Error ? error.message : "network error",
+      };
+    }
   }
 
-  const { data, error } = await client.emails.send({
-    from: getFromAddress(),
-    to: input.to,
-    subject: input.subject,
-    html: input.html,
-    text: input.text,
-  });
-
-  if (error) {
-    return { ok: false, error: error.message };
+  if (!result.ok) {
+    console.warn(`[meritmun/email] ${input.template} → ${input.to} failed`, result.error);
   }
+  await logEmail(input, result);
+  return result;
+}
 
-  return { ok: true, mocked: false, id: data?.id ?? "unknown" };
+/** Short suffix for admin toasts describing what happened to the email. */
+export function deliveryNote(result: SendResult): string {
+  if (!result.ok) return `The email could not be sent (${result.error}).`;
+  if (result.mocked) return "No email was sent — RESEND_API_KEY is not set.";
+  return "Email sent.";
 }
 
 function escapeHtml(value: string): string {
@@ -103,6 +155,7 @@ function bankBlock(accounts: BankAccount[]): { html: string; text: string } {
 }
 
 export async function sendRegistrationConfirmation(input: {
+  related?: EmailRelated;
   to: string;
   fullName: string;
   reference: string;
@@ -135,6 +188,7 @@ export async function sendRegistrationConfirmation(input: {
   return sendMail({
     template: "registration-confirmation",
     to: input.to,
+    related: input.related,
     subject,
     html,
     text,
@@ -142,6 +196,7 @@ export async function sendRegistrationConfirmation(input: {
 }
 
 export async function sendDelegationRegistrationConfirmation(input: {
+  related?: EmailRelated;
   to: string;
   headName: string;
   institutionName: string;
@@ -183,6 +238,7 @@ export async function sendDelegationRegistrationConfirmation(input: {
   return sendMail({
     template: "delegation-registration-confirmation",
     to: input.to,
+    related: input.related,
     subject,
     html,
     text,
@@ -190,6 +246,7 @@ export async function sendDelegationRegistrationConfirmation(input: {
 }
 
 export async function sendPaymentConfirmed(input: {
+  related?: EmailRelated;
   to: string;
   fullName: string;
   reference: string;
@@ -209,6 +266,7 @@ export async function sendPaymentConfirmed(input: {
   return sendMail({
     template: "payment-confirmed",
     to: input.to,
+    related: input.related,
     subject,
     html,
     text,
@@ -216,6 +274,7 @@ export async function sendPaymentConfirmed(input: {
 }
 
 export async function sendAllotmentConfirmed(input: {
+  related?: EmailRelated;
   to: string;
   fullName: string;
   committeeName: string;
@@ -246,6 +305,7 @@ export async function sendAllotmentConfirmed(input: {
   return sendMail({
     template: "allotment-confirmed",
     to: input.to,
+    related: input.related,
     subject,
     html,
     text,
@@ -253,6 +313,7 @@ export async function sendAllotmentConfirmed(input: {
 }
 
 export async function sendAllotmentChanged(input: {
+  related?: EmailRelated;
   to: string;
   fullName: string;
   committeeName: string;
@@ -285,6 +346,7 @@ export async function sendAllotmentChanged(input: {
   return sendMail({
     template: "allotment-changed",
     to: input.to,
+    related: input.related,
     subject,
     html,
     text,
@@ -292,6 +354,7 @@ export async function sendAllotmentChanged(input: {
 }
 
 export async function sendQueryReply(input: {
+  related?: EmailRelated;
   to: string;
   name: string;
   subject: string;
@@ -310,7 +373,34 @@ export async function sendQueryReply(input: {
   return sendMail({
     template: "query-reply",
     to: input.to,
+    related: input.related,
     subject,
+    html,
+    text,
+  });
+}
+
+export async function sendBroadcast(input: {
+  related?: EmailRelated;
+  to: string;
+  name: string;
+  subject: string;
+  body: string;
+}): Promise<SendResult> {
+  const text =
+    `Hello ${input.name},\n\n` +
+    `${input.body}\n\n` +
+    `— MERITMUN Secretariat`;
+  const html =
+    `<p>Hello ${escapeHtml(input.name)},</p>` +
+    `<p>${escapeHtml(input.body).replace(/\n/g, "<br/>")}</p>` +
+    `<p>— MERITMUN Secretariat</p>`;
+
+  return sendMail({
+    template: "broadcast",
+    to: input.to,
+    related: input.related,
+    subject: `MERITMUN III — ${input.subject}`,
     html,
     text,
   });

@@ -19,9 +19,10 @@ type StatusLookupFormProps = {
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
   received: "Received",
-  "under-review": "Under review",
+  "under-review": "Payment confirmed",
   allocated: "Allocated",
   confirmed: "Confirmed",
+  "payment-rejected": "Payment not matched",
   "not-found": "Not found",
 };
 
@@ -30,6 +31,7 @@ const STATUS_TONE: Record<ApplicationStatus, BadgeTone> = {
   "under-review": "warning",
   allocated: "brand",
   confirmed: "success",
+  "payment-rejected": "danger",
   "not-found": "neutral",
 };
 
@@ -113,6 +115,11 @@ export function StatusLookupForm({ action }: StatusLookupFormProps) {
               {result.committee ? (
                 <p className="mt-5 text-h3 text-fg text-balance">
                   {result.committee}
+                  {result.portfolio ? (
+                    <span className="block text-lg text-fg-muted">
+                      Representing {result.portfolio}
+                    </span>
+                  ) : null}
                 </p>
               ) : null}
 
@@ -151,6 +158,35 @@ export function StatusLookupForm({ action }: StatusLookupFormProps) {
                   );
                 })}
               </ol>
+
+              {result.members && result.members.length > 0 ? (
+                <div className="mt-7">
+                  <h3 className="text-sm font-semibold text-fg">
+                    Delegation roster
+                  </h3>
+                  <ul className="mt-3 divide-y divide-line rounded-md border border-line">
+                    {result.members.map((member, index) => (
+                      <li
+                        key={`${member.name}-${index}`}
+                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                      >
+                        <span className="text-fg">
+                          {member.name}
+                          {member.committee ? (
+                            <span className="block text-xs text-fg-muted">
+                              {member.committee}
+                              {member.portfolio ? ` · ${member.portfolio}` : ""}
+                            </span>
+                          ) : null}
+                        </span>
+                        <Badge tone={STATUS_TONE[member.status]}>
+                          {STATUS_LABEL[member.status]}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               {result.status === "allocated" ||
               result.status === "confirmed" ? (

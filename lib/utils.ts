@@ -113,11 +113,20 @@ export function formatPkr(value: number): string {
   return `PKR ${formatNumber(value)}`;
 }
 
+/**
+ * The conference runs on Karachi time (UTC+5, no daylight saving). Admin dates
+ * are shown and entered in it explicitly, so the server render, every
+ * browser, and the stored UTC value all agree.
+ */
+export const CONFERENCE_TIME_ZONE = "Asia/Karachi";
+const PKT_OFFSET = "+05:00";
+
 export function formatAdminDate(iso: string): string {
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: CONFERENCE_TIME_ZONE,
   }).format(new Date(iso));
 }
 
@@ -128,7 +137,34 @@ export function formatAdminDateTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: CONFERENCE_TIME_ZONE,
   }).format(new Date(iso));
+}
+
+/** Stored UTC ISO → `datetime-local` value in Karachi time. */
+export function toKarachiInput(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  // sv-SE formats as "YYYY-MM-DD HH:mm".
+  return new Intl.DateTimeFormat("sv-SE", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: CONFERENCE_TIME_ZONE,
+  })
+    .format(date)
+    .replace(" ", "T");
+}
+
+/** `datetime-local` value read as Karachi time → UTC ISO. */
+export function fromKarachiInput(value: string): string | null {
+  if (!value) return null;
+  const date = new Date(`${value}:00${PKT_OFFSET}`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 export function initialsFromName(name: string): string {

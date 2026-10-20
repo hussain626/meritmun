@@ -4,6 +4,7 @@ import { MapPin } from "@/components/icons/MapPin";
 import { PageHero } from "@/components/layout/PageHero";
 import { DayTabs } from "@/components/schedule/DayTabs";
 import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { conference } from "@/content/site";
@@ -54,7 +55,14 @@ export default async function SchedulePage() {
           />
 
           <div className="mt-10">
-            <DayTabs days={scheduleDays} registrationOpen={registrationOpen} />
+            {scheduleDays.length > 0 ? (
+              <DayTabs days={scheduleDays} registrationOpen={registrationOpen} />
+            ) : (
+              <EmptyState
+                title="The running order is being finalised"
+                body="The secretariat publishes the day-by-day schedule here as soon as it is set. Registrants are emailed it first."
+              />
+            )}
           </div>
         </div>
       </Section>

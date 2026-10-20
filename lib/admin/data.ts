@@ -1,10 +1,13 @@
 /**
- * Admin data access. Uses Supabase when configured; falls back to demo seed
- * when env is missing or a query fails (logged once per process).
+ * Admin data access. Uses Supabase when configured and the demo seed when env
+ * is missing. A failed live query never returns demo rows: lists come back
+ * empty and settings fail closed, so fake fees, bank accounts or committees
+ * can never reach visitors or emails.
  */
 
 import {
   deriveDemoOverviewKpis,
+  deriveOverviewKpis,
   getDemoStore,
 } from "@/lib/admin/demo-store";
 import {
@@ -39,40 +42,36 @@ import {
   type PublicAnnouncement,
 } from "@/lib/admin/announcement";
 import type { ConferenceSettings } from "@/lib/admin/conference";
-import { scheduleDays as fallbackSchedule } from "@/content/schedule";
-import { registrationOpen as fallbackRegistrationOpen } from "@/content/site";
 import type { ScheduleDay } from "@/lib/types";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
-let didLogFallback = false;
-
-function logFallbackOnce(context: string, error: unknown): void {
-  if (didLogFallback) return;
-  didLogFallback = true;
-  console.warn(
-    `[meritmun/admin] Supabase query failed (${context}); using demo data.`,
-    error,
-  );
+function logLiveFailure(context: string, error: unknown): void {
+  console.warn(`[meritmun/admin] Supabase query failed (${context}).`, error);
 }
+
+/** Pass as `onLiveError` to rethrow instead of returning a value. */
+const RETHROW = Symbol("rethrow");
 
 async function withSupabase<T>(
   context: string,
   query: (
     client: Awaited<ReturnType<typeof createClient>>,
   ) => Promise<T>,
-  fallback: T,
+  demoValue: T,
+  onLiveError: T | typeof RETHROW,
 ): Promise<T> {
   if (!isSupabaseConfigured()) {
-    return fallback;
+    return demoValue;
   }
 
   try {
     const client = await createClient();
     return await query(client);
   } catch (error) {
-    logFallbackOnce(context, error);
-    return fallback;
+    logLiveFailure(context, error);
+    if (onLiveError === RETHROW) throw error;
+    return onLiveError as T;
   }
 }
 
@@ -101,7 +100,7 @@ function mapPricing(row: Record<string, unknown>): PricingSettings {
   };
 }
 
-function mapDelegate(row: Record<string, unknown>): DelegateRecord {
+export function mapDelegateRow(row: Record<string, unknown>): DelegateRecord {
   return {
     id: String(row.id),
     reference: String(row.reference),
@@ -123,6 +122,8 @@ function mapDelegate(row: Record<string, unknown>): DelegateRecord {
     paymentStatus: row.payment_status as DelegateRecord["paymentStatus"],
     paymentAmount:
       row.payment_amount == null ? null : Number(row.payment_amount),
+    quotedAmount:
+      row.quoted_amount == null ? null : Number(row.quoted_amount),
     paymentConfirmedAt:
       row.payment_confirmed_at == null
         ? null
@@ -160,6 +161,8 @@ function mapDelegation(row: Record<string, unknown>): DelegationRecord {
     paymentStatus: row.payment_status as DelegationRecord["paymentStatus"],
     paymentAmount:
       row.payment_amount == null ? null : Number(row.payment_amount),
+    quotedAmount:
+      row.quoted_amount == null ? null : Number(row.quoted_amount),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -207,12 +210,27 @@ function filterDelegates(
   });
 }
 
+const EMPTY_KPIS: OverviewKpis = {
+  totalDelegates: 0,
+  totalRegistrations: 0,
+  individualCount: 0,
+  delegationCount: 0,
+  pendingPayments: 0,
+  confirmedPayments: 0,
+  totalAmount: 0,
+  openQueries: 0,
+  allottedDraft: 0,
+  allottedConfirmed: 0,
+};
+
 export async function getOverviewKpis(): Promise<OverviewKpis> {
   return withSupabase(
     "getOverviewKpis",
     async (client) => {
       const [delegates, delegations, queries, allotments] = await Promise.all([
-        client.from("delegates").select("payment_status, payment_amount"),
+        client
+          .from("delegates")
+          .select("payment_status, payment_amount, delegation_id"),
         client.from("delegations").select("payment_status, payment_amount"),
         client.from("queries").select("status"),
         client.from("allotments").select("status"),
@@ -223,50 +241,24 @@ export async function getOverviewKpis(): Promise<OverviewKpis> {
       if (queries.error) throw queries.error;
       if (allotments.error) throw allotments.error;
 
-      const delegateRows = delegates.data ?? [];
-      const delegationRows = delegations.data ?? [];
-      const queryRows = queries.data ?? [];
-      const allotmentRows = allotments.data ?? [];
-
-      const totalDelegates = delegateRows.length;
-      const delegationCount = delegationRows.length;
-
-      const pendingPayments =
-        delegateRows.filter((r) => r.payment_status === "pending").length +
-        delegationRows.filter((r) => r.payment_status === "pending").length;
-
-      const confirmedPayments =
-        delegateRows.filter((r) => r.payment_status === "confirmed").length +
-        delegationRows.filter((r) => r.payment_status === "confirmed").length;
-
-      const totalAmount =
-        delegateRows
-          .filter((r) => r.payment_status === "confirmed")
-          .reduce(
-            (sum, r) => sum + (typeof r.payment_amount === "number" ? r.payment_amount : 0),
-            0,
-          ) +
-        delegationRows
-          .filter((r) => r.payment_status === "confirmed")
-          .reduce(
-            (sum, r) => sum + (typeof r.payment_amount === "number" ? r.payment_amount : 0),
-            0,
-          );
-
-      return {
-        totalDelegates,
-        totalRegistrations: totalDelegates + delegationCount,
-        delegationCount,
-        pendingPayments,
-        confirmedPayments,
-        totalAmount,
-        openQueries: queryRows.filter((r) => r.status === "open").length,
-        allottedDraft: allotmentRows.filter((r) => r.status === "draft").length,
-        allottedConfirmed: allotmentRows.filter((r) => r.status === "confirmed")
-          .length,
-      };
+      return deriveOverviewKpis(
+        (delegates.data ?? []).map((r) => ({
+          paymentStatus: String(r.payment_status),
+          paymentAmount:
+            typeof r.payment_amount === "number" ? r.payment_amount : null,
+          delegationId: r.delegation_id == null ? null : String(r.delegation_id),
+        })),
+        (delegations.data ?? []).map((r) => ({
+          paymentStatus: String(r.payment_status),
+          paymentAmount:
+            typeof r.payment_amount === "number" ? r.payment_amount : null,
+        })),
+        (queries.data ?? []).map((r) => String(r.status)),
+        (allotments.data ?? []).map((r) => String(r.status)),
+      );
     },
     deriveDemoOverviewKpis(),
+    EMPTY_KPIS,
   );
 }
 
@@ -276,32 +268,33 @@ export async function listDelegates(
   return withSupabase(
     "listDelegates",
     async (client) => {
-      let query = client.from("delegates").select("*").order("created_at", {
-        ascending: false,
+      const rows = await selectAllRows((from, to) => {
+        let query = client
+          .from("delegates")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(from, to);
+        if (filters?.paymentStatus) {
+          query = query.eq("payment_status", filters.paymentStatus);
+        }
+        if (filters?.experience) {
+          query = query.eq("experience", filters.experience);
+        }
+        if (filters?.institution) {
+          query = query.ilike("institution", `%${filters.institution}%`);
+        }
+        return query;
       });
 
-      if (filters?.paymentStatus) {
-        query = query.eq("payment_status", filters.paymentStatus);
-      }
-      if (filters?.experience) {
-        query = query.eq("experience", filters.experience);
-      }
-      if (filters?.institution) {
-        query = query.ilike("institution", `%${filters.institution}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const mapped = (data ?? []).map((row) =>
-        mapDelegate(row as Record<string, unknown>),
-      );
+      const mapped = rows.map(mapDelegateRow);
       return filterDelegates(mapped, {
         search: filters?.search,
         preferredCommittee: filters?.preferredCommittee,
       });
     },
     filterDelegates(getDemoStore().delegates, filters),
+    [],
   );
 }
 
@@ -319,6 +312,7 @@ export async function listDelegations(): Promise<DelegationRecord[]> {
       );
     },
     getDemoStore().delegations,
+    [],
   );
 }
 
@@ -332,10 +326,12 @@ export async function getPricing(): Promise<PricingSettings> {
         .eq("id", 1)
         .maybeSingle();
       if (error) throw error;
-      if (!data) return getDemoStore().pricing;
+      // Migration 001 seeds row 1; without it there are no real fees to quote.
+      if (!data) throw new Error("pricing_settings row 1 is missing");
       return mapPricing(data as Record<string, unknown>);
     },
     getDemoStore().pricing,
+    RETHROW,
   );
 }
 
@@ -378,9 +374,10 @@ export async function getAnnouncementSettings(): Promise<AnnouncementSettings> {
       if (!data) return EMPTY_ANNOUNCEMENT;
       return mapAnnouncement(data as Record<string, unknown>);
     },
-    // Demo copy only in demo mode; a live read failure shows an empty editor
-    // rather than text that is not actually on the site.
-    isSupabaseConfigured() ? EMPTY_ANNOUNCEMENT : getDemoStore().announcement,
+    getDemoStore().announcement,
+    // A live read failure shows an empty editor rather than text that is not
+    // actually on the site.
+    EMPTY_ANNOUNCEMENT,
   );
 }
 
@@ -401,7 +398,7 @@ export async function getPublicAnnouncement(): Promise<PublicAnnouncement | null
     return toPublicAnnouncement(mapAnnouncement(data as Record<string, unknown>));
   } catch (error) {
     // Never show demo copy on the live site — no bar beats a stale one.
-    logFallbackOnce("getPublicAnnouncement", error);
+    logLiveFailure("getPublicAnnouncement", error);
     return null;
   }
 }
@@ -432,6 +429,7 @@ export async function listBankAccounts(): Promise<BankAccount[]> {
       });
     },
     getDemoStore().bankAccounts,
+    [],
   );
 }
 
@@ -462,6 +460,7 @@ export async function listQueries(): Promise<QueryRecord[]> {
       });
     },
     getDemoStore().queries,
+    [],
   );
 }
 
@@ -488,6 +487,7 @@ export async function listSponsors(): Promise<SponsorRecord[]> {
       });
     },
     getDemoStore().sponsors,
+    [],
   );
 }
 
@@ -517,6 +517,7 @@ export async function listEbMembers(): Promise<EbMemberRecord[]> {
       });
     },
     getDemoStore().ebMembers,
+    [],
   );
 }
 
@@ -546,6 +547,7 @@ export async function listHods(): Promise<HodRecord[]> {
       });
     },
     getDemoStore().hods,
+    [],
   );
 }
 
@@ -571,6 +573,7 @@ export async function listSecretariat(): Promise<SecretariatMemberRecord[]> {
       });
     },
     getDemoStore().secretariat,
+    [],
   );
 }
 
@@ -646,6 +649,7 @@ export async function listCommitteesAdmin(): Promise<CommitteeAdminRecord[]> {
       );
     },
     getDemoStore().committees,
+    [],
   );
 }
 
@@ -663,6 +667,7 @@ export async function listPortfolios(): Promise<Portfolio[]> {
       );
     },
     getDemoStore().portfolios,
+    [],
   );
 }
 
@@ -680,6 +685,7 @@ export async function listAllotments(): Promise<AllotmentRecord[]> {
       );
     },
     getDemoStore().allotments,
+    [],
   );
 }
 
@@ -691,6 +697,25 @@ export type AllotmentState = {
   rules: AllotmentRules;
 };
 
+/** PostgREST caps a response at 1000 rows; page through so nobody is missed. */
+const PAGE = 1000;
+
+async function selectAllRows(
+  page: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: unknown[] | null; error: unknown }>,
+): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await page(from, from + PAGE - 1);
+    if (error) throw error;
+    const batch = (data ?? []) as Record<string, unknown>[];
+    rows.push(...batch);
+    if (batch.length < PAGE) return rows;
+  }
+}
+
 /**
  * Strict snapshot for allotment writes. Unlike the list* readers this never
  * falls back to demo data — a failed read must abort the write, not seed the
@@ -701,31 +726,28 @@ export async function loadAllotmentState(
 ): Promise<AllotmentState> {
   const [delegates, committees, portfolios, allotments, rules] =
     await Promise.all([
-      client.from("delegates").select("*"),
+      selectAllRows((from, to) =>
+        client.from("delegates").select("*").order("id").range(from, to),
+      ),
       client.from("committees").select("*").order("sort_order"),
-      client.from("portfolios").select("*"),
-      client.from("allotments").select("*"),
+      selectAllRows((from, to) =>
+        client.from("portfolios").select("*").order("id").range(from, to),
+      ),
+      selectAllRows((from, to) =>
+        client.from("allotments").select("*").order("id").range(from, to),
+      ),
       client.from("allotment_rules").select("*").eq("id", 1).maybeSingle(),
     ]);
-  if (delegates.error) throw delegates.error;
   if (committees.error) throw committees.error;
-  if (portfolios.error) throw portfolios.error;
-  if (allotments.error) throw allotments.error;
   if (rules.error) throw rules.error;
 
   return {
-    delegates: (delegates.data ?? []).map((r) =>
-      mapDelegate(r as Record<string, unknown>),
-    ),
+    delegates: delegates.map(mapDelegateRow),
     committees: (committees.data ?? []).map((r) =>
       mapCommittee(r as Record<string, unknown>),
     ),
-    portfolios: (portfolios.data ?? []).map((r) =>
-      mapPortfolio(r as Record<string, unknown>),
-    ),
-    allotments: (allotments.data ?? []).map((r) =>
-      mapAllotment(r as Record<string, unknown>),
-    ),
+    portfolios: portfolios.map(mapPortfolio),
+    allotments: allotments.map(mapAllotment),
     rules: rules.data
       ? mapAllotmentRules(rules.data as Record<string, unknown>)
       : DEFAULT_ALLOTMENT_RULES,
@@ -755,6 +777,7 @@ export async function listTeamProfiles(): Promise<Profile[]> {
       });
     },
     getDemoStore().teamProfiles,
+    [],
   );
 }
 
@@ -795,9 +818,19 @@ function mapScheduleDay(
     sortOrder: Number(row.sort_order),
     items: items
       .filter((item) => item.dayId === String(row.id))
-      .sort((a, b) => a.sortOrder - b.sortOrder),
+      // Chronological, so a session added later still lands at its time slot.
+      .sort(
+        (a, b) => a.start.localeCompare(b.start) || a.sortOrder - b.sortOrder,
+      ),
   };
 }
+
+const CLOSED_CONFERENCE: ConferenceSettings = {
+  id: 1,
+  registrationOpen: false,
+  updatedAt: new Date(0).toISOString(),
+  updatedBy: null,
+};
 
 export async function getConferenceSettings(): Promise<ConferenceSettings> {
   return withSupabase(
@@ -809,14 +842,15 @@ export async function getConferenceSettings(): Promise<ConferenceSettings> {
         .eq("id", 1)
         .maybeSingle();
       if (error) throw error;
-      if (!data) return getDemoStore().conference;
+      if (!data) return CLOSED_CONFERENCE;
       return mapConference(data as Record<string, unknown>);
     },
     getDemoStore().conference,
+    CLOSED_CONFERENCE,
   );
 }
 
-/** Public registration gate. Falls back to content/site.ts if unset. */
+/** Public registration gate. Fails closed when the live setting cannot be read. */
 export async function getRegistrationOpen(): Promise<boolean> {
   if (!isSupabaseConfigured()) {
     return getDemoStore().conference.registrationOpen;
@@ -830,13 +864,13 @@ export async function getRegistrationOpen(): Promise<boolean> {
       .eq("id", 1)
       .maybeSingle();
     if (error) throw error;
-    if (!data) return fallbackRegistrationOpen;
+    if (!data) return false;
     return Boolean(
       (data as Record<string, unknown>).registration_open,
     );
   } catch (error) {
-    logFallbackOnce("getRegistrationOpen", error);
-    return getDemoStore().conference.registrationOpen;
+    logLiveFailure("getRegistrationOpen", error);
+    return false;
   }
 }
 
@@ -862,6 +896,7 @@ export async function listScheduleDays(): Promise<ScheduleDayRecord[]> {
       );
     },
     getDemoStore().schedule,
+    [],
   );
 }
 
@@ -879,6 +914,7 @@ export async function getAllotmentRules(): Promise<AllotmentRules> {
       return mapAllotmentRules(data as Record<string, unknown>);
     },
     getDemoStore().allotmentRules,
+    RETHROW,
   );
 }
 
@@ -900,6 +936,7 @@ export async function listAttendance(): Promise<AttendanceRecord[]> {
       });
     },
     getDemoStore().attendance,
+    [],
   );
 }
 
@@ -937,14 +974,12 @@ export async function listLatestMeritRuns(): Promise<MeritRunRecord[]> {
       );
     },
     latest(getDemoStore().meritRuns),
+    [],
   );
 }
 
 export async function getPublicSchedule(): Promise<ScheduleDay[]> {
   const days = await listScheduleDays();
-  if (days.length === 0) {
-    return fallbackSchedule;
-  }
   return days.map((day) => ({
     id: day.id,
     date: day.date,

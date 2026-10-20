@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { saveCommitteeFields } from "@/lib/admin/actions";
+import { deleteCommittee } from "@/lib/admin/cms-actions";
 import type {
   AdminRole,
   CommitteeAdminRecord,
@@ -42,7 +45,9 @@ export function CommitteeDetailClient({
   });
   const [focusText, setFocusText] = useState(committee.focusPoints.join("\n"));
   const [message, setMessage] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,6 +56,16 @@ export function CommitteeDetailClient({
         description={committee.name}
         actions={
           canEdit ? (
+            <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pending}
+              onClick={() => setDeleteOpen(true)}
+              className="border-danger text-danger-fg"
+            >
+              Delete
+            </Button>
             <Button
               variant="primary"
               size="sm"
@@ -68,6 +83,7 @@ export function CommitteeDetailClient({
             >
               Save committee
             </Button>
+            </>
           ) : null
         }
       />
@@ -260,6 +276,24 @@ export function CommitteeDetailClient({
           />
         </section>
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          startTransition(async () => {
+            const result = await deleteCommittee(committee.id);
+            setDeleteOpen(false);
+            setMessage(result.message);
+            if (result.ok) router.push("/admin/committees");
+          });
+        }}
+        title={`Delete ${committee.abbr}?`}
+        description="Its country list and secretariat are deleted with it, and it leaves the public site. Committees that already seated delegates cannot be deleted — unpublish them instead."
+        confirmLabel="Delete committee"
+        tone="danger"
+        loading={pending}
+      />
     </div>
   );
 }

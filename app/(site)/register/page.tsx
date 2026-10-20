@@ -7,7 +7,7 @@ import { PageHero } from "@/components/layout/PageHero";
 import { RegistrationComingSoon } from "@/components/register/RegistrationComingSoon";
 import { Section } from "@/components/ui/Section";
 import { conference } from "@/content/site";
-import { getRegistrationOpen } from "@/lib/admin/data";
+import { canAcceptRegistration } from "@/lib/admin/auth";
 import { getPublicPricing, listPublicCommittees } from "@/lib/public/data";
 import { formatNumber } from "@/lib/utils";
 
@@ -17,18 +17,24 @@ export const metadata: Metadata = {
     "Register for MERITMUN III as an individual delegate, or bring a delegation of five or more students from your institution.",
 };
 
-export default async function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ manual?: string }>;
+}) {
+  const manual = (await searchParams).manual === "1";
   const [registrationOpen, pricing, committees] = await Promise.all([
-    getRegistrationOpen(),
+    canAcceptRegistration(manual),
     getPublicPricing(),
     listPublicCommittees(),
   ]);
+  const seatCount = committees.reduce((sum, c) => sum + c.seats, 0);
   if (!registrationOpen) {
     return (
       <main id="content">
         <PageHero
           title="Registration coming soon"
-          lead={`${committees.length} committees, three days in ${conference.city}, six hundred seats. Registration opens here — we're not quite ready yet.`}
+          lead={`${committees.length} committees, three days in ${conference.city}, ${formatNumber(seatCount)} seats. Registration opens here — we're not quite ready yet.`}
         />
         <Section>
           <RegistrationComingSoon />
@@ -39,7 +45,7 @@ export default async function RegisterPage() {
 
   const paths = [
     {
-      href: "/register/delegate",
+      href: manual ? "/register/delegate?manual=1" : "/register/delegate",
       icon: Gavel,
       title: "Register as a delegate",
       who: "You are applying on your own.",
@@ -52,17 +58,17 @@ export default async function RegisterPage() {
       fee: `${pricing.currency} ${formatNumber(pricing.delegate)} per delegate`,
     },
     {
-      href: "/register/delegation",
+      href: manual ? "/register/delegation?manual=1" : "/register/delegation",
       icon: Users,
       title: "Register a delegation",
       who: "You are a society head or faculty member.",
-      body: `Bringing between ${pricing.minDelegation} and ${pricing.maxDelegation} students from one institution. One form, one invoice for the whole delegation.`,
+      body: `Bringing between ${pricing.minDelegation} and ${pricing.maxDelegation} students from one institution. One form and one payment for the whole delegation.`,
       points: [
         "Six minutes, four steps",
-        "A single invoice for the whole delegation",
+        "One payment covers the whole delegation",
         "Every member gets their own seat and allotment",
       ],
-      fee: `${pricing.currency} ${formatNumber(pricing.perDelegate)} per head`,
+      fee: `${pricing.currency} ${formatNumber(pricing.perDelegate)} per head${pricing.delegationFlat > 0 ? ` + ${pricing.currency} ${formatNumber(pricing.delegationFlat)} per delegation` : ""}`,
     },
   ];
 
@@ -70,7 +76,7 @@ export default async function RegisterPage() {
     <main id="content">
       <PageHero
         title="Register for MERITMUN III"
-        lead={`${committees.length} committees, three days in ${conference.city}, six hundred seats. Two ways in — pick the one that describes you.`}
+        lead={`${committees.length} committees, three days in ${conference.city}, ${formatNumber(seatCount)} seats. Two ways in — pick the one that describes you.`}
         meta={
           <p className="text-sm text-fg-faint">
             {conference.datesLabel}. Registering now secures your seat and we

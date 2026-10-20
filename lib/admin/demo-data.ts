@@ -18,7 +18,6 @@ import type {
   DelegationRecord,
   EbMemberRecord,
   HodRecord,
-  OverviewKpis,
   Portfolio,
   PricingSettings,
   Profile,
@@ -163,7 +162,7 @@ export const demoPricing: PricingSettings = {
 export const demoAnnouncement: AnnouncementSettings = {
   id: 1,
   isActive: true,
-  message: "Study guides are now available — open Committees to download yours.",
+  message: "Committee agendas are live — browse all twelve committees and pick your three.",
   linkType: "internal",
   internalPath: "/committees",
   externalUrl: null,
@@ -252,7 +251,7 @@ export const demoDelegations: DelegationRecord[] = [
   },
   {
     id: ids.delBeacon,
-    reference: "MMIII-BEACON",
+    reference: "MMIII-BEACPN",
     institutionName: "Beaconhouse College Programme",
     institutionCity: "Lahore",
     institutionType: "college",
@@ -298,7 +297,7 @@ export const demoDelegates: DelegateRecord[] = [
   {
     id: "delg-001",
     reference: "MMIII-4KQ7ZP",
-    delegateCode: "DC-A1B2C3",
+    delegateCode: "ATB2C3MM",
     fullName: "Ayesha Malik",
     email: "ayesha.malik@example.com",
     phone: "+92 300 5550101",
@@ -325,7 +324,7 @@ export const demoDelegates: DelegateRecord[] = [
   {
     id: "delg-002",
     reference: "MMIII-9M2XPL",
-    delegateCode: "DC-D4E5F6",
+    delegateCode: "D4E5F6MM",
     fullName: "Bilal Hussain",
     email: "bilal.hussain@example.com",
     phone: "+92 321 5550202",
@@ -352,7 +351,7 @@ export const demoDelegates: DelegateRecord[] = [
   {
     id: "delg-003",
     reference: "MMIII-7HT4WN",
-    delegateCode: "DC-G7H8I9",
+    delegateCode: "G7H8J9MM",
     fullName: "Fatima Zahra",
     email: "fatima.zahra@example.com",
     phone: "+92 333 5550303",
@@ -379,7 +378,7 @@ export const demoDelegates: DelegateRecord[] = [
   {
     id: "delg-004",
     reference: "MMIII-2BR8QD",
-    delegateCode: "DC-J1K2L3",
+    delegateCode: "JTK2L3MM",
     fullName: "Hassan Raza",
     email: "hassan.raza@example.com",
     phone: "+92 345 5550404",
@@ -405,8 +404,8 @@ export const demoDelegates: DelegateRecord[] = [
   },
   {
     id: "delg-005",
-    reference: "MMIII-5CV1SK",
-    delegateCode: "DC-M4N5O6",
+    reference: "MMIII-5CVTSK",
+    delegateCode: "M4N5P6MM",
     fullName: "Iman Siddiqui",
     email: "iman.siddiqui@example.com",
     phone: "+92 312 5550505",
@@ -433,7 +432,7 @@ export const demoDelegates: DelegateRecord[] = [
   {
     id: "delg-006",
     reference: "MMIII-8DW6TJ",
-    delegateCode: "DC-P7Q8R9",
+    delegateCode: "P7Q8R9MM",
     fullName: "Junaid Ahmed",
     email: "junaid.ahmed@example.com",
     phone: "+92 301 5550606",
@@ -460,7 +459,7 @@ export const demoDelegates: DelegateRecord[] = [
   {
     id: "delg-007",
     reference: "MMIII-3EX9UM",
-    delegateCode: "DC-S1T2U3",
+    delegateCode: "STT2U3MM",
     fullName: "Komal Nadeem",
     email: "komal.nadeem@example.com",
     phone: "+92 334 5550707",
@@ -487,7 +486,7 @@ export const demoDelegates: DelegateRecord[] = [
   {
     id: "delg-008",
     reference: "MMIII-6FY2VN",
-    delegateCode: "DC-V4W5X6",
+    delegateCode: "V4W5X6MM",
     fullName: "Laiba Khan",
     email: "laiba.khan@example.com",
     phone: "+92 322 5550808",
@@ -513,8 +512,8 @@ export const demoDelegates: DelegateRecord[] = [
   },
   {
     id: "delg-009",
-    reference: "MMIII-1GZ5WO",
-    delegateCode: "DC-Y7Z8A9",
+    reference: "MMIII-TGZ5WP",
+    delegateCode: "Y7Z8A9MM",
     fullName: "Muhammad Ali",
     email: "m.ali@example.com",
     phone: "+92 315 5550909",
@@ -540,8 +539,8 @@ export const demoDelegates: DelegateRecord[] = [
   },
   {
     id: "delg-010",
-    reference: "MMIII-0HA8XP",
-    delegateCode: "DC-B1C2D3",
+    reference: "MMIII-QHA8XP",
+    delegateCode: "BTC2D3MM",
     fullName: "Noor ul Ain",
     email: "noor.ulain@example.com",
     phone: "+92 300 5551010",
@@ -714,7 +713,8 @@ export const demoSponsors: SponsorRecord[] = [
     id: "sponsor-001",
     name: "Meritorious Education System",
     logoPath: null,
-    logoUrl: "/sponsors/meritorious.svg",
+    // No logo files ship with the demo; the slider shows the name instead.
+    logoUrl: "",
     url: "https://meritorious.edu.pk",
     sortOrder: 1,
     isActive: true,
@@ -723,7 +723,8 @@ export const demoSponsors: SponsorRecord[] = [
     id: "sponsor-002",
     name: "HBL",
     logoPath: null,
-    logoUrl: "/sponsors/hbl.svg",
+    // No logo files ship with the demo; the slider shows the name instead.
+    logoUrl: "",
     url: "https://www.hbl.com",
     sortOrder: 2,
     isActive: true,
@@ -732,7 +733,8 @@ export const demoSponsors: SponsorRecord[] = [
     id: "sponsor-003",
     name: "Nestlé Pakistan",
     logoPath: null,
-    logoUrl: "/sponsors/nestle.svg",
+    // No logo files ship with the demo; the slider shows the name instead.
+    logoUrl: "",
     url: "https://www.nestle.pk",
     sortOrder: 3,
     isActive: true,
@@ -741,7 +743,8 @@ export const demoSponsors: SponsorRecord[] = [
     id: "sponsor-004",
     name: "Jazz",
     logoPath: null,
-    logoUrl: "/sponsors/jazz.svg",
+    // No logo files ship with the demo; the slider shows the name instead.
+    logoUrl: "",
     url: "https://jazz.com.pk",
     sortOrder: 4,
     isActive: false,
@@ -851,39 +854,3 @@ export const demoTeamProfiles: Profile[] = [
     updatedAt: NOW,
   },
 ];
-
-/* ── KPIs derived from sample rows ───────────────────────────────────────── */
-
-function deriveOverviewKpis(): OverviewKpis {
-  const totalDelegates = demoDelegates.length;
-  const delegationCount = demoDelegations.length;
-  const pendingPayments =
-    demoDelegates.filter((d) => d.paymentStatus === "pending").length +
-    demoDelegations.filter((d) => d.paymentStatus === "pending").length;
-  const confirmedPayments =
-    demoDelegates.filter((d) => d.paymentStatus === "confirmed").length +
-    demoDelegations.filter((d) => d.paymentStatus === "confirmed").length;
-
-  const totalAmount =
-    demoDelegates
-      .filter((d) => d.paymentStatus === "confirmed")
-      .reduce((sum, d) => sum + (d.paymentAmount ?? 0), 0) +
-    demoDelegations
-      .filter((d) => d.paymentStatus === "confirmed")
-      .reduce((sum, d) => sum + (d.paymentAmount ?? 0), 0);
-
-  return {
-    totalDelegates,
-    totalRegistrations: totalDelegates + delegationCount,
-    delegationCount,
-    pendingPayments,
-    confirmedPayments,
-    totalAmount,
-    openQueries: demoQueries.filter((q) => q.status === "open").length,
-    allottedDraft: demoAllotments.filter((a) => a.status === "draft").length,
-    allottedConfirmed: demoAllotments.filter((a) => a.status === "confirmed")
-      .length,
-  };
-}
-
-export const demoOverviewKpis: OverviewKpis = deriveOverviewKpis();

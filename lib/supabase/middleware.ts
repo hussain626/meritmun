@@ -8,7 +8,7 @@ import {
 
 /**
  * Refresh the Supabase auth session on the request/response cookies.
- * Call from root middleware so Server Components see a valid user.
+ * Call from the root proxy (proxy.ts) so Server Components see a valid user.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({

@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     template: "%s · MERITMUN III",
   },
   description:
-    "The third iteration of Meritorious Model United Nations. Twelve committees, three days, six hundred seats. Karachi, Pakistan.",
+    "The third iteration of Meritorious Model United Nations — three days of committees, crisis and debate in Karachi, Pakistan.",
   keywords: [
     "MERITMUN",
     "Model United Nations",
@@ -47,14 +47,14 @@ export const metadata: Metadata = {
     siteName: "MERITMUN III",
     title: "MERITMUN III — Discover the World of Diplomacy",
     description:
-      "Twelve committees, three days, six hundred seats. Registration coming soon.",
+      "Three days of committees, crisis and debate in Karachi. Registration, committees and schedule on the site.",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "MERITMUN III — Discover the World of Diplomacy",
     description:
-      "Twelve committees, three days, six hundred seats. Registration coming soon.",
+      "Three days of committees, crisis and debate in Karachi. Registration, committees and schedule on the site.",
   },
 };
 

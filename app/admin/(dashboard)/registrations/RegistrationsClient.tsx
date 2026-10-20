@@ -42,6 +42,8 @@ type RegistrationsClientProps = {
   delegations: DelegationRecord[];
   role: AdminRole;
   registrationOpen: boolean;
+  /** Committee slug → abbreviation, so preferences read "HCC", not a slug. */
+  committeeAbbr: Record<string, string>;
 };
 
 const EXPERIENCE_LABEL: Record<string, string> = {
@@ -79,8 +81,10 @@ export function RegistrationsClient({
   delegations,
   role,
   registrationOpen,
+  committeeAbbr,
 }: RegistrationsClientProps) {
   const canMutate = role === "admin" || role === "eb";
+  const prefLabel = (slug: string) => committeeAbbr[slug] ?? slug.toUpperCase();
   const [tab, setTab] = useState<Tab>("delegates");
   const [query, setQuery] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
@@ -94,6 +98,8 @@ export function RegistrationsClient({
   const [rejectReason, setRejectReason] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // Failures shown inside the open drawer, where the admin is looking.
+  const [drawerNote, setDrawerNote] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const institutions = useMemo(() => {
@@ -139,13 +145,16 @@ export function RegistrationsClient({
         : filteredDelegations.length) / PAGE_SIZE,
     ),
   );
+  // Clamp: an action can empty the last page, which must not leave an empty
+  // table where the previous page still has rows.
+  const currentPage = Math.min(page, pageCount);
   const pagedDelegates = filteredDelegates.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE,
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
   );
   const pagedDelegations = filteredDelegations.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE,
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
   );
 
   function runAction(
@@ -154,9 +163,11 @@ export function RegistrationsClient({
     startTransition(async () => {
       const result = await action();
       setMessage(result.message);
+      setDrawerNote(result.ok ? null : result.message);
+      setConfirmOpen(false);
+      setRejectOpen(false);
       if (result.ok) {
-        setConfirmOpen(false);
-        setRejectOpen(false);
+        setRejectReason("");
         setSelected(null);
         setSelectedDelegation(null);
       }
@@ -185,7 +196,7 @@ export function RegistrationsClient({
             d.email,
             d.phone,
             d.institution,
-            d.committeePrefs[0] ?? "",
+            d.committeePrefs[0] ? prefLabel(d.committeePrefs[0]) : "",
             d.experience,
             d.paymentStatus,
             d.paymentAmount ?? "",
@@ -380,7 +391,7 @@ export function RegistrationsClient({
                     </td>
                     <td className="px-3 py-3 text-fg-muted">{row.institution}</td>
                     <td className="px-3 py-3 uppercase text-fg-muted">
-                      {row.committeePrefs[0] ?? "—"}
+                      {row.committeePrefs[0] ? prefLabel(row.committeePrefs[0]) : "—"}
                     </td>
                     <td className="px-3 py-3 text-fg-muted">
                       {EXPERIENCE_LABEL[row.experience] ?? row.experience}
@@ -406,7 +417,7 @@ export function RegistrationsClient({
               </tbody>
             </table>
             <Pagination
-              page={page}
+              page={currentPage}
               pageCount={pageCount}
               total={filteredDelegates.length}
               pageSize={PAGE_SIZE}
@@ -488,7 +499,7 @@ export function RegistrationsClient({
             </tbody>
           </table>
           <Pagination
-            page={page}
+            page={currentPage}
             pageCount={pageCount}
             total={filteredDelegations.length}
             pageSize={PAGE_SIZE}
@@ -500,7 +511,10 @@ export function RegistrationsClient({
 
       <Drawer
         open={Boolean(selected)}
-        onClose={() => setSelected(null)}
+        onClose={() => {
+          setSelected(null);
+          setDrawerNote(null);
+        }}
         title={selected?.fullName ?? "Delegate"}
         size="lg"
         footer={
@@ -516,13 +530,16 @@ export function RegistrationsClient({
               >
                 Resend email
               </Button>
-              {selected.paymentStatus === "pending" ? (
+              {selected.paymentStatus === "pending" && !selected.delegationId ? (
                 <>
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={pending}
-                    onClick={() => setRejectOpen(true)}
+                    onClick={() => {
+                  setRejectReason("");
+                  setRejectOpen(true);
+                }}
                     className="border-danger text-danger-fg"
                   >
                     Reject
@@ -541,6 +558,11 @@ export function RegistrationsClient({
           ) : undefined
         }
       >
+        {drawerNote ? (
+          <p role="alert" className="mb-3 text-sm text-danger-fg">
+            {drawerNote}
+          </p>
+        ) : null}
         {selected ? (
           <dl>
             <DetailRow label="Reference" value={selected.reference} />
@@ -556,7 +578,15 @@ export function RegistrationsClient({
             <DetailRow label="Awards" value={selected.priorAwards ?? "—"} />
             <DetailRow
               label="Prefs"
-              value={selected.committeePrefs.join(", ").toUpperCase()}
+              value={selected.committeePrefs.map(prefLabel).join(", ")}
+            />
+            <DetailRow
+              label="Quoted fee"
+              value={
+                selected.quotedAmount != null
+                  ? formatPkr(selected.quotedAmount)
+                  : "—"
+              }
             />
             <DetailRow
               label="Payment"
@@ -566,6 +596,12 @@ export function RegistrationsClient({
                   : selected.paymentStatus
               }
             />
+            {selected.delegationId ? (
+              <DetailRow
+                label="Delegation"
+                value={`${delegations.find((d) => d.id === selected.delegationId)?.institutionName ?? "Delegation"} — payment is confirmed on the Delegations tab`}
+              />
+            ) : null}
             {selected.rejectionReason ? (
               <DetailRow label="Rejection" value={selected.rejectionReason} />
             ) : null}
@@ -579,7 +615,10 @@ export function RegistrationsClient({
 
       <Drawer
         open={Boolean(selectedDelegation)}
-        onClose={() => setSelectedDelegation(null)}
+        onClose={() => {
+          setSelectedDelegation(null);
+          setDrawerNote(null);
+        }}
         title={selectedDelegation?.institutionName ?? "Delegation"}
         size="lg"
         footer={
@@ -591,7 +630,10 @@ export function RegistrationsClient({
                 variant="outline"
                 size="sm"
                 disabled={pending}
-                onClick={() => setRejectOpen(true)}
+                onClick={() => {
+                  setRejectReason("");
+                  setRejectOpen(true);
+                }}
                 className="border-danger text-danger-fg"
               >
                 Reject
@@ -608,6 +650,11 @@ export function RegistrationsClient({
           ) : undefined
         }
       >
+        {drawerNote ? (
+          <p role="alert" className="mb-3 text-sm text-danger-fg">
+            {drawerNote}
+          </p>
+        ) : null}
         {selectedDelegation ? (
           <div className="flex flex-col gap-4">
             <dl>
@@ -618,6 +665,14 @@ export function RegistrationsClient({
               <DetailRow
                 label="Size"
                 value={String(selectedDelegation.delegationSize)}
+              />
+              <DetailRow
+                label="Quoted fee"
+                value={
+                  selectedDelegation.quotedAmount != null
+                    ? formatPkr(selectedDelegation.quotedAmount)
+                    : "—"
+                }
               />
               <DetailRow
                 label="Payment"
@@ -659,7 +714,7 @@ export function RegistrationsClient({
                         </p>
                         <p className="text-xs text-fg-faint">
                           {EXPERIENCE_LABEL[m.experience] ?? m.experience} ·{" "}
-                          {m.committeePrefs.join(" › ").toUpperCase()}
+                          {m.committeePrefs.map(prefLabel).join(" › ")}
                         </p>
                       </div>
                       <StatusBadge kind="payment" status={m.paymentStatus} />
@@ -709,7 +764,10 @@ export function RegistrationsClient({
         title={selectedDelegation ? "Reject delegation payment?" : "Reject payment?"}
         description={
           <div className="flex flex-col gap-2">
-            <p>Optionally include a reason shown to the delegate.</p>
+            <p>
+              Optionally record a reason for the team. Any seat already held is
+              released for re-allotment.
+            </p>
             <Textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}

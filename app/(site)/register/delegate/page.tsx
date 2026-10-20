@@ -3,7 +3,7 @@ import { DelegateForm } from "@/components/forms/DelegateForm";
 import { PageHero } from "@/components/layout/PageHero";
 import { RegistrationComingSoon } from "@/components/register/RegistrationComingSoon";
 import { Section } from "@/components/ui/Section";
-import { getRegistrationOpen } from "@/lib/admin/data";
+import { canAcceptRegistration } from "@/lib/admin/auth";
 import { getPublicPricing, listPublicCommittees } from "@/lib/public/data";
 import { submitDelegate } from "@/lib/actions";
 
@@ -16,10 +16,12 @@ export const metadata: Metadata = {
 export default async function RegisterDelegatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ committee?: string }>;
+  searchParams: Promise<{ committee?: string; manual?: string }>;
 }) {
-  const registrationOpen = await getRegistrationOpen();
-  if (!registrationOpen) {
+  // searchParams is async in Next.js 16.
+  const params = await searchParams;
+  const manual = params.manual === "1";
+  if (!(await canAcceptRegistration(manual))) {
     return (
       <main id="content">
         <PageHero
@@ -33,9 +35,7 @@ export default async function RegisterDelegatePage({
     );
   }
 
-  // searchParams is async in Next.js 16.
-  const [params, pricing, committees] = await Promise.all([
-    searchParams,
+  const [pricing, committees] = await Promise.all([
     getPublicPricing(),
     listPublicCommittees(),
   ]);
@@ -46,7 +46,7 @@ export default async function RegisterDelegatePage({
     <main id="content">
       <PageHero
         title="Register as a delegate"
-        lead="Four steps, about four minutes. Nothing is charged now — the fee is payable after you are allocated."
+        lead="Four steps, about four minutes. After you submit, pay the fee by bank transfer — allocation follows once your payment is confirmed."
       />
 
       <Section width="prose">
@@ -60,6 +60,7 @@ export default async function RegisterDelegatePage({
           preselect={preselect}
           fee={{ currency: pricing.currency, amount: pricing.delegate }}
           action={submitDelegate}
+          manual={manual}
         />
       </Section>
     </main>

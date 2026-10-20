@@ -39,6 +39,8 @@ type DelegateFormProps = {
     prev: ActionResult<Submission> | null,
     formData: FormData,
   ) => Promise<ActionResult<Submission>>;
+  /** Staff registering on someone's behalf while public registration is closed. */
+  manual?: boolean;
 };
 
 const STEPS = [
@@ -90,6 +92,7 @@ export function DelegateForm({
   preselect,
   fee,
   action,
+  manual = false,
 }: DelegateFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [step, setStep] = useState(0);
@@ -231,6 +234,7 @@ export function DelegateForm({
 
   return (
     <form ref={formRef} action={formAction} noValidate className="grid gap-9">
+      {manual ? <input type="hidden" name="manual" value="1" /> : null}
       <Stepper steps={STEPS} current={step} onStepSelect={goToStep} />
 
       {state && !state.ok ? (
@@ -327,7 +331,7 @@ export function DelegateForm({
           currency={fee.currency}
           perHead={fee.amount}
           headline="Individual delegate fee"
-          detail="Covers all three days, lunches, the delegate dinner, and conference materials. Payable after allocation — nothing is charged now."
+          detail="Covers all three days, lunches, the delegate dinner, and conference materials. Pay by bank transfer after you submit — the account details and your payment reference arrive in your confirmation email."
         />
       </FormStep>
 

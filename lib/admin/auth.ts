@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getRegistrationOpen } from "@/lib/admin/data";
 import type { AdminRole } from "@/lib/admin/types";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -102,6 +103,39 @@ function loginRedirect(
     redirect("/admin/login?reason=forbidden");
   }
   redirect("/admin/login");
+}
+
+/**
+ * Role gate for server actions. Server actions are public POST endpoints, so
+ * every mutation checks the caller here instead of trusting RLS alone (RLS
+ * makes a blocked UPDATE match zero rows without an error).
+ */
+export async function authorizeAction(
+  allowedRoles: AdminRole[],
+  action = "make this change",
+): Promise<
+  { ok: true; session: AdminSession } | { ok: false; message: string }
+> {
+  const session = await getAdminSession();
+  if (!session) {
+    return { ok: false, message: "Your session has expired. Sign in again." };
+  }
+  if (!allowedRoles.includes(session.role)) {
+    return { ok: false, message: `Your role cannot ${action}.` };
+  }
+  return { ok: true, session };
+}
+
+/**
+ * Registration gate with the staff exception: while public registration is
+ * closed, admins and the EB can still register someone by hand when they come
+ * in through the admin "Manual registration" link (`?manual=1`).
+ */
+export async function canAcceptRegistration(manual: boolean): Promise<boolean> {
+  if (await getRegistrationOpen()) return true;
+  if (!manual) return false;
+  const session = await getAdminSession();
+  return session !== null && (session.role === "admin" || session.role === "eb");
 }
 
 /**

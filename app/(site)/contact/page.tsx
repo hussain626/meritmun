@@ -7,7 +7,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { contactChannels, socials } from "@/content/site";
-import { faqs } from "@/content/faq";
+import { getPublicFaqs } from "@/lib/public/data";
 import { submitContact } from "@/lib/actions";
 
 export const metadata: Metadata = {
@@ -18,7 +18,8 @@ export const metadata: Metadata = {
 
 const socialIcons = { instagram: Instagram, linkedin: Linkedin } as const;
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const faqs = await getPublicFaqs();
   return (
     <main id="content">
       <PageHero

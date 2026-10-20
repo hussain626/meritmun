@@ -11,7 +11,7 @@ import {
 /**
  * Server Supabase client for Server Components, Route Handlers, and server
  * actions. Uses the anon key + cookie session. Cookie writes may no-op in
- * Server Components; middleware refreshes the session.
+ * Server Components; the root proxy (proxy.ts) refreshes the session.
  */
 export async function createClient() {
   if (!isSupabaseConfigured()) {
@@ -27,7 +27,7 @@ export async function createClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet, _headers) {
+      setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);

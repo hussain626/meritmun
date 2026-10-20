@@ -24,6 +24,9 @@ const AWARD_PATTERN =
 const LEADERSHIP_PATTERN =
   /\b(chair|co-chair|eb|executive board|secretariat|secretary[- ]general|usg|director|president|head delegate)\b/i;
 
+/** gemini-2.0-flash is retired; override with GEMINI_MODEL if this one is too. */
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+
 export type ScoreSource = "ai" | "heuristic";
 
 export type ScoreResult =
@@ -79,7 +82,7 @@ async function scoreChunkWithGemini(
   apiKey: string,
   chunk: Pick<DelegateRecord, "experience" | "priorAwards">[],
 ): Promise<number[]> {
-  const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash";
+  const modelName = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
   const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
     model: modelName,
     generationConfig: { temperature: 0, responseMimeType: "application/json" },

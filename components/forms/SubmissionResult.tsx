@@ -1,27 +1,41 @@
 import { Check } from "@/components/icons/Check";
+import { Alert } from "@/components/ui/Alert";
 import { ButtonLink } from "@/components/ui/Button";
+import { formatNumber } from "@/lib/utils";
 import type { Submission } from "@/lib/types";
 
 type SubmissionResultProps = {
   submission: Submission;
 };
 
-const NEXT_STEPS: Record<Submission["kind"], string[]> = {
-  delegate: [
-    "A confirmation email is on its way to the address you gave us.",
-    "Delegate Affairs matches preferences against experience, then emails your committee and portfolio.",
-    "Your background guide follows allocation, so you get the guide for the committee you are actually in.",
-  ],
-  delegation: [
-    "A confirmation email is on its way to the head delegate address.",
-    "Finance will send a single invoice for the whole delegation at the per-head rate for your size.",
-    "Once the roster is confirmed, allocations are issued for every student in one batch.",
-  ],
-  contact: [
-    "The relevant desk has your message and answers within two working days.",
-    "Replies come from an @meritmun.org address — check spam if nothing arrives.",
-  ],
-};
+function feeLabel(submission: Submission): string {
+  return submission.fee
+    ? `${submission.fee.currency} ${formatNumber(submission.fee.amount)}`
+    : "the fee";
+}
+
+function nextSteps(submission: Submission): string[] {
+  const fee = feeLabel(submission);
+  switch (submission.kind) {
+    case "delegate":
+      return [
+        `Pay ${fee} to one of the bank accounts in your confirmation email, quoting your delegate code${submission.delegateCode ? ` (${submission.delegateCode})` : ""} as the payment reference.`,
+        "Send the transfer screenshot to Delegate Affairs. Your status moves to payment confirmed once Finance has matched it.",
+        "Paid delegates are allotted on merit; your committee, portfolio and background guide arrive by email.",
+      ];
+    case "delegation":
+      return [
+        `Pay ${fee} for the whole delegation to one of the bank accounts in the confirmation email, quoting your delegation reference.`,
+        "Send the transfer screenshot to Delegate Affairs. One confirmation covers every student on the roster.",
+        "Once the payment is confirmed, every student is allotted and emailed their committee and portfolio.",
+      ];
+    case "contact":
+      return [
+        "The relevant desk has your message and answers within two working days.",
+        "Replies come from an @meritmun.org address — check spam if nothing arrives.",
+      ];
+  }
+}
 
 const HEADINGS: Record<Submission["kind"], string> = {
   delegate: "You are registered",
@@ -30,6 +44,8 @@ const HEADINGS: Record<Submission["kind"], string> = {
 };
 
 export function SubmissionResult({ submission }: SubmissionResultProps) {
+  const isRegistration = submission.kind !== "contact";
+
   return (
     <div className="animate-rise">
       <span className="grid size-12 place-items-center rounded-full bg-brand text-on-brand">
@@ -40,22 +56,59 @@ export function SubmissionResult({ submission }: SubmissionResultProps) {
         {HEADINGS[submission.kind]}
       </h2>
       <p className="mt-3 max-w-[52ch] text-lg leading-normal text-fg-muted">
-        Thank you, {submission.name}. Keep the reference code below — it is how
-        you check your status and how we find you at registration.
+        {isRegistration
+          ? `Thank you, ${submission.name}. Keep the codes below — they are how you pay, check your status, and how we find you at registration.`
+          : `Thank you, ${submission.name}. We have your message.`}
       </p>
 
-      <div className="mt-7 inline-flex flex-col gap-1 rounded-md border border-line-strong bg-surface px-6 py-5">
-        <span className="text-xs tracking-wide text-fg-faint uppercase">
-          Your reference code
-        </span>
-        <strong className="font-mono text-h3 tracking-tight text-accent-fg">
-          {submission.reference}
-        </strong>
-      </div>
+      {isRegistration ? (
+        <div className="mt-7 flex flex-wrap gap-3">
+          <div className="inline-flex flex-col gap-1 rounded-md border border-line-strong bg-surface px-6 py-5">
+            <span className="text-xs tracking-wide text-fg-faint uppercase">
+              Your reference code
+            </span>
+            <strong className="font-mono text-h3 tracking-tight text-accent-fg">
+              {submission.reference}
+            </strong>
+          </div>
+          {submission.delegateCode ? (
+            <div className="inline-flex flex-col gap-1 rounded-md border border-line-strong bg-surface px-6 py-5">
+              <span className="text-xs tracking-wide text-fg-faint uppercase">
+                Delegate code · payment reference
+              </span>
+              <strong className="font-mono text-h3 tracking-tight text-accent-fg">
+                {submission.delegateCode}
+              </strong>
+            </div>
+          ) : null}
+          {submission.fee ? (
+            <div className="inline-flex flex-col gap-1 rounded-md border border-line-strong bg-surface px-6 py-5">
+              <span className="text-xs tracking-wide text-fg-faint uppercase">
+                Fee due now
+              </span>
+              <strong className="font-mono text-h3 tracking-tight text-fg">
+                {feeLabel(submission)}
+              </strong>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isRegistration && submission.emailSent === false ? (
+        <Alert
+          tone="warning"
+          title="Your confirmation email did not go out"
+          className="mt-7 max-w-[60ch]"
+        >
+          Your registration is saved, but we could not email the bank details.
+          Note the codes above and email Delegate Affairs — they will send the
+          payment details directly.
+        </Alert>
+      ) : null}
 
       <h3 className="mt-10 text-sm font-semibold text-fg">What happens next</h3>
       <ol className="mt-4 grid max-w-[60ch] gap-3">
-        {NEXT_STEPS[submission.kind].map((step, index) => (
+        {nextSteps(submission).map((step, index) => (
           <li key={step} className="flex gap-3 text-sm leading-relaxed text-fg-muted">
             <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-brand-soft font-mono text-xs font-bold text-brand-fg">
               {index + 1}
@@ -66,9 +119,11 @@ export function SubmissionResult({ submission }: SubmissionResultProps) {
       </ol>
 
       <div className="mt-10 flex flex-wrap gap-3">
-        <ButtonLink href="/register/status" variant="secondary">
-          Check your status
-        </ButtonLink>
+        {isRegistration ? (
+          <ButtonLink href="/register/status" variant="secondary">
+            Check your status
+          </ButtonLink>
+        ) : null}
         <ButtonLink href="/committees" variant="outline">
           Browse committees
         </ButtonLink>

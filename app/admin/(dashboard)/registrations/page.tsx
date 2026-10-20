@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { requireAdminSession } from "@/lib/admin/auth";
-import { getConferenceSettings, listDelegates, listDelegations } from "@/lib/admin/data";
+import {
+  getConferenceSettings,
+  listCommitteesAdmin,
+  listDelegates,
+  listDelegations,
+} from "@/lib/admin/data";
 import { RegistrationsClient } from "./RegistrationsClient";
 
 export const metadata: Metadata = {
@@ -10,10 +15,11 @@ export const metadata: Metadata = {
 
 export default async function RegistrationsPage() {
   const session = await requireAdminSession();
-  const [delegates, delegations, conference] = await Promise.all([
+  const [delegates, delegations, conference, committees] = await Promise.all([
     listDelegates(),
     listDelegations(),
     getConferenceSettings(),
+    listCommitteesAdmin(),
   ]);
 
   return (
@@ -22,6 +28,7 @@ export default async function RegistrationsPage() {
       delegations={delegations}
       role={session.role}
       registrationOpen={conference.registrationOpen}
+      committeeAbbr={Object.fromEntries(committees.map((c) => [c.slug, c.abbr]))}
     />
   );
 }

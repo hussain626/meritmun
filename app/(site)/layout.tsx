@@ -7,11 +7,13 @@ import { SkipLink } from "@/components/layout/SkipLink";
 import { conference, navItems, socials } from "@/content/site";
 import { quickHelpFaqs } from "@/content/faq";
 import { getPublicAnnouncement, getRegistrationOpen } from "@/lib/admin/data";
+import { getPublicFaqs } from "@/lib/public/data";
 
 export default async function SiteLayout({ children }: { children: ReactNode }) {
-  const [announcement, registrationOpen] = await Promise.all([
+  const [announcement, registrationOpen, faqs] = await Promise.all([
     getPublicAnnouncement(),
     getRegistrationOpen(),
+    getPublicFaqs(),
   ]);
 
   return (
@@ -40,7 +42,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         socials={socials}
         registrationOpen={registrationOpen}
       />
-      <HelpWidget faqs={quickHelpFaqs} />
+      <HelpWidget faqs={quickHelpFaqs(faqs)} />
     </div>
   );
 }

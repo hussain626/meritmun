@@ -11,7 +11,7 @@ import { updateSession } from "@/lib/supabase/middleware";
  * Refresh the auth session and gate `/admin/*` (except login) when Supabase
  * is configured. Demo mode (no env) allows the admin UI through.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
   const { pathname } = request.nextUrl;
 
@@ -46,7 +46,9 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/admin/login";
-      loginUrl.searchParams.set("next", pathname);
+      // Keep the query (e.g. a roll-call filter) in `next`, not on the login URL.
+      loginUrl.search = "";
+      loginUrl.searchParams.set("next", pathname + request.nextUrl.search);
       return NextResponse.redirect(loginUrl);
     }
   } catch {

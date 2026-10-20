@@ -6,16 +6,25 @@ import { HeroBackdrop } from "@/components/home/HeroBackdrop";
 import { StatsBar } from "@/components/home/StatsBar";
 import { ButtonLink } from "@/components/ui/Button";
 import type { Stat } from "@/lib/types";
+import { formatNumber } from "@/lib/utils";
 
 type HeroProps = {
   stats: Stat[];
   city: string;
   datesLabel: string;
   committeeCount: number;
+  seatCount: number;
   registrationOpen: boolean;
 };
 
-export function Hero({ stats, city, datesLabel, committeeCount, registrationOpen }: HeroProps) {
+export function Hero({
+  stats,
+  city,
+  datesLabel,
+  committeeCount,
+  seatCount,
+  registrationOpen,
+}: HeroProps) {
   return (
     <section className="relative">
       <div className="relative min-h-[var(--hero-min-h)] overflow-hidden">
@@ -38,8 +47,8 @@ export function Hero({ stats, city, datesLabel, committeeCount, registrationOpen
             </h1>
             <p className="mt-5 max-w-[34ch] animate-rise text-lg leading-snug text-on-art-muted">
               {committeeCount} committees. Three days in {city}.
-              <br className="hidden sm:inline" /> Six hundred seats, and one of
-              them is yours.
+              <br className="hidden sm:inline" /> {formatNumber(seatCount)} seats, and
+              one of them is yours.
             </p>
 
             <div className="mt-9 flex animate-rise flex-col items-start gap-5 sm:flex-row sm:items-center">

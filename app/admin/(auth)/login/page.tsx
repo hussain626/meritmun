@@ -3,6 +3,9 @@ import Link from "next/link";
 import { LoginShowcase } from "@/components/admin/LoginShowcase";
 import { SystemSummitCredit } from "@/components/admin/SystemSummitCredit";
 import { Wordmark } from "@/components/layout/Wordmark";
+import { signOutAdmin } from "@/lib/admin/actions";
+import { getAdminSession } from "@/lib/admin/auth";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { LoginForm } from "./LoginForm";
 
@@ -28,6 +31,10 @@ export default async function AdminLoginPage({
 }) {
   const params = await searchParams;
   const configured = isSupabaseConfigured();
+  // Sent here for lacking a role while already signed in: explain that
+  // instead of showing a sign-in form that would only loop back.
+  const signedIn =
+    configured && params.reason === "forbidden" ? await getAdminSession() : null;
 
   return (
     <div className="grid min-h-dvh bg-canvas lg:h-dvh lg:grid-cols-[minmax(22rem,38%)_1fr] lg:overflow-hidden">
@@ -44,11 +51,29 @@ export default async function AdminLoginPage({
             Welcome back. Enter your credentials to continue.
           </p>
           <div className="mt-8">
-            <LoginForm
-              configured={configured}
-              nextPath={safeAdminNext(params.next)}
-              reason={params.reason}
-            />
+            {signedIn ? (
+              <div className="flex flex-col gap-4">
+                <p className="rounded-sm border border-line bg-surface-inset px-3 py-2.5 text-sm text-fg-muted">
+                  You are signed in as {signedIn.user.email} ({signedIn.role}).
+                  That page needs a different role — ask an admin if you
+                  should have access.
+                </p>
+                <ButtonLink href="/admin" variant="primary" size="lg" fullWidth>
+                  Back to the admin panel
+                </ButtonLink>
+                <form action={signOutAdmin}>
+                  <Button type="submit" variant="outline" size="lg" fullWidth>
+                    Sign in with another account
+                  </Button>
+                </form>
+              </div>
+            ) : (
+              <LoginForm
+                configured={configured}
+                nextPath={safeAdminNext(params.next)}
+                reason={params.reason}
+              />
+            )}
           </div>
         </div>
 

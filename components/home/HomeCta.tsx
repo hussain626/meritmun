@@ -5,8 +5,9 @@ import { Gavel } from "@/components/icons/Gavel";
 import { Section } from "@/components/ui/Section";
 
 type HomeCtaProps = {
-  delegateFee: string;
-  delegationFee: string;
+  /** Null when pricing could not be read; the fee is then left off. */
+  delegateFee: string | null;
+  delegationFee: string | null;
   registrationOpen: boolean;
 };
 
@@ -22,7 +23,7 @@ const paths = [
     href: "/register/delegation",
     icon: Users,
     title: "Register a delegation",
-    body: "You are a society head or faculty member bringing five or more students. One form, one invoice, a reduced rate per head.",
+    body: "You are a society head or faculty member bringing five or more students. One form, one payment, a reduced rate per head.",
     time: "About six minutes",
   },
 ] as const;
@@ -63,8 +64,12 @@ export function HomeCta({ delegateFee, delegationFee, registrationOpen }: HomeCt
                   {path.body}
                 </p>
                 <p className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-on-brand/60">
-                  <span>{fees[index]}</span>
-                  <span aria-hidden="true">·</span>
+                  {fees[index] ? (
+                    <>
+                      <span>{fees[index]}</span>
+                      <span aria-hidden="true">·</span>
+                    </>
+                  ) : null}
                   <span>{path.time}</span>
                 </p>
                 <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-on-art-accent">

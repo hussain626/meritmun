@@ -71,60 +71,77 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-const store: DemoStore = {
-  delegates: clone(demoDelegates),
-  delegations: clone(demoDelegations),
-  allotments: clone(demoAllotments),
-  allotmentRules: clone(DEFAULT_ALLOTMENT_RULES),
-  attendance: [],
-  meritRuns: [],
-  queries: clone(demoQueries),
-  pricing: clone(demoPricing),
-  announcement: clone(demoAnnouncement),
-  conference: clone(demoConference),
-  schedule: clone(demoSchedule),
-  bankAccounts: clone(demoBankAccounts),
-  committees: clone(demoCommittees),
-  portfolios: clone(demoPortfolios),
-  ebMembers: clone(demoEbMembers),
-  hods: clone(demoHods),
-  secretariat: clone(demoSecretariat),
-  sponsors: clone(demoSponsors),
-  teamProfiles: clone(demoTeamProfiles),
+function createStore(): DemoStore {
+  return {
+    delegates: clone(demoDelegates),
+    delegations: clone(demoDelegations),
+    allotments: clone(demoAllotments),
+    allotmentRules: clone(DEFAULT_ALLOTMENT_RULES),
+    attendance: [],
+    meritRuns: [],
+    queries: clone(demoQueries),
+    pricing: clone(demoPricing),
+    announcement: clone(demoAnnouncement),
+    conference: clone(demoConference),
+    schedule: clone(demoSchedule),
+    bankAccounts: clone(demoBankAccounts),
+    committees: clone(demoCommittees),
+    portfolios: clone(demoPortfolios),
+    ebMembers: clone(demoEbMembers),
+    hods: clone(demoHods),
+    secretariat: clone(demoSecretariat),
+    sponsors: clone(demoSponsors),
+    teamProfiles: clone(demoTeamProfiles),
+  };
+}
+
+// Kept on globalThis so dev hot reloads and separately bundled route chunks
+// share one store — otherwise a registration lands in a copy admin never reads.
+const globalForDemo = globalThis as typeof globalThis & {
+  __meritmunDemoStore?: DemoStore;
 };
+const store: DemoStore = (globalForDemo.__meritmunDemoStore ??= createStore());
 
 export function getDemoStore(): DemoStore {
   return store;
 }
 
-export function deriveDemoOverviewKpis(): OverviewKpis {
-  const { delegates, delegations, queries, allotments } = store;
-  const totalDelegates = delegates.length;
-  const delegationCount = delegations.length;
-  const pendingPayments =
-    delegates.filter((d) => d.paymentStatus === "pending").length +
-    delegations.filter((d) => d.paymentStatus === "pending").length;
-  const confirmedPayments =
-    delegates.filter((d) => d.paymentStatus === "confirmed").length +
-    delegations.filter((d) => d.paymentStatus === "confirmed").length;
-  const totalAmount =
-    delegates
-      .filter((d) => d.paymentStatus === "confirmed")
-      .reduce((sum, d) => sum + (d.paymentAmount ?? 0), 0) +
-    delegations
-      .filter((d) => d.paymentStatus === "confirmed")
-      .reduce((sum, d) => sum + (d.paymentAmount ?? 0), 0);
+type KpiPayment = { paymentStatus: string; paymentAmount: number | null };
+
+/**
+ * One payment per individual registration and one per delegation. Delegation
+ * members are covered by their delegation's payment, so counting their rows
+ * as well would double both the payment counts and the revenue.
+ */
+export function deriveOverviewKpis(
+  delegates: (KpiPayment & { delegationId: string | null })[],
+  delegations: KpiPayment[],
+  queryStatuses: string[],
+  allotmentStatuses: string[],
+): OverviewKpis {
+  const individuals = delegates.filter((d) => d.delegationId === null);
+  const payments: KpiPayment[] = [...individuals, ...delegations];
+  const confirmed = payments.filter((p) => p.paymentStatus === "confirmed");
 
   return {
-    totalDelegates,
-    totalRegistrations: totalDelegates + delegationCount,
-    delegationCount,
-    pendingPayments,
-    confirmedPayments,
-    totalAmount,
-    openQueries: queries.filter((q) => q.status === "open").length,
-    allottedDraft: allotments.filter((a) => a.status === "draft").length,
-    allottedConfirmed: allotments.filter((a) => a.status === "confirmed")
-      .length,
+    totalDelegates: delegates.length,
+    totalRegistrations: payments.length,
+    individualCount: individuals.length,
+    delegationCount: delegations.length,
+    pendingPayments: payments.filter((p) => p.paymentStatus === "pending").length,
+    confirmedPayments: confirmed.length,
+    totalAmount: confirmed.reduce((sum, p) => sum + (p.paymentAmount ?? 0), 0),
+    openQueries: queryStatuses.filter((s) => s === "open").length,
+    allottedDraft: allotmentStatuses.filter((s) => s === "draft").length,
+    allottedConfirmed: allotmentStatuses.filter((s) => s === "confirmed").length,
   };
+}
+
+export function deriveDemoOverviewKpis(): OverviewKpis {
+  return deriveOverviewKpis(
+    store.delegates,
+    store.delegations,
+    store.queries.map((q) => q.status),
+    store.allotments.map((a) => a.status),
+  );
 }

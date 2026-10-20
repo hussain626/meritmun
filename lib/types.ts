@@ -196,6 +196,12 @@ export type Submission = {
   kind: SubmissionKind;
   receivedAt: string;
   name: string;
+  /** Individual registrations: the code to quote as the payment reference. */
+  delegateCode?: string;
+  /** Registrations: the fee quoted in the confirmation email. */
+  fee?: { currency: string; amount: number };
+  /** False when the confirmation email could not be sent. */
+  emailSent?: boolean;
 };
 
 export type ApplicationStatus =
@@ -203,13 +209,26 @@ export type ApplicationStatus =
   | "under-review"
   | "allocated"
   | "confirmed"
+  | "payment-rejected"
   | "not-found";
+
+/** One roster member's progress, shown on a delegation reference lookup. */
+export type StatusMember = {
+  name: string;
+  status: ApplicationStatus;
+  committee: string | null;
+  portfolio: string | null;
+};
 
 export type StatusResult = {
   reference: string;
   status: ApplicationStatus;
   committee: string | null;
+  /** Country / portfolio of an issued allotment. */
+  portfolio: string | null;
   note: string;
+  /** Delegation lookups only. */
+  members?: StatusMember[];
 };
 
 /* ── Action plumbing ─────────────────────────────────────────────────────── */

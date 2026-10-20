@@ -15,7 +15,11 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { createTeamMember, removeTeamMember } from "@/lib/admin/actions";
+import {
+  createTeamMember,
+  removeTeamMember,
+  updateTeamMemberRole,
+} from "@/lib/admin/actions";
 import { isTeamOwner, TEAM_OWNER_EMAIL } from "@/lib/admin/team";
 import type { AdminRole, Profile } from "@/lib/admin/types";
 import { formatAdminDate, initialsFromName, titleCase } from "@/lib/utils";
@@ -177,7 +181,11 @@ export function TeamClient({
   }, [profiles, roleFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const currentPage = Math.min(page, pageCount);
+  const paged = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -368,9 +376,30 @@ export function TeamClient({
                   </td>
                   <td className="px-4 py-3 text-fg-muted">{row.email}</td>
                   <td className="px-4 py-3">
-                    <Badge tone={ROLE_TONE[row.role]} size="sm">
-                      {titleCase(row.role)}
-                    </Badge>
+                    {isAdmin && row.id !== currentUserId && !isTeamOwner(row.email) ? (
+                      <Select
+                        aria-label={`Role for ${row.fullName}`}
+                        value={row.role}
+                        disabled={pending}
+                        onChange={(e) => {
+                          const next = e.target.value as AdminRole;
+                          startTransition(async () => {
+                            const result = await updateTeamMemberRole(row.id, next);
+                            setMessage(result.message);
+                          });
+                        }}
+                        options={[
+                          { value: "admin", label: "Admin" },
+                          { value: "eb", label: "EB" },
+                          { value: "reviewer", label: "Reviewer" },
+                        ]}
+                        className="min-h-8 w-32 text-sm"
+                      />
+                    ) : (
+                      <Badge tone={ROLE_TONE[row.role]} size="sm">
+                        {titleCase(row.role)}
+                      </Badge>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-fg-muted">
                     {formatAdminDate(row.createdAt)}
@@ -393,7 +422,7 @@ export function TeamClient({
             </tbody>
           </table>
           <Pagination
-            page={page}
+            page={currentPage}
             pageCount={pageCount}
             total={filtered.length}
             pageSize={PAGE_SIZE}

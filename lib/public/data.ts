@@ -19,7 +19,8 @@ import type {
   HodRecord,
   SecretariatMemberRecord,
 } from "@/lib/admin/types";
-import type { BoardMember, Committee } from "@/lib/types";
+import { buildFaqs } from "@/content/faq";
+import type { BoardMember, Committee, FaqEntry } from "@/lib/types";
 
 /* ── Committees ──────────────────────────────────────────────────────────── */
 
@@ -126,9 +127,15 @@ export type PublicPricing = {
   delegate: number;
   /** Per-head fee for delegation members, early-bird applied. */
   perDelegate: number;
+  /** Flat fee charged once per delegation, on top of the per-head fees. */
+  delegationFlat: number;
   minDelegation: number;
   maxDelegation: number;
+  /** Set only while an early-bird fee is actually being applied. */
   earlyBird: { endsAt: string | null } | null;
+  /** Fee type to stamp on a new individual / delegation-member row. */
+  delegateFeeType: "delegate" | "early_bird_delegate";
+  memberFeeType: "delegation_member" | "early_bird_delegation_member";
 };
 
 function earlyBirdActive(enabled: boolean, endsAt: string | null): boolean {
@@ -140,19 +147,43 @@ function earlyBirdActive(enabled: boolean, endsAt: string | null): boolean {
 /** Fees exactly as set on /admin/pricing — the same numbers Finance confirms. */
 export async function getPublicPricing(): Promise<PublicPricing> {
   const pricing = await getPricing();
-  const early = earlyBirdActive(pricing.earlyBirdEnabled, pricing.earlyBirdEndsAt);
+  const window = earlyBirdActive(
+    pricing.earlyBirdEnabled,
+    pricing.earlyBirdEndsAt,
+  );
+  // Early bird applies per fee only when that fee was actually filled in, so
+  // a row is never tagged early-bird while being quoted the standard fee.
+  const delegateEarly = window && pricing.earlyBirdDelegateFee != null;
+  const memberEarly = window && pricing.earlyBirdPerDelegateFee != null;
   return {
     currency: pricing.currency,
-    delegate:
-      early && pricing.earlyBirdDelegateFee != null
-        ? pricing.earlyBirdDelegateFee
-        : pricing.delegateFee,
-    perDelegate:
-      early && pricing.earlyBirdPerDelegateFee != null
-        ? pricing.earlyBirdPerDelegateFee
-        : pricing.perDelegateFee,
+    delegate: delegateEarly
+      ? (pricing.earlyBirdDelegateFee as number)
+      : pricing.delegateFee,
+    perDelegate: memberEarly
+      ? (pricing.earlyBirdPerDelegateFee as number)
+      : pricing.perDelegateFee,
+    delegationFlat: pricing.delegationFee,
     minDelegation: pricing.delegationMin,
     maxDelegation: pricing.delegationMax,
-    earlyBird: early ? { endsAt: pricing.earlyBirdEndsAt } : null,
+    earlyBird:
+      delegateEarly || memberEarly ? { endsAt: pricing.earlyBirdEndsAt } : null,
+    delegateFeeType: delegateEarly ? "early_bird_delegate" : "delegate",
+    memberFeeType: memberEarly
+      ? "early_bird_delegation_member"
+      : "delegation_member",
   };
+}
+
+/** Whole-delegation quote: per-head fee for every member plus the flat fee. */
+export function delegationQuote(pricing: PublicPricing, size: number): number {
+  return pricing.perDelegate * size + pricing.delegationFlat;
+}
+
+/* ── FAQ ─────────────────────────────────────────────────────────────────── */
+
+/** FAQ answers quote the same fees as /admin/pricing; the rest is static. */
+export async function getPublicFaqs(): Promise<FaqEntry[]> {
+  const pricing = await getPublicPricing().catch(() => null);
+  return buildFaqs(pricing);
 }

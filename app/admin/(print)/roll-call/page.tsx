@@ -38,7 +38,8 @@ export default async function RollCallPage({
   const matrix = buildSeatMatrix({
     committees,
     portfolios,
-    allotments,
+    // Printed sheets list issued seats only — drafts can still move.
+    allotments: allotments.filter((a) => a.status === "confirmed"),
     delegates,
     delegations,
   }).filter(
@@ -71,7 +72,7 @@ export default async function RollCallPage({
 
       {matrix.length === 0 ? (
         <p className="p-8 text-sm text-neutral-600">
-          No seated delegates yet — allot seats first.
+          No issued seats yet — issue allotments first.
         </p>
       ) : null}
 

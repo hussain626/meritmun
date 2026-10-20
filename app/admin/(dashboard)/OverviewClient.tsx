@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { Drawer } from "@/components/admin/Drawer";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
+import {
+  sendBroadcastEmail,
+  type BroadcastAudience,
+} from "@/lib/admin/actions";
 import { InitialsMedallion } from "@/components/board/InitialsMedallion";
 import { AlertTriangle } from "@/components/icons/AlertTriangle";
 import { ArrowRight } from "@/components/icons/ArrowRight";
@@ -40,8 +49,12 @@ import {
 
 type RecentRow = {
   id: string;
+  reference: string;
+  name: string;
+  email: string;
   institution: string;
   typeLabel: string;
+  amount: number | null;
   createdAt: string;
   paymentStatus: DelegateRecord["paymentStatus"];
   overdue: boolean;
@@ -72,30 +85,69 @@ export function OverviewClient({
   role,
 }: OverviewClientProps) {
   const [copied, setCopied] = useState(false);
+  const canEdit = role === "admin" || role === "eb";
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [audience, setAudience] = useState<BroadcastAudience>("all");
+  const [broadcastSubject, setBroadcastSubject] = useState("");
+  const [broadcastBody, setBroadcastBody] = useState("");
+  const [broadcastResult, setBroadcastResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+  const [broadcastPending, startBroadcast] = useTransition();
 
-  const recent = useMemo(() => {
+  function sendBroadcast() {
+    setBroadcastResult(null);
+    startBroadcast(async () => {
+      const result = await sendBroadcastEmail({
+        audience,
+        subject: broadcastSubject,
+        body: broadcastBody,
+      });
+      setBroadcastResult(result);
+      if (result.ok) {
+        setBroadcastSubject("");
+        setBroadcastBody("");
+      }
+    });
+  }
+
+  // One row per registration: delegation members are covered by their
+  // delegation's row, so only individual delegates are listed separately.
+  const registrations = useMemo(() => {
     const rows: RecentRow[] = [
-      ...delegates.map((d) => ({
+      ...delegates
+        .filter((d) => d.delegationId === null)
+        .map((d) => ({
         id: d.id,
+        reference: d.reference,
+        name: d.fullName,
+        email: d.email,
         institution: d.institution,
         typeLabel: "Individual",
+        amount: d.paymentAmount ?? d.quotedAmount ?? null,
         createdAt: d.createdAt,
         paymentStatus: d.paymentStatus,
         overdue: isOverdue(d.paymentStatus, d.createdAt),
       })),
       ...delegations.map((d) => ({
         id: d.id,
+        reference: d.reference,
+        name: d.headName,
+        email: d.headEmail,
         institution: d.institutionName,
         typeLabel: `Delegation (${d.delegationSize})`,
+        amount: d.paymentAmount ?? d.quotedAmount ?? null,
         createdAt: d.createdAt,
         paymentStatus: d.paymentStatus,
         overdue: isOverdue(d.paymentStatus, d.createdAt),
       })),
     ];
-    return rows
-      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-      .slice(0, 8);
+    return rows.sort(
+      (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+    );
   }, [delegates, delegations]);
+  const recent = registrations.slice(0, 8);
 
   const funnel = [
     {
@@ -127,13 +179,18 @@ export function OverviewClient({
   const empty = kpis.totalRegistrations === 0;
 
   function exportReport() {
-    const header = "Institution,Type,Date,Status";
-    const lines = recent.map((row) =>
+    // Every registration, not just the eight on screen.
+    const header = "Reference,Name,Email,Institution,Type,Date,Status,Amount (PKR)";
+    const lines = registrations.map((row) =>
       [
+        row.reference,
+        row.name,
+        row.email,
         row.institution,
         row.typeLabel,
         formatAdminDateTime(row.createdAt),
         row.overdue ? "Overdue" : row.paymentStatus,
+        row.amount == null ? "" : String(row.amount),
       ]
         .map((cell) => `"${cell.replaceAll('"', '""')}"`)
         .join(","),
@@ -177,7 +234,7 @@ export function OverviewClient({
         <KpiCard
           label="Total Reg."
           value={formatNumber(kpis.totalRegistrations)}
-          hint={`${formatNumber(kpis.totalDelegates)} Indiv. / ${formatNumber(kpis.delegationCount)} Del.`}
+          hint={`${formatNumber(kpis.individualCount)} Indiv. / ${formatNumber(kpis.delegationCount)} Del. · ${formatNumber(kpis.totalDelegates)} delegates`}
           icon={<LayoutGrid className="size-4" />}
         />
         <KpiCard
@@ -366,7 +423,7 @@ export function OverviewClient({
               </li>
               <li>
                 <Link
-                  href="/register"
+                  href="/register?manual=1"
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-sm border border-line bg-surface px-3 py-2.5 text-sm font-medium text-fg",
                     "transition-colors duration-[var(--dur-fast)] hover:bg-surface-inset",
@@ -377,19 +434,22 @@ export function OverviewClient({
                   Manual Registration
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/admin/queries"
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-sm border border-line bg-surface px-3 py-2.5 text-sm font-medium text-fg",
-                    "transition-colors duration-[var(--dur-fast)] hover:bg-surface-inset",
-                    "focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2",
-                  )}
-                >
-                  <Mail className="size-4 text-fg-muted" />
-                  Broadcast Email
-                </Link>
-              </li>
+              {canEdit ? (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastOpen(true)}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 rounded-sm border border-line bg-surface px-3 py-2.5 text-left text-sm font-medium text-fg",
+                      "transition-colors duration-[var(--dur-fast)] hover:bg-surface-inset",
+                      "focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2",
+                    )}
+                  >
+                    <Mail className="size-4 text-fg-muted" />
+                    Broadcast Email
+                  </button>
+                </li>
+              ) : null}
             </ul>
           </section>
 
@@ -403,8 +463,79 @@ export function OverviewClient({
       <AnnouncementCard
         announcement={announcement}
         pages={pages}
-        canEdit={role === "admin" || role === "eb"}
+        canEdit={canEdit}
       />
+
+      <Drawer
+        open={broadcastOpen}
+        onClose={() => setBroadcastOpen(false)}
+        title="Broadcast email"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBroadcastOpen(false)}
+            >
+              Close
+            </Button>
+            <Button
+              size="sm"
+              loading={broadcastPending}
+              loadingLabel="Sending…"
+              onClick={sendBroadcast}
+            >
+              Send to audience
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-fg-muted">
+            Sends one email per person. Addresses that appear twice receive it once.
+          </p>
+          <Field label="Audience" htmlFor="broadcast-audience">
+            <Select
+              id="broadcast-audience"
+              value={audience}
+              onChange={(e) => setAudience(e.target.value as BroadcastAudience)}
+              options={[
+                { value: "all", label: "Everyone registered" },
+                { value: "paid", label: "Paid delegates" },
+                { value: "unpaid", label: "Unpaid delegates and delegation heads" },
+                { value: "heads", label: "Delegation heads only" },
+              ]}
+            />
+          </Field>
+          <Field label="Subject" htmlFor="broadcast-subject">
+            <Input
+              id="broadcast-subject"
+              value={broadcastSubject}
+              maxLength={120}
+              onChange={(e) => setBroadcastSubject(e.target.value)}
+            />
+          </Field>
+          <Field label="Message" htmlFor="broadcast-body">
+            <Textarea
+              id="broadcast-body"
+              rows={8}
+              value={broadcastBody}
+              onChange={(e) => setBroadcastBody(e.target.value)}
+            />
+          </Field>
+          {broadcastResult ? (
+            <p
+              role="status"
+              className={cn(
+                "text-sm",
+                broadcastResult.ok ? "text-success-fg" : "text-danger-fg",
+              )}
+            >
+              {broadcastResult.message}
+            </p>
+          ) : null}
+        </div>
+      </Drawer>
     </div>
   );
 }

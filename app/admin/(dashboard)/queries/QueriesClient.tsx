@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { replyToQuery } from "@/lib/admin/actions";
+import { replyToQuery, setQueryArchived } from "@/lib/admin/actions";
 import type { AdminRole, QueryRecord } from "@/lib/admin/types";
-import { cn, titleCase } from "@/lib/utils";
+import { CONFERENCE_TIME_ZONE, cn, titleCase } from "@/lib/utils";
 
 type QueriesClientProps = {
   queries: QueryRecord[];
@@ -25,6 +25,7 @@ function formatDate(iso: string): string {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: CONFERENCE_TIME_ZONE,
   }).format(new Date(iso));
 }
 
@@ -34,6 +35,7 @@ export function QueriesClient({ queries, role }: QueriesClientProps) {
   const [selected, setSelected] = useState<QueryRecord | null>(null);
   const [reply, setReply] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [drawerError, setDrawerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
@@ -139,6 +141,7 @@ export function QueriesClient({ queries, role }: QueriesClientProps) {
         onRowClick={(row) => {
           setSelected(row);
           setReply(row.replyBody ?? "");
+          setDrawerError(null);
         }}
         emptyState={
           <EmptyState
@@ -154,22 +157,50 @@ export function QueriesClient({ queries, role }: QueriesClientProps) {
         title={selected?.subject ?? "Query"}
         size="lg"
         footer={
-          selected && canReply && selected.status === "open" ? (
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={pending || !reply.trim()}
-              loading={pending}
-              onClick={() => {
-                startTransition(async () => {
-                  const result = await replyToQuery(selected.id, reply);
-                  setMessage(result.message);
-                  if (result.ok) setSelected(null);
-                });
-              }}
-            >
-              Send reply
-            </Button>
+          selected && canReply ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={pending}
+                onClick={() => {
+                  const archive = selected.status !== "archived";
+                  startTransition(async () => {
+                    const result = await setQueryArchived(selected.id, archive);
+                    if (result.ok) {
+                      setMessage(result.message);
+                      setSelected(null);
+                    } else {
+                      setDrawerError(result.message);
+                    }
+                  });
+                }}
+              >
+                {selected.status === "archived" ? "Reopen" : "Archive"}
+              </Button>
+              {selected.status === "open" ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={pending || !reply.trim()}
+                  loading={pending}
+                  onClick={() => {
+                    setDrawerError(null);
+                    startTransition(async () => {
+                      const result = await replyToQuery(selected.id, reply);
+                      if (result.ok) {
+                        setMessage(result.message);
+                        setSelected(null);
+                      } else {
+                        setDrawerError(result.message);
+                      }
+                    });
+                  }}
+                >
+                  Send reply
+                </Button>
+              ) : null}
+            </>
           ) : undefined
         }
       >
@@ -193,7 +224,12 @@ export function QueriesClient({ queries, role }: QueriesClientProps) {
             <div className="rounded-md border border-line bg-surface-inset p-3 whitespace-pre-wrap text-fg">
               {selected.message}
             </div>
-            {selected.status === "answered" && selected.replyBody ? (
+            {drawerError ? (
+              <p role="alert" className="text-danger-fg">
+                {drawerError}
+              </p>
+            ) : null}
+            {selected.replyBody ? (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
                   Your reply
@@ -202,7 +238,7 @@ export function QueriesClient({ queries, role }: QueriesClientProps) {
                   {selected.replyBody}
                 </p>
               </div>
-            ) : canReply ? (
+            ) : canReply && selected.status === "open" ? (
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
                   Reply

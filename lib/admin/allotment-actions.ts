@@ -12,7 +12,11 @@ import type {
   DelegateRecord,
   Portfolio,
 } from "@/lib/admin/types";
-import { sendAllotmentChanged, sendAllotmentConfirmed } from "@/lib/email/send";
+import {
+  sendAllotmentChanged,
+  sendAllotmentConfirmed,
+  type SendResult,
+} from "@/lib/email/send";
 import { planAllotments } from "@/lib/merit/allot";
 import { scoreDelegates } from "@/lib/merit/score";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -30,6 +34,15 @@ function ok(message: string): ActionResult {
 
 function fail(message: string): ActionResult {
   return { ok: false, message };
+}
+
+/**
+ * An issued seat counts as emailed only when the email really left. Demo mode
+ * never sends mail, so its mocked sends count; on the live site a mocked send
+ * means RESEND_API_KEY is missing and the seat stays pending for a retry.
+ */
+function emailDelivered(result: SendResult): boolean {
+  return result.ok && (!result.mocked || !isSupabaseConfigured());
 }
 
 function revalidateAllotments(): void {
@@ -71,8 +84,14 @@ function demoState(): AllotmentState {
 export type MeritRunOptions = {
   /** Keep existing merit drafts and only seat delegates without one. */
   keepDrafts?: boolean;
-  /** Limit the run to these delegates (e.g. right after a payment confirm). */
+  /** Limit the run to these delegates. */
   delegateIds?: string[];
+  /**
+   * Re-plan every unlocked draft but reuse the scores already on them, so only
+   * new delegates are scored. Used after a payment confirm: seats stay in merit
+   * order instead of going to whoever paid first, without re-scoring everyone.
+   */
+  reuseScores?: boolean;
 };
 
 /**
@@ -140,8 +159,18 @@ export async function runMeritEngineAction(
     delegationCommitteeCounts.set(key, (delegationCommitteeCounts.get(key) ?? 0) + 1);
   }
 
-  const scored = await scoreDelegates(eligible, state.rules.useAiScoring);
+  const previousScores = new Map<string, number>();
+  if (options.reuseScores) {
+    for (const a of replaced) {
+      if (a.score != null) previousScores.set(a.delegateId, a.score);
+    }
+  }
+  const toScore = eligible.filter((d) => !previousScores.has(d.id));
+  const scored = await scoreDelegates(toScore, state.rules.useAiScoring);
   if (!scored.ok) return fail(scored.error);
+  for (const [delegateId, score] of previousScores) {
+    scored.scores.set(delegateId, score);
+  }
 
   const plan = planAllotments({
     delegates: eligible,
@@ -218,7 +247,29 @@ export async function runMeritEngineAction(
             score: p.score,
           })),
         );
-        if (error) throw error;
+        if (error) {
+          // No transaction across the delete and insert: put the old drafts
+          // back so a failed save never wipes them.
+          if (replaced.length > 0) {
+            const { error: restoreError } = await client.from("allotments").insert(
+              replaced.map((a) => ({
+                id: a.id,
+                delegate_id: a.delegateId,
+                committee_id: a.committeeId,
+                portfolio_id: a.portfolioId,
+                source: a.source,
+                status: a.status,
+                rationale: a.rationale,
+                score: a.score,
+                created_at: a.createdAt,
+              })),
+            );
+            if (restoreError) {
+              console.warn("[meritmun/admin] could not restore drafts", restoreError);
+            }
+          }
+          throw error;
+        }
       }
       const { error: logError } = await client.from("merit_runs").insert(
         runLog.map((r) => ({
@@ -339,19 +390,12 @@ export async function saveManualAllotment(input: {
   const stamp = nowIso();
   const rationale = input.rationale.trim() || "Placed manually by EB.";
 
-  // Changing an issued seat: email first so the record only moves if the
-  // delegate actually hears about it.
-  let emailSentAt: string | null = existing?.emailSentAt ?? null;
-  if (isConfirmed && existing.portfolioId !== portfolio.id) {
-    const sent = await sendAllotmentChanged({
-      to: delegate.email,
-      fullName: delegate.fullName,
-      committeeName: committee.name,
-      countryName: portfolio.countryName,
-      studyGuideUrl: committee.studyGuideUrl,
-    });
-    emailSentAt = sent.ok ? stamp : null;
-  }
+  // Changing an issued seat: save first, then email, so a delegate is never
+  // told about a seat the database refused (e.g. someone took it meanwhile).
+  // If the email fails, email_sent_at is cleared and "Issue allotments"
+  // re-sends the new seat.
+  const seatMoved = isConfirmed && existing.portfolioId !== portfolio.id;
+  let emailSentAt: string | null = seatMoved ? null : (existing?.emailSentAt ?? null);
 
   if (!client) {
     const store = getDemoStore();
@@ -414,6 +458,30 @@ export async function saveManualAllotment(input: {
           ? `${portfolio.countryName} was just taken by someone else. Pick another country.`
           : "Could not save the allotment.",
       );
+    }
+  }
+
+  if (seatMoved) {
+    const sent = await sendAllotmentChanged({
+      to: delegate.email,
+      fullName: delegate.fullName,
+      committeeName: committee.name,
+      countryName: portfolio.countryName,
+      studyGuideUrl: committee.studyGuideUrl,
+      related: { type: "delegate", id: delegate.id },
+    });
+    if (emailDelivered(sent)) {
+      emailSentAt = stamp;
+      if (!client) {
+        const row = getDemoStore().allotments.find((a) => a.id === existing!.id);
+        if (row) row.emailSentAt = stamp;
+      } else {
+        const { error } = await client
+          .from("allotments")
+          .update({ email_sent_at: stamp })
+          .eq("id", existing!.id);
+        if (error) console.warn("[meritmun/admin] email_sent_at", error);
+      }
     }
   }
 
@@ -491,9 +559,14 @@ async function issueRows(
       committeeName: committee.name,
       countryName: portfolio.countryName,
       studyGuideUrl: committee.studyGuideUrl,
+      related: { type: "delegate", id: delegate.id },
     });
-    if (!sent.ok) {
-      console.warn("[meritmun/admin] allotment email", delegate.email, sent.error);
+    if (!emailDelivered(sent)) {
+      console.warn(
+        "[meritmun/admin] allotment email not delivered",
+        delegate.email,
+        sent.ok ? "RESEND_API_KEY not set" : sent.error,
+      );
       outcome.failed += 1;
       continue;
     }
@@ -531,7 +604,7 @@ async function issueRows(
 
 function describeIssue(outcome: IssueOutcome): string {
   const parts = [`Issued ${outcome.sent} allotment${outcome.sent === 1 ? "" : "s"}`];
-  if (outcome.failed) parts.push(`${outcome.failed} email${outcome.failed === 1 ? "" : "s"} failed (still pending — retry)`);
+  if (outcome.failed) parts.push(`${outcome.failed} email${outcome.failed === 1 ? "" : "s"} not sent (still pending — check RESEND_API_KEY and retry)`);
   if (outcome.skipped) parts.push(`${outcome.skipped} skipped (payment not confirmed)`);
   return `${parts.join(" · ")}.`;
 }

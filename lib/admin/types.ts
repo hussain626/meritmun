@@ -93,6 +93,8 @@ export type DelegateRecord = {
   hearAbout: HearAbout;
   paymentStatus: PaymentStatus;
   paymentAmount: number | null;
+  /** Fee quoted at registration (emailed with the bank details). */
+  quotedAmount?: number | null;
   paymentConfirmedAt: string | null;
   paymentRejectedAt: string | null;
   rejectionReason: string | null;
@@ -121,6 +123,8 @@ export type DelegationRecord = {
   notes: string | null;
   paymentStatus: PaymentStatus;
   paymentAmount: number | null;
+  /** Whole-delegation fee quoted at registration. */
+  quotedAmount?: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -291,8 +295,11 @@ export type ScheduleDayRecord = {
 /* ── Overview ────────────────────────────────────────────────────────────── */
 
 export type OverviewKpis = {
+  /** Every delegate, including delegation members. */
   totalDelegates: number;
+  /** Individual registrations plus delegations (one payment each). */
   totalRegistrations: number;
+  individualCount: number;
   delegationCount: number;
   pendingPayments: number;
   confirmedPayments: number;

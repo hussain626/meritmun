@@ -82,8 +82,10 @@ export function planAllotments(input: PlanInput): PlanResult {
     poolByCommittee.set(portfolio.committeeId, list);
   }
 
+  // Unpublished committees are not offered to delegates, so the engine never
+  // seats anyone there — not by preference and not by fallback.
   const freeSeats = (committee: CommitteeAdminRecord): Portfolio[] => {
-    if (committee.allotmentsPaused) return [];
+    if (committee.allotmentsPaused || !committee.isPublished) return [];
     return (poolByCommittee.get(committee.id) ?? []).filter(
       (p) => !taken.has(p.id),
     );
@@ -139,7 +141,7 @@ export function planAllotments(input: PlanInput): PlanResult {
               ? `${label(c)} needs merit ${minScoreFor(c, rules)}+`
               : !underCap(person, c.id)
                 ? `${label(c)} at delegation cap`
-                : `${label(c)} full or paused`,
+                : `${label(c)} full, paused or unpublished`,
           )
           .join("; ");
         why = `Preferences unavailable${blocked ? ` (${blocked})` : ""} — placed in ${label(committee)}, the committee with the most open seats.`;
@@ -152,10 +154,12 @@ export function planAllotments(input: PlanInput): PlanResult {
         score,
         reason:
           prefs.length === 0
-            ? "No valid committee preferences and fallback is off — EB must place by hand."
+            ? rules.fallbackMode === "none"
+              ? "No valid committee preferences and fallback is off — EB must place by hand."
+              : "No valid committee preferences and no committee has an open, eligible seat — EB must place by hand."
             : rules.fallbackMode === "none"
               ? "Ranked committees are full, paused, or above this delegate's merit — fallback is off, so EB must place by hand."
-              : "No committee has an open, eligible seat. Add countries to the pool or place by hand.",
+              : "No committee has an open, eligible seat — the preferences and the emptiest-committee fallback are all full, paused or above this delegate's merit. Add countries to the pool or place by hand.",
       });
       continue;
     }

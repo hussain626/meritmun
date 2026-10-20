@@ -31,6 +31,8 @@ type Pricing = {
   currency: string;
   /** Per-head fee from /admin/pricing (early-bird already applied). */
   perDelegate: number;
+  /** Flat fee charged once per delegation on top of the per-head fees. */
+  delegationFlat: number;
   minDelegation: number;
   maxDelegation: number;
 };
@@ -42,6 +44,8 @@ type DelegationFormProps = {
     prev: ActionResult<Submission> | null,
     formData: FormData,
   ) => Promise<ActionResult<Submission>>;
+  /** Staff registering on someone's behalf while public registration is closed. */
+  manual?: boolean;
 };
 
 const STEPS = [
@@ -81,6 +85,7 @@ export function DelegationForm({
   committees,
   pricing,
   action,
+  manual = false,
 }: DelegationFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [step, setStep] = useState(0);
@@ -159,7 +164,11 @@ export function DelegationForm({
   // Total is live: the head delegate sees it move as they build the roster.
   const size = values.members.length;
   const perHead = pricing.perDelegate;
-  const total = size > 0 ? perHead * size : 0;
+  const total = size > 0 ? perHead * size + pricing.delegationFlat : 0;
+  const flatNote =
+    pricing.delegationFlat > 0
+      ? ` (including a ${pricing.currency} ${formatNumber(pricing.delegationFlat)} delegation fee)`
+      : "";
 
   const summary: SummarySection[] = [
     {
@@ -248,6 +257,7 @@ export function DelegationForm({
 
   return (
     <form ref={formRef} action={formAction} noValidate className="grid gap-9">
+      {manual ? <input type="hidden" name="manual" value="1" /> : null}
       <Stepper steps={STEPS} current={step} onStepSelect={goToStep} />
 
       {state && !state.ok ? (
@@ -258,7 +268,7 @@ export function DelegationForm({
 
       <FormStep
         title="Your institution"
-        description="One registration covers every student you bring. You will get a single invoice."
+        description="One registration covers every student you bring. One payment covers the whole roster."
         active={step === 0}
       >
         <div className="grid gap-5 sm:grid-cols-2">
@@ -312,7 +322,7 @@ export function DelegationForm({
 
       <FormStep
         title="Head delegate"
-        description="Whoever we should contact about this delegation. Every allocation and invoice goes to this address."
+        description="Whoever we should contact about this delegation. Every allocation and the payment details go to this address."
         active={step === 1}
       >
         <div className="grid gap-5 sm:grid-cols-2">
@@ -434,8 +444,8 @@ export function DelegationForm({
           headline="Delegation rate, per head"
           detail={
             size > 0
-              ? `${size} delegates — ${pricing.currency} ${formatNumber(total)} in total. Nothing is charged now — Finance invoices after the roster is confirmed.`
-              : "Add delegates to see your total. Nothing is charged now — Finance invoices after the roster is confirmed."
+              ? `${size} delegates — ${pricing.currency} ${formatNumber(total)} in total${flatNote}. The bank details arrive with your confirmation email; one payment covers the whole roster.`
+              : `Add delegates to see your total${flatNote}. One payment covers the whole roster.`
           }
         />
 

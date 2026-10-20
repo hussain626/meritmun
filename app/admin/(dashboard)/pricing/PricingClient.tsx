@@ -26,7 +26,12 @@ import type {
   BankAccount,
   PricingSettings,
 } from "@/lib/admin/types";
-import { formatAdminDate, formatPkr } from "@/lib/utils";
+import {
+  formatAdminDate,
+  formatPkr,
+  fromKarachiInput,
+  toKarachiInput,
+} from "@/lib/utils";
 
 type PricingClientProps = {
   pricing: PricingSettings;
@@ -232,22 +237,13 @@ export function PricingClient({
               />
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="End Date">
+              <Field label="End date (Karachi time)">
                 <Input
                   type="datetime-local"
                   disabled={!canEdit || !form.earlyBirdEnabled}
-                  value={
-                    form.earlyBirdEndsAt
-                      ? form.earlyBirdEndsAt.slice(0, 16)
-                      : ""
-                  }
+                  value={toKarachiInput(form.earlyBirdEndsAt)}
                   onChange={(e) =>
-                    patch(
-                      "earlyBirdEndsAt",
-                      e.target.value
-                        ? new Date(e.target.value).toISOString()
-                        : null,
-                    )
+                    patch("earlyBirdEndsAt", fromKarachiInput(e.target.value))
                   }
                 />
               </Field>
@@ -305,7 +301,7 @@ export function PricingClient({
                   iconStart={<Plus className="size-4" />}
                   onClick={() =>
                     setEditingBank({
-                      id: `bank-${Date.now()}`,
+                      id: crypto.randomUUID(),
                       bankName: "",
                       accountTitle: "",
                       accountNumber: "",
@@ -464,7 +460,7 @@ export function PricingClient({
             </p>
           ) : null}
           <p className="mt-1 text-xs text-fg-faint">
-            Auto-updates at midnight · amounts in PKR
+            Standard fees apply automatically once the early-bird window ends · amounts in PKR
           </p>
           <p className="mt-4 text-sm text-fg-muted">
             Delegation: {formatPkr(form.perDelegateFee)} per head

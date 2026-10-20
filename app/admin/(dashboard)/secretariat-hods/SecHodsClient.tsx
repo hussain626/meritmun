@@ -3,26 +3,36 @@
 import { useMemo, useState, useTransition } from "react";
 import { InitialsMedallion } from "@/components/board/InitialsMedallion";
 import { Download } from "@/components/icons/Download";
-import { Pencil } from "@/components/icons/Pencil";
 import { Plus } from "@/components/icons/Plus";
+import { BoardMemberEditor } from "@/components/admin/BoardMemberEditor";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Drawer } from "@/components/admin/Drawer";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { Badge } from "@/components/ui/Badge";
+import { RowControls } from "@/components/admin/RowControls";
+import { Switch } from "@/components/admin/Switch";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
-import { Textarea } from "@/components/ui/Textarea";
-import { createHod, createSecretariatMember } from "@/lib/admin/cms-actions";
+import {
+  deleteBoardMember,
+  deleteSecretariatMember,
+  moveBoardMember,
+  moveSecretariatMember,
+  saveSecretariatMember,
+  setBoardMemberPublished,
+} from "@/lib/admin/cms-actions";
 import type {
   HodRecord,
   SecretariatMemberRecord,
 } from "@/lib/admin/types";
 import { cn } from "@/lib/utils";
 
+type SecretariatRow = SecretariatMemberRecord & { committeeAbbr: string };
+
 type SecHodsClientProps = {
-  secretariat: (SecretariatMemberRecord & { committeeAbbr: string })[];
+  secretariat: SecretariatRow[];
   hods: HodRecord[];
   committeeOptions: { id: string; abbr: string; name: string }[];
 };
@@ -33,6 +43,14 @@ const AVATAR_TONES = [
   "bg-surface-inset text-fg-muted",
 ] as const;
 
+type Deleting =
+  | { kind: "secretariat"; id: string; name: string }
+  | { kind: "hod"; id: string; name: string };
+
+function csvCell(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
 export function SecHodsClient({
   secretariat,
   hods,
@@ -41,9 +59,35 @@ export function SecHodsClient({
   const [tab, setTab] = useState("secretariat");
   const [roleFilter, setRoleFilter] = useState("");
   const [committeeFilter, setCommitteeFilter] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createStatus, setCreateStatus] = useState<string | null>(null);
+  const [secEditorOpen, setSecEditorOpen] = useState(false);
+  const [secEditing, setSecEditing] = useState<SecretariatRow | null>(null);
+  const [secError, setSecError] = useState<string | null>(null);
+  const [hodEditorOpen, setHodEditorOpen] = useState(false);
+  const [hodEditing, setHodEditing] = useState<HodRecord | null>(null);
+  const [deleting, setDeleting] = useState<Deleting | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const committeeOrder = useMemo(
+    () => new Map(committeeOptions.map((c, i) => [c.id, i])),
+    [committeeOptions],
+  );
+
+  // Grouped by committee, in each committee's public order.
+  const orderedSec = useMemo(
+    () =>
+      [...secretariat].sort(
+        (a, b) =>
+          (committeeOrder.get(a.committeeId) ?? 0) -
+            (committeeOrder.get(b.committeeId) ?? 0) ||
+          a.sortOrder - b.sortOrder,
+      ),
+    [secretariat, committeeOrder],
+  );
+  const orderedHods = useMemo(
+    () => [...hods].sort((a, b) => a.sortOrder - b.sortOrder),
+    [hods],
+  );
 
   const roles = useMemo(() => {
     const set = new Set(secretariat.map((s) => s.role));
@@ -56,32 +100,64 @@ export function SecHodsClient({
   }, [secretariat]);
 
   const filteredSec = useMemo(() => {
-    return secretariat.filter((s) => {
+    return orderedSec.filter((s) => {
       if (roleFilter && s.role !== roleFilter) return false;
       if (committeeFilter && s.committeeAbbr !== committeeFilter) return false;
       return true;
     });
-  }, [secretariat, roleFilter, committeeFilter]);
+  }, [orderedSec, roleFilter, committeeFilter]);
+
+  function run(action: () => Promise<{ ok: boolean; message: string }>) {
+    startTransition(async () => {
+      const result = await action();
+      setMessage(result.message);
+    });
+  }
 
   function exportCsv() {
-    const rows =
+    const lines =
       tab === "secretariat"
-        ? filteredSec.map((s) => [s.name, s.role, s.committeeAbbr].join(","))
-        : hods.map((h) => [h.name, h.role, h.isPublished ? "Active" : "Hidden"].join(","));
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+        ? [
+            "Name,Role,Committee",
+            ...filteredSec.map((s) =>
+              [s.name, s.role, s.committeeAbbr].map(csvCell).join(","),
+            ),
+          ]
+        : [
+            "Name,Role,Email,Status",
+            ...orderedHods.map((h) =>
+              [h.name, h.role, h.email ?? "", h.isPublished ? "Published" : "Hidden"]
+                .map(csvCell)
+                .join(","),
+            ),
+          ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "meritmun-management.csv";
+    anchor.download =
+      tab === "secretariat" ? "meritmun-secretariat.csv" : "meritmun-hods.csv";
     anchor.click();
     URL.revokeObjectURL(url);
+  }
+
+  function openAdd() {
+    setMessage(null);
+    if (tab === "hods") {
+      setHodEditing(null);
+      setHodEditorOpen(true);
+    } else {
+      setSecEditing(null);
+      setSecError(null);
+      setSecEditorOpen(true);
+    }
   }
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Management"
-        description="Configure Secretariat members and Heads of Departments."
+        description="Committee secretariat (shown on committee pages) and Heads of Departments (shown on the Executive Board page)."
         actions={
           <>
             <Button
@@ -96,16 +172,19 @@ export function SecHodsClient({
               variant="secondary"
               size="sm"
               iconStart={<Plus className="size-4" />}
-              onClick={() => {
-                setCreateStatus(null);
-                setCreateOpen(true);
-              }}
+              onClick={openAdd}
             >
-              Add Member
+              {tab === "hods" ? "Add HOD" : "Add Member"}
             </Button>
           </>
         }
       />
+
+      {message ? (
+        <p className="text-sm text-fg-muted" role="status">
+          {message}
+        </p>
+      ) : null}
 
       <Tabs
         tabs={[
@@ -165,10 +244,7 @@ export function SecHodsClient({
                       Role
                     </th>
                     <th className="px-4 py-2.5 text-xs font-semibold text-fg-muted">
-                      Linked Committee(s)
-                    </th>
-                    <th className="px-4 py-2.5 text-xs font-semibold text-fg-muted">
-                      Status
+                      Committee
                     </th>
                     <th className="px-4 py-2.5 text-xs font-semibold text-fg-muted">
                       Actions
@@ -176,40 +252,59 @@ export function SecHodsClient({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSec.map((row, index) => (
-                    <tr key={row.id} className="border-b border-line last:border-0">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <InitialsMedallion
-                            initials={row.initials}
-                            size="sm"
-                            className={cn(
-                              "rounded-full",
-                              AVATAR_TONES[index % AVATAR_TONES.length],
-                            )}
+                  {filteredSec.map((row, index) => {
+                    const sameCommittee = orderedSec.filter(
+                      (s) => s.committeeId === row.committeeId,
+                    );
+                    const position = sameCommittee.indexOf(row);
+                    return (
+                      <tr key={row.id} className="border-b border-line last:border-0">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <InitialsMedallion
+                              initials={row.initials}
+                              size="sm"
+                              className={cn(
+                                "rounded-full",
+                                AVATAR_TONES[index % AVATAR_TONES.length],
+                              )}
+                            />
+                            <span className="font-semibold text-fg">{row.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-fg">{row.role}</td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex rounded-sm bg-surface-inset px-2 py-0.5 text-xs font-medium text-fg-muted">
+                            {row.committeeAbbr}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <RowControls
+                            label={row.name}
+                            disabled={pending}
+                            onEdit={() => {
+                              setSecEditing(row);
+                              setSecError(null);
+                              setSecEditorOpen(true);
+                            }}
+                            onMoveUp={
+                              position > 0
+                                ? () => run(() => moveSecretariatMember(row.id, -1))
+                                : undefined
+                            }
+                            onMoveDown={
+                              position < sameCommittee.length - 1
+                                ? () => run(() => moveSecretariatMember(row.id, 1))
+                                : undefined
+                            }
+                            onDelete={() =>
+                              setDeleting({ kind: "secretariat", id: row.id, name: row.name })
+                            }
                           />
-                          <span className="font-semibold text-fg">{row.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-fg">{row.role}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-sm bg-surface-inset px-2 py-0.5 text-xs font-medium text-fg-muted">
-                          {row.committeeAbbr}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-sm text-fg">
-                          <span className="size-1.5 rounded-full bg-success" />
-                          Active
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-fg-faint">
-                          <Pencil className="size-4" />
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -217,11 +312,11 @@ export function SecHodsClient({
         </TabPanel>
       ) : (
         <TabPanel idBase="sec-hods" tabId="hods">
-          {hods.length === 0 ? (
+          {orderedHods.length === 0 ? (
             <div className="mt-4">
               <EmptyState
                 title="No HODs"
-                body="Heads of delegation appear on the public board page."
+                body="Heads of Departments appear on the public Executive Board page."
               />
             </div>
           ) : (
@@ -236,7 +331,7 @@ export function SecHodsClient({
                       Role
                     </th>
                     <th className="px-4 py-2.5 text-xs font-semibold text-fg-muted">
-                      Status
+                      Published
                     </th>
                     <th className="px-4 py-2.5 text-xs font-semibold text-fg-muted">
                       Actions
@@ -244,7 +339,7 @@ export function SecHodsClient({
                   </tr>
                 </thead>
                 <tbody>
-                  {hods.map((row, index) => (
+                  {orderedHods.map((row, index) => (
                     <tr key={row.id} className="border-b border-line last:border-0">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
@@ -264,19 +359,37 @@ export function SecHodsClient({
                       </td>
                       <td className="px-4 py-3 text-fg">{row.role}</td>
                       <td className="px-4 py-3">
-                        {row.isPublished ? (
-                          <span className="inline-flex items-center gap-1.5 text-sm text-fg">
-                            <span className="size-1.5 rounded-full bg-success" />
-                            Active
-                          </span>
-                        ) : (
-                          <Badge tone="neutral" size="sm">
-                            Hidden
-                          </Badge>
-                        )}
+                        <Switch
+                          checked={row.isPublished}
+                          label={`${row.name} published`}
+                          disabled={pending}
+                          onChange={(next) =>
+                            run(() => setBoardMemberPublished("hod", row.id, next))
+                          }
+                        />
                       </td>
-                      <td className="px-4 py-3 text-fg-faint">
-                        <Pencil className="size-4" />
+                      <td className="px-4 py-3">
+                        <RowControls
+                          label={row.name}
+                          disabled={pending}
+                          onEdit={() => {
+                            setHodEditing(row);
+                            setHodEditorOpen(true);
+                          }}
+                          onMoveUp={
+                            index > 0
+                              ? () => run(() => moveBoardMember("hod", row.id, -1))
+                              : undefined
+                          }
+                          onMoveDown={
+                            index < orderedHods.length - 1
+                              ? () => run(() => moveBoardMember("hod", row.id, 1))
+                              : undefined
+                          }
+                          onDelete={() =>
+                            setDeleting({ kind: "hod", id: row.id, name: row.name })
+                          }
+                        />
                       </td>
                     </tr>
                   ))}
@@ -288,90 +401,116 @@ export function SecHodsClient({
       )}
 
       <Drawer
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title={tab === "hods" ? "Add HOD" : "Add secretariat member"}
+        open={secEditorOpen}
+        onClose={() => setSecEditorOpen(false)}
+        title={secEditing ? `Edit ${secEditing.name}` : "Add secretariat member"}
         footer={
           <Button
             type="submit"
-            form="create-sec-hod"
+            form="sec-editor"
             variant="primary"
             size="sm"
             loading={pending}
-            loadingLabel="Adding"
+            loadingLabel="Saving"
           >
-            Add member
+            {secEditing ? "Save changes" : "Add member"}
           </Button>
         }
       >
         <form
-          id="create-sec-hod"
+          id="sec-editor"
+          key={secEditing?.id ?? "new"}
           className="flex flex-col gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
+            setSecError(null);
             startTransition(async () => {
-              const result =
-                tab === "hods"
-                  ? await createHod({
-                      name: String(form.get("name") ?? ""),
-                      role: String(form.get("role") ?? ""),
-                      bio: String(form.get("bio") ?? ""),
-                      email: String(form.get("email") ?? ""),
-                    })
-                  : await createSecretariatMember({
-                      name: String(form.get("name") ?? ""),
-                      role: String(form.get("role") ?? ""),
-                      committeeId: String(form.get("committeeId") ?? ""),
-                    });
-              setCreateStatus(result.message);
-              if (result.ok) setCreateOpen(false);
+              const result = await saveSecretariatMember({
+                id: secEditing?.id,
+                name: String(form.get("name") ?? ""),
+                role: String(form.get("role") ?? ""),
+                committeeId: String(form.get("committeeId") ?? ""),
+              });
+              if (result.ok) {
+                setMessage(result.message);
+                setSecEditorOpen(false);
+              } else {
+                setSecError(result.message);
+              }
             });
           }}
         >
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-fg">Name</span>
-            <Input name="name" required />
+            <Input name="name" required defaultValue={secEditing?.name ?? ""} />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-fg">Role</span>
             <Input
               name="role"
               required
-              placeholder={tab === "hods" ? "Director of Logistics" : "Chair"}
+              defaultValue={secEditing?.role ?? ""}
+              placeholder="Chair"
             />
           </label>
-          {tab === "secretariat" ? (
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-fg">Committee</span>
-              <Select
-                name="committeeId"
-                required
-                options={committeeOptions.map((c) => ({
-                  value: c.id,
-                  label: `${c.abbr} — ${c.name}`,
-                }))}
-              />
-            </label>
-          ) : (
-            <>
-              <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-fg">Email</span>
-                <Input name="email" type="email" />
-              </label>
-              <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-fg">Bio</span>
-                <Textarea name="bio" rows={3} />
-              </label>
-            </>
-          )}
-          {createStatus ? (
-            <p className="text-sm text-fg-muted" role="status">
-              {createStatus}
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-fg">Committee</span>
+            <Select
+              name="committeeId"
+              required
+              defaultValue={secEditing?.committeeId ?? committeeOptions[0]?.id}
+              options={committeeOptions.map((c) => ({
+                value: c.id,
+                label: `${c.abbr} — ${c.name}`,
+              }))}
+            />
+          </label>
+          {secError ? (
+            <p className="text-sm text-danger-fg" role="alert">
+              {secError}
             </p>
           ) : null}
         </form>
       </Drawer>
+
+      <BoardMemberEditor
+        key={hodEditing?.id ?? "new-hod"}
+        kind="hod"
+        open={hodEditorOpen}
+        member={hodEditing}
+        onClose={() => setHodEditorOpen(false)}
+        onSaved={(text) => {
+          setMessage(text);
+          setHodEditorOpen(false);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (!deleting) return;
+          const target = deleting;
+          startTransition(async () => {
+            const result =
+              target.kind === "hod"
+                ? await deleteBoardMember("hod", target.id)
+                : await deleteSecretariatMember(target.id);
+            setMessage(result.message);
+            setDeleting(null);
+          });
+        }}
+        title={`Remove ${deleting?.name ?? "this member"}?`}
+        description={
+          deleting?.kind === "hod"
+            ? "They disappear from the public Executive Board page. To hide someone temporarily, switch Published off instead."
+            : "They disappear from their committee's page."
+        }
+        confirmLabel="Remove"
+        tone="danger"
+        loading={pending}
+      />
     </div>
   );
 }

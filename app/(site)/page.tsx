@@ -24,8 +24,11 @@ export default async function HomePage() {
       getRegistrationOpen(),
       listPublicSponsors(),
       listPublicCommittees(),
-      getPublicPricing(),
+      // The homepage must render even if pricing cannot be read; the fee line
+      // is simply left off.
+      getPublicPricing().catch(() => null),
     ]);
+  const seatCount = committees.reduce((sum, c) => sum + c.seats, 0);
   const featured = committees.filter((c) => c.featured);
   const featuredCommittees = (featured.length > 0 ? featured : committees).slice(0, 3);
 
@@ -36,6 +39,7 @@ export default async function HomePage() {
         city={conference.city}
         datesLabel={conference.datesLabel}
         committeeCount={committees.length}
+        seatCount={seatCount}
         registrationOpen={registrationOpen}
       />
 
@@ -87,8 +91,16 @@ export default async function HomePage() {
       </Section>
 
       <HomeCta
-        delegateFee={`${pricing.currency} ${formatNumber(pricing.delegate)}`}
-        delegationFee={`${pricing.currency} ${formatNumber(pricing.perDelegate)} per head`}
+        delegateFee={
+          pricing
+            ? `${pricing.currency} ${formatNumber(pricing.delegate)}`
+            : null
+        }
+        delegationFee={
+          pricing
+            ? `${pricing.currency} ${formatNumber(pricing.perDelegate)} per head${pricing.delegationFlat > 0 ? ` + ${pricing.currency} ${formatNumber(pricing.delegationFlat)} per delegation` : ""}`
+            : null
+        }
         registrationOpen={registrationOpen}
       />
     </main>

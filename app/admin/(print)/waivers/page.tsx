@@ -36,7 +36,8 @@ export default async function WaiversPage({
   const slips = buildSeatMatrix({
     committees,
     portfolios,
-    allotments,
+    // Printed sheets list issued seats only — drafts can still move.
+    allotments: allotments.filter((a) => a.status === "confirmed"),
     delegates,
     delegations,
   })
@@ -57,7 +58,7 @@ export default async function WaiversPage({
       <PrintToolbar title={`Waivers · ${slips.length} delegates`} />
       {slips.length === 0 ? (
         <p className="p-8 text-sm text-neutral-600">
-          No seated delegates yet — allot seats first.
+          No issued seats yet — issue allotments first.
         </p>
       ) : null}
       <div className="mx-auto grid max-w-[52rem] gap-6 px-6 py-8 print:max-w-none print:gap-0 print:p-0">
