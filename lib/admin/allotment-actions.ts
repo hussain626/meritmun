@@ -14,6 +14,7 @@ import type {
 } from "@/lib/admin/types";
 import {
   sendAllotmentChanged,
+  deliveryNote,
   sendAllotmentConfirmed,
   type SendResult,
 } from "@/lib/email/send";
@@ -531,7 +532,13 @@ export async function clearAllotment(id: string): Promise<ActionResult> {
 
 /* ── Issue (confirm + email) ─────────────────────────────────────────────── */
 
-type IssueOutcome = { sent: number; failed: number; skipped: number };
+type IssueOutcome = {
+  sent: number;
+  failed: number;
+  skipped: number;
+  /** Distinct reasons emails did not go out, shown to the admin. */
+  reasons: Set<string>;
+};
 
 async function issueRows(
   state: AllotmentState,
@@ -539,7 +546,7 @@ async function issueRows(
   userId: string | null,
   client: Awaited<ReturnType<typeof createClient>> | null,
 ): Promise<IssueOutcome> {
-  const outcome: IssueOutcome = { sent: 0, failed: 0, skipped: 0 };
+  const outcome: IssueOutcome = { sent: 0, failed: 0, skipped: 0, reasons: new Set() };
   const delegates = new Map(state.delegates.map((d) => [d.id, d]));
   const committees = new Map(state.committees.map((c) => [c.id, c]));
   const portfolios = new Map(state.portfolios.map((p) => [p.id, p]));
@@ -567,6 +574,7 @@ async function issueRows(
         delegate.email,
         sent.ok ? "RESEND_API_KEY not set" : sent.error,
       );
+      outcome.reasons.add(deliveryNote(sent));
       outcome.failed += 1;
       continue;
     }
@@ -593,6 +601,7 @@ async function issueRows(
         .eq("id", row.id);
       if (error) {
         console.warn("[meritmun/admin] issue update", error);
+        outcome.reasons.add("The seat could not be saved after emailing.");
         outcome.failed += 1;
         continue;
       }
@@ -604,7 +613,11 @@ async function issueRows(
 
 function describeIssue(outcome: IssueOutcome): string {
   const parts = [`Issued ${outcome.sent} allotment${outcome.sent === 1 ? "" : "s"}`];
-  if (outcome.failed) parts.push(`${outcome.failed} email${outcome.failed === 1 ? "" : "s"} not sent (still pending — check RESEND_API_KEY and retry)`);
+  if (outcome.failed) {
+    parts.push(
+      `${outcome.failed} email${outcome.failed === 1 ? "" : "s"} not sent, still pending — ${[...outcome.reasons].join(" ") || "retry"}`,
+    );
+  }
   if (outcome.skipped) parts.push(`${outcome.skipped} skipped (payment not confirmed)`);
   return `${parts.join(" · ")}.`;
 }

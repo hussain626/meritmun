@@ -104,9 +104,28 @@ async function sendMail(input: {
 
 /** Short suffix for admin toasts describing what happened to the email. */
 export function deliveryNote(result: SendResult): string {
-  if (!result.ok) return `The email could not be sent (${result.error}).`;
-  if (result.mocked) return "No email was sent — RESEND_API_KEY is not set.";
+  if (!result.ok) {
+    return `The email could not be sent: ${result.error}${resendHint(result.error)}`;
+  }
+  if (result.mocked) {
+    return "No email was sent — RESEND_API_KEY is not set on this deployment (add it in Netlify with the Functions scope, then redeploy).";
+  }
   return "Email sent.";
+}
+
+/** Turn Resend's most common rejections into the fix. */
+function resendHint(error: string): string {
+  const text = error.toLowerCase();
+  if (text.includes("domain") && (text.includes("verif") || text.includes("not found"))) {
+    return ` — the From address (${getFromAddress()}) must use a domain verified in Resend. Verify it under Resend → Domains, or set EMAIL_FROM to an address on a verified domain.`;
+  }
+  if (text.includes("testing emails") || text.includes("own email address")) {
+    return " — Resend is in test mode and only delivers to your own address until a domain is verified.";
+  }
+  if (text.includes("api key") || text.includes("unauthorized") || text.includes("invalid")) {
+    return " — check that RESEND_API_KEY is a valid, full-access key.";
+  }
+  return "";
 }
 
 function escapeHtml(value: string): string {
