@@ -53,8 +53,7 @@ export default async function RegisterPage({
       points: [
         "Four minutes, four steps",
         "Three ranked committee preferences",
-        "Most delegates get their first or second choice",
-      ],
+        "Seats allotted on merit once you have paid",      ],
       fee: `${pricing.currency} ${formatNumber(pricing.delegate)} per delegate`,
     },
     {

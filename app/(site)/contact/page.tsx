@@ -24,7 +24,7 @@ export default async function ContactPage() {
     <main id="content">
       <PageHero
         title="Contact the secretariat"
-        lead="Real people, named on the Executive Board page, who answer their own email. Two working days, usually less."
+        lead="Messages go straight to the secretariat. We reply within two working days."
       />
 
       <Section>
@@ -67,6 +67,8 @@ export default async function ContactPage() {
               ))}
             </dl>
 
+            {socials.length > 0 ? (
+            <>
             <h2 className="mt-10 text-h3 text-fg">Follow along</h2>
             <ul className="mt-5 flex gap-2">
               {socials.map((social) => {
@@ -86,6 +88,8 @@ export default async function ContactPage() {
                 );
               })}
             </ul>
+            </>
+            ) : null}
           </div>
         </div>
       </Section>
@@ -93,7 +97,7 @@ export default async function ContactPage() {
       <Section band="subtle">
         <SectionHeading
           title="Before you write"
-          lead="The eight questions we are asked most, answered properly."
+          lead="The questions we are asked most."
         />
         <div className="mt-10 max-w-[var(--container-prose)]">
           {faqs.map((faq) => (

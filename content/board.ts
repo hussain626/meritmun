@@ -12,7 +12,7 @@ export const boardMembers: BoardMember[] = [
     tier: "secretariat",
     bio: "Four years on the circuit and two as MERITMUN's Director-General. Sets the academic standard for the conference and personally reads every committee's background guide before it ships.",
     initials: "HR",
-    email: "sg@meritmun.org",
+    email: "sg@meritmun.systemsummit.online",
   },
   {
     id: "dsg",
@@ -21,7 +21,7 @@ export const boardMembers: BoardMember[] = [
     tier: "secretariat",
     bio: "Runs the substantive side day to day — chair training, guide review, and the awards rubric that committees are held to.",
     initials: "AB",
-    email: "dsg@meritmun.org",
+    email: "dsg@meritmun.systemsummit.online",
   },
   {
     id: "dg",
@@ -30,7 +30,7 @@ export const boardMembers: BoardMember[] = [
     tier: "secretariat",
     bio: "Owns operations end to end: venue, timing, and the unglamorous work that makes sessions start when the schedule says they will.",
     initials: "MZ",
-    email: "dg@meritmun.org",
+    email: "dg@meritmun.systemsummit.online",
   },
   {
     id: "usg-committees",
@@ -39,7 +39,7 @@ export const boardMembers: BoardMember[] = [
     tier: "secretariat",
     bio: "Selects the slate, appoints chairs, and is the reason no two committees this year are debating a version of the same agenda.",
     initials: "SA",
-    email: "committees@meritmun.org",
+    email: "committees@meritmun.systemsummit.online",
   },
   {
     id: "usg-delegate-affairs",
@@ -48,7 +48,7 @@ export const boardMembers: BoardMember[] = [
     tier: "secretariat",
     bio: "Handles allocations, preferences, and the inbox. If you emailed about your committee and got an answer the same day, it was this desk.",
     initials: "AS",
-    email: "delegates@meritmun.org",
+    email: "delegates@meritmun.systemsummit.online",
   },
   {
     id: "usg-marketing",
@@ -57,7 +57,7 @@ export const boardMembers: BoardMember[] = [
     tier: "secretariat",
     bio: "Brings the institutions in. Ran the school outreach that took MERITMUN II from twenty-six delegations to forty-one.",
     initials: "RK",
-    email: "outreach@meritmun.org",
+    email: "outreach@meritmun.systemsummit.online",
   },
   {
     id: "usg-logistics",
@@ -66,7 +66,7 @@ export const boardMembers: BoardMember[] = [
     tier: "secretariat",
     bio: "Venue, transport, catering, and accommodation. Keeps a contingency plan for every session and has needed roughly half of them.",
     initials: "IT",
-    email: "logistics@meritmun.org",
+    email: "logistics@meritmun.systemsummit.online",
   },
   {
     id: "usg-finance",
@@ -75,7 +75,7 @@ export const boardMembers: BoardMember[] = [
     tier: "secretariat",
     bio: "Fees, sponsorship, and invoicing for institutional delegations. Publishes where the registration fee goes at the close of every conference.",
     initials: "YH",
-    email: "finance@meritmun.org",
+    email: "finance@meritmun.systemsummit.online",
   },
   {
     id: "dir-crisis",

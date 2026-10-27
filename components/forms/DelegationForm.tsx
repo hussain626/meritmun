@@ -452,7 +452,7 @@ export function DelegationForm({
         <Checkbox
           name="facultyAccompanying"
           label="A faculty member is accompanying the delegation"
-          description="Hospitality will coordinate their arrangements separately."
+          description="Delegate Affairs will coordinate their arrangements separately."
           checked={values.facultyAccompanying}
           onChange={(event) => set("facultyAccompanying", event.target.checked)}
         />

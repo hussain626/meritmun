@@ -21,7 +21,7 @@ export type AdminSessionFailure =
 const DEMO_SESSION: AdminSession = {
   user: {
     id: "demo-admin",
-    email: "admin@meritmun.org",
+    email: "admin@meritmun.systemsummit.online",
     fullName: "Demo Admin",
   },
   role: "admin",

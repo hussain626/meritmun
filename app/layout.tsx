@@ -27,7 +27,7 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://meritmun.org"),
+  metadataBase: new URL("https://meritmun.systemsummit.online"),
   title: {
     default: "MERITMUN III — Discover the World of Diplomacy",
     template: "%s · MERITMUN III",

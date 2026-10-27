@@ -14,7 +14,7 @@ export type SendResult =
   | { ok: true; mocked: false; id: string }
   | { ok: false; error: string };
 
-const DEFAULT_FROM = "MeritMUN <noreply@meritmun.org>";
+const DEFAULT_FROM = "MeritMUN <noreply@meritmun.systemsummit.online>";
 
 function getFromAddress(): string {
   const from = process.env.EMAIL_FROM?.trim();

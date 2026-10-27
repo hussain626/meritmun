@@ -331,7 +331,7 @@ export function DelegateForm({
           currency={fee.currency}
           perHead={fee.amount}
           headline="Individual delegate fee"
-          detail="Covers all three days, lunches, the delegate dinner, and conference materials. Pay by bank transfer after you submit — the account details and your payment reference arrive in your confirmation email."
+          detail="Covers all three days of the conference. Pay by bank transfer after you submit — the account details and your payment reference arrive in your confirmation email."
         />
       </FormStep>
 
@@ -396,7 +396,7 @@ export function DelegateForm({
 
       <FormStep
         title="Committee preferences"
-        description="Rank three, in order. Most delegates get their first or second choice — ranking three genuinely different committees improves your odds."
+        description="Rank three, in order. Your first choice weighs most; ranking three genuinely different committees improves your odds."
         active={step === 2}
       >
         <div className="grid gap-5">
@@ -431,7 +431,7 @@ export function DelegateForm({
         <Checkbox
           name="accommodation"
           label="I need help with accommodation"
-          description="Hospitality will email you partner options near the venue. Arranged separately from the registration fee."
+          description="Delegate Affairs will email you about options. Arranged separately from the registration fee."
           checked={values.accommodation}
           onChange={(event) => set("accommodation", event.target.checked)}
         />

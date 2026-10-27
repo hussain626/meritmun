@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { BoardMemberCard } from "@/components/board/BoardMemberCard";
 import { PageHero } from "@/components/layout/PageHero";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { listPublicBoard } from "@/lib/public/data";
@@ -23,8 +24,21 @@ export default async function ExecutiveBoardPage() {
     <main id="content">
       <PageHero
         title="EB"
-        lead={`${total} ${pluralise(total, "person", "people")} run MERITMUN III. These are the ones who answer your email, and the addresses below reach them directly.`}
+        lead={
+          total > 0
+            ? `${total} ${pluralise(total, "person", "people")} run MERITMUN III. These are the ones who answer your email, and the addresses below reach them directly.`
+            : "The Executive Board for MERITMUN III is announced here soon."
+        }
       />
+
+      {total === 0 ? (
+        <Section>
+          <EmptyState
+            title="The board is being announced"
+            body="Names and portfolios go up here as soon as they are confirmed. Until then, write to the secretariat from the Contact page."
+          />
+        </Section>
+      ) : null}
 
       {secretariat.length > 0 ? (
         <Section>

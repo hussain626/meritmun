@@ -1,6 +1,5 @@
 import { ArrowRight } from "@/components/icons/ArrowRight";
 import { CommitteeCard } from "@/components/committees/CommitteeCard";
-import { Aftermovie } from "@/components/home/Aftermovie";
 import { Hero } from "@/components/home/Hero";
 import { HomeCta } from "@/components/home/HomeCta";
 import { SponsorSlider } from "@/components/home/SponsorSlider";
@@ -8,7 +7,7 @@ import { ValueProp } from "@/components/home/ValueProp";
 import { ButtonLink } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { aftermovie, conference, valueProps } from "@/content/site";
+import { conference, valueProps } from "@/content/site";
 import { heroStats } from "@/content/stats";
 import { getRegistrationOpen } from "@/lib/admin/data";
 import {
@@ -53,22 +52,6 @@ export default async function HomePage() {
           <SponsorSlider sponsors={activeSponsors} />
         </div>
       ) : null}
-
-      <Section>
-        <SectionHeading
-          title="MERITMUN II, in three minutes"
-          lead="Three days, forty-one institutions, and one very long final General Assembly session."
-        />
-        <div className="mt-10">
-          <Aftermovie
-            title={aftermovie.title}
-            description={aftermovie.description}
-            duration={aftermovie.duration}
-            src={aftermovie.src}
-            chapters={aftermovie.chapters}
-          />
-        </div>
-      </Section>
 
       <Section band="subtle">
         <SectionHeading

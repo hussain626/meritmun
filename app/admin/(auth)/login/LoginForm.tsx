@@ -53,7 +53,7 @@ export function LoginForm({
           name="email"
           autoComplete="username"
           required
-          placeholder="you@meritmun.org"
+          placeholder="you@meritmun.systemsummit.online"
         />
       </label>
       <label className="flex flex-col gap-1.5">

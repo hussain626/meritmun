@@ -263,7 +263,7 @@ export function TeamClient({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ops@meritmun.org"
+                placeholder="ops@meritmun.systemsummit.online"
                 autoComplete="off"
                 required
                 className="min-h-9 text-sm"

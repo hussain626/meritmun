@@ -25,7 +25,7 @@ export default async function SchedulePage() {
     <main id="content">
       <PageHero
         title="Schedule"
-        lead="Three days, from the registration desk to the closing gavel. The running order below is final — only the calendar dates are still to come."
+        lead="Three days, from the registration desk to the closing gavel. The running order is published here as the secretariat confirms it."
         meta={
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-fg-muted">
             <span className="flex items-center gap-2">
@@ -42,10 +42,9 @@ export default async function SchedulePage() {
 
       <Section>
         <Alert tone="info" title={conference.datesLabel} className="max-w-[70ch]">
-          The three days themselves are locked and so are the times below. The
-          calendar dates depend on the venue booking, which closes shortly.
-          Registrants are emailed the confirmed dates before they go public
-          anywhere else.
+          Calendar dates and the venue are still to be confirmed. Registrants
+          are emailed them before they go public anywhere else, and times below
+          may change until then.
         </Alert>
 
         <div className="mt-14">

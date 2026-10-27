@@ -32,7 +32,7 @@ function nextSteps(submission: Submission): string[] {
     case "contact":
       return [
         "The relevant desk has your message and answers within two working days.",
-        "Replies come from an @meritmun.org address — check spam if nothing arrives.",
+        "Replies come from an @meritmun.systemsummit.online address — check spam if nothing arrives.",
       ];
   }
 }

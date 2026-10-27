@@ -17,7 +17,7 @@ function money(pricing: FaqPricing, amount: number): string {
 
 function feesAnswer(pricing: FaqPricing | null): string {
   if (!pricing) {
-    return "Current fees are shown on the registration page and in your confirmation email. The fee covers all three days, lunches, the delegate dinner, and conference materials.";
+    return "Current fees are shown on the registration page and in your confirmation email. The fee covers all three days of the conference.";
   }
   const flat =
     pricing.delegationFlat > 0
@@ -28,7 +28,7 @@ function feesAnswer(pricing: FaqPricing | null): string {
     : "";
   return (
     `${money(pricing, pricing.delegate)} for an individual delegate. Delegations of ${pricing.minDelegation} to ${pricing.maxDelegation} students pay ${money(pricing, pricing.perDelegate)} per head${flat}.${early} ` +
-    "You pay by bank transfer after registering — the account details arrive in your confirmation email. The fee covers all three days, lunches, the delegate dinner, and conference materials."
+    "You pay by bank transfer after registering — the account details arrive in your confirmation email. The fee covers all three days of the conference."
   );
 }
 
@@ -57,7 +57,7 @@ const faqs: FaqEntry[] = [
     id: "first-time",
     question: "I have never done MUN before. Should I apply?",
     answer:
-      "Yes. The Youth Assembly and UNEP are chaired specifically for first-time delegates, procedure is taught during the session rather than assumed, and there is a briefing on the morning of day one that covers everything you need.",
+      "Yes. No experience is needed to register. Every committee lists its difficulty level on the Committees page, so you can rank ones pitched at where you are.",
     topics: ["committees", "registration"],
   },
   {
@@ -71,7 +71,7 @@ const faqs: FaqEntry[] = [
     id: "allocation",
     question: "How does committee allocation work?",
     answer:
-      "You rank three committees in order of preference. Allocations weigh your stated experience against the difficulty of each committee, and go out by email with your country or portfolio assignment. Most delegates receive their first or second preference.",
+      "You rank three committees in order of preference. Once your payment is confirmed, seats are allotted on merit — your preferences weighed against your stated experience and each committee's difficulty — and your committee and portfolio arrive by email.",
     topics: ["committees", "registration"],
   },
   {
@@ -83,16 +83,16 @@ const faqs: FaqEntry[] = [
   },
   {
     id: "accommodation",
-    question: "Is accommodation available for out-of-city delegates?",
+    question: "Can out-of-city delegates get help with accommodation?",
     answer:
-      "Yes, at partner accommodation near the venue, arranged separately from the registration fee. Flag it on your application and Hospitality will contact you with options and pricing.",
+      "Tick accommodation on your application and Delegate Affairs will email you about options. It is arranged separately from the registration fee.",
     topics: ["logistics", "fees"],
   },
   {
     id: "background-guides",
     question: "When are background guides published?",
     answer:
-      "Guides are released after allocations go out, so you receive the guide for the committee you are actually in. Each one includes the agenda framing, a timeline, position paper requirements, and a reading list.",
+      "Guides are released after allocations go out, so you receive the guide for the committee you are actually in.",
     topics: ["committees"],
   },
   {

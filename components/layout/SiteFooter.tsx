@@ -105,8 +105,9 @@ export function SiteFooter({ items, conference, socials, registrationOpen }: Sit
               {conference.datesLabel}.
               {registrationOpen
                 ? " Register and we will email you the moment they are confirmed."
-                : " Registration opens soon — follow us for the announcement."}
+                : " Registration opens soon — the announcement goes up on this site."}
             </p>
+            {socials.length > 0 ? (
             <ul className="mt-5 flex gap-2">
               {socials.map((social) => {
                 const Icon =
@@ -126,6 +127,7 @@ export function SiteFooter({ items, conference, socials, registrationOpen }: Sit
                 );
               })}
             </ul>
+            ) : null}
           </div>
         </div>
 

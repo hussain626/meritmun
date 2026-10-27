@@ -14,34 +14,33 @@ import { formatNumber } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "What Model UN is, what MERITMUN is, and what the third iteration does differently — the committees, the venue in Karachi, and the record behind it.",
+    "What Model UN is, what MERITMUN is, and how MERITMUN III works — committees, allocation, and registration.",
 };
 
 /**
- * Longer-form rewrites of `valueProps` in `content/site.ts`. The homepage says
- * these things in one line each; About has the room to say them properly, so
- * the copy is deliberately not the same copy.
+ * How the conference works, in terms the site itself guarantees. Every line
+ * here must stay true of the product — no invented history or venue detail.
  */
-const differences = [
+const howItWorks = [
   {
     id: "committees",
-    title: "One agenda per committee, researched before you arrive",
-    body: "Every committee debates a single question for three days, not a rotating menu of five. The background guide is written by the chair who will run the room, published before allocations go out, and long enough to actually prepare from. That is why the speeches in a MERITMUN committee tend to cite something.",
+    title: "One agenda per committee",
+    body: "Each committee debates a single, published question for the full three days. The agenda and difficulty level of every committee are on the Committees page before you register, so you can choose — and prepare — properly.",
+  },
+  {
+    id: "merit",
+    title: "Seats allotted on merit",
+    body: "You rank three committees when you register. Once your payment is confirmed, seats are matched against your preferences and your experience, and your committee and portfolio are emailed to you.",
   },
   {
     id: "beginners",
-    title: "A genuine entry point, not a token beginner committee",
-    body: "The Youth Assembly and UNEP are chaired specifically for people who have never held a placard. Procedure is taught inside the session rather than assumed, there is no cost to asking what a moderated caucus is, and a pre-conference briefing walks through the speakers' list and how a working paper gets written. First-timers win awards at this conference every year.",
+    title: "Open to first-timers",
+    body: "No experience is needed to register. Every committee lists its difficulty, so you can pick one pitched at where you are.",
   },
   {
-    id: "crisis",
-    title: "Crisis that responds to the room",
-    body: "Two crisis committees run with a dedicated backroom and live directives. Updates are written against what delegates actually do in session, which means a bad decision on day one is still costing you on day three. Nothing is read off a pre-written timeline.",
-  },
-  {
-    id: "record",
-    title: "Third iteration, and the logistics are boring",
-    body: "Two conferences behind us buys the unglamorous things: sessions that start when the schedule says, allocations that arrive on the date promised, and a secretariat that replies to email. It is the least exciting thing on this page and the one delegates mention most.",
+    id: "fees",
+    title: "Clear fees, one payment",
+    body: "The fee is shown before you register and quoted again in your confirmation email with the bank details. A delegation pays once for its whole roster.",
   },
 ] as const;
 
@@ -77,43 +76,39 @@ export default async function AboutPage() {
           <h2>If you have not done this before</h2>
           <p>
             Model United Nations is a simulation of international negotiation.
-            You are assigned a country and a committee — the Security Council,
-            the World Health Organization, a national cabinet in crisis — and
-            for three days you argue that country&rsquo;s position on one
-            specific question, whether or not you personally agree with it.
+            You are assigned a country and a committee, and for three days you
+            argue that country&rsquo;s position on one specific question,
+            whether or not you personally agree with it.
           </p>
           <p>
             The work is real work. You research a state you have probably never
             visited, write and defend a position, build a bloc with people who
             started the morning opposing you, and put your name on a resolution
-            that has to survive a vote. Nobody is acting. The skills that come
-            out of it — reading a brief quickly, speaking under time pressure,
-            writing something other people will sign — are the reason schools
-            keep sending delegations.
+            that has to survive a vote. The skills that come out of it —
+            reading a brief quickly, speaking under time pressure, writing
+            something other people will sign — are the reason schools keep
+            sending delegations.
           </p>
           <p>
             <strong>
-              You do not need experience to register for MERITMUN III.
+              You do not need experience to register for {conference.fullName}.
             </strong>{" "}
-            Roughly a third of every delegation we host is at their first
-            conference, and two committees exist specifically for them.
+            Every committee lists its difficulty level, so you can choose one
+            pitched at where you are.
           </p>
 
           <h2>What MERITMUN is</h2>
           <p>
             MERITMUN is the Meritorious Model United Nations conference. This is{" "}
-            {conference.fullName} — the third iteration, and the first at this
-            scale: {committeeCount} committees and{" "}
-            {formatNumber(seatCount)} delegate seats across{" "}
-            {conference.durationDays} days.
+            {conference.fullName}, the third iteration: {committeeCount}{" "}
+            committees and {formatNumber(seatCount)} delegate seats across{" "}
+            {conference.durationDays} days in {conference.city}.
           </p>
           <p>
-            It is run by students, which is normal in this circuit and is not
-            an excuse for anything. The Secretariat is named, the committees
-            are published with their agendas and difficulty tiers before you
-            pay anything, and the fee has a stated purpose. If a page of this
-            site does not answer your question, a person on the Executive Board
-            will.
+            It is run by students. The committees are published with their
+            agendas and difficulty levels before you pay anything, and if this
+            site does not answer your question, the secretariat will — write to
+            us from the Contact page.
           </p>
         </Prose>
       </Section>
@@ -122,21 +117,17 @@ export default async function AboutPage() {
         <div className="grid gap-14 lg:grid-cols-[7fr_5fr] lg:gap-20">
           <div>
             <h2 className="text-h2 text-fg text-balance">
-              What is different about the third one
+              How {conference.fullName} works
             </h2>
-            <p className="mt-5 max-w-[54ch] leading-relaxed text-fg-muted">
-              Four things, and none of them is the venue. Two conferences of
-              feedback went into this list.
-            </p>
 
             <dl className="mt-10 divide-y divide-line border-t border-line">
-              {differences.map((difference) => (
-                <div key={difference.id} className="py-7">
+              {howItWorks.map((item) => (
+                <div key={item.id} className="py-7">
                   <dt className="text-base font-semibold text-fg text-balance">
-                    {difference.title}
+                    {item.title}
                   </dt>
                   <dd className="mt-2.5 max-w-[58ch] leading-relaxed text-fg-muted">
-                    {difference.body}
+                    {item.body}
                   </dd>
                 </div>
               ))}
@@ -163,73 +154,45 @@ export default async function AboutPage() {
       </Section>
 
       <Section width="prose">
-        <Prose>
-          <h2>Karachi, and the room you will be in</h2>
-          <p>
-            {conference.fullName} is held at {conference.venue} in{" "}
-            {conference.city}. Everything happens inside one complex: the
-            General Assembly hall for opening and closing, committee rooms off
-            the same corridor, the dining hall, and a central courtyard where
-            unmoderated caucus actually gets settled. You will not be crossing
-            the city between sessions.
-          </p>
-          <p>
-            Out-of-city delegations are handled by the Director of Hospitality —
-            accommodation, dietary requirements, and faculty coordination are
-            arranged through one desk rather than four. Directions and room
-            allocations are sent with your allocation email.
-          </p>
-        </Prose>
-
-        <Alert
-          tone="info"
-          title={conference.datesLabel}
-          className="mt-9 max-w-[70ch]"
-        >
-          The venue booking is not finalised, so the calendar dates are not
-          published yet. The {conference.durationDays}-day format and the
-          hour-by-hour running order are already fixed — you can read the full
-          schedule now. Everyone who registers is emailed the dates the moment
-          they are confirmed, before any public announcement.
+        <Alert tone="info" title={conference.datesLabel} className="max-w-[70ch]">
+          The venue and calendar dates are not published yet. Everyone who
+          registers is emailed them the moment they are confirmed, before any
+          public announcement.
         </Alert>
       </Section>
 
-      <Section>
-        <div className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:gap-20">
-          <div>
-            <h2 className="text-h2 text-fg text-balance">
-              Two conferences behind this one
-            </h2>
-            <div className="mt-8 h-px w-24 bg-accent" />
-          </div>
+      {institutions || alumni ? (
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:gap-20">
+            <div>
+              <h2 className="text-h2 text-fg text-balance">
+                The record so far
+              </h2>
+              <div className="mt-8 h-px w-24 bg-accent" />
+            </div>
 
-          <Prose>
-            <p>
-              MERITMUN I opened in {conference.founded} with six committees and
-              a single auditorium, and ran on the assumption that a first
-              conference should be small enough to run properly. It was.
-            </p>
-            <p>
-              MERITMUN II doubled it. School outreach took the conference from
-              twenty-six delegations to{" "}
-              {institutions ? formatNumber(institutions.value) : "forty-one"}{" "}
-              participating institutions, the crisis track was added, and the
-              International Press Corps filed a bulletin every morning of the
-              conference. It is also where most of the feedback in the list
-              above came from.
-            </p>
-            <p>
-              Between the two,{" "}
-              <strong>
-                {alumni ? formatNumber(alumni.value) : "1,800"}+ delegates
-              </strong>{" "}
-              have sat in a MERITMUN committee. That is the entire track record —
-              two conferences, no inflation of it, and a third one that has to
-              earn its own.
-            </p>
-          </Prose>
-        </div>
-      </Section>
+            <Prose>
+              <p>
+                So far,{" "}
+                {institutions ? (
+                  <strong>
+                    {formatNumber(institutions.value)}
+                    {institutions.suffix ?? ""} institutions
+                  </strong>
+                ) : null}
+                {institutions && alumni ? " and " : null}
+                {alumni ? (
+                  <strong>
+                    {formatNumber(alumni.value)}
+                    {alumni.suffix ?? ""} delegates
+                  </strong>
+                ) : null}{" "}
+                have taken part in MERITMUN.
+              </p>
+            </Prose>
+          </div>
+        </Section>
+      ) : null}
 
       <Section band="forest">
         <div className="grid gap-10 lg:grid-cols-[7fr_5fr] lg:items-end">
@@ -241,8 +204,8 @@ export default async function AboutPage() {
             </h2>
             <p className="mt-4 max-w-[52ch] leading-relaxed text-on-brand/75">
               {registrationOpen
-                ? `${committeeCount} committees and ${formatNumber(seatCount)} seats, allocated in the order applications arrive. Delegates and delegations start at the same place.`
-                : `${committeeCount} committees and ${formatNumber(seatCount)} seats. Registration opens here — follow us on social media for the announcement.`}
+                ? `${committeeCount} committees and ${formatNumber(seatCount)} seats, allotted on merit once your payment is confirmed. Delegates and delegations start at the same place.`
+                : `${committeeCount} committees and ${formatNumber(seatCount)} seats. Registration opens here.`}
             </p>
           </div>
           <div className="lg:justify-self-end">

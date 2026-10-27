@@ -828,7 +828,7 @@ export const demoQueries: QueryRecord[] = [
 export const demoTeamProfiles: Profile[] = [
   {
     id: "profile-admin",
-    email: "admin@meritmun.org",
+    email: "admin@meritmun.systemsummit.online",
     fullName: "Conference Admin",
     role: "admin",
     avatarUrl: null,
@@ -837,7 +837,7 @@ export const demoTeamProfiles: Profile[] = [
   },
   {
     id: "profile-eb",
-    email: "eb@meritmun.org",
+    email: "eb@meritmun.systemsummit.online",
     fullName: "Executive Board Desk",
     role: "eb",
     avatarUrl: null,
@@ -846,7 +846,7 @@ export const demoTeamProfiles: Profile[] = [
   },
   {
     id: "profile-reviewer",
-    email: "reviewer@meritmun.org",
+    email: "reviewer@meritmun.systemsummit.online",
     fullName: "Registrations Reviewer",
     role: "reviewer",
     avatarUrl: null,
