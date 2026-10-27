@@ -37,7 +37,6 @@ export const ANNOUNCEMENT_SITE_PAGES: AnnouncementPageOption[] = [
   { label: "Register", path: "/register" },
   { label: "Register a delegate", path: "/register/delegate" },
   { label: "Register a delegation", path: "/register/delegation" },
-  { label: "Check registration status", path: "/register/status" },
 ];
 
 export const ANNOUNCEMENT_MESSAGE_MAX = 200;

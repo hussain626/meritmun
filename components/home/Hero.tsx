@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ArrowRight } from "@/components/icons/ArrowRight";
 import { DelegateCollage } from "@/components/home/DelegateCollage";
 import { FlagArray } from "@/components/home/FlagArray";
@@ -62,16 +61,6 @@ export function Hero({
                   Registration coming soon
                 </ButtonLink>
               )}
-
-              <p className="text-sm text-on-art-muted">
-                Already applied?{" "}
-                <Link
-                  href="/register/status"
-                  className="font-semibold text-on-art underline decoration-on-art-accent decoration-2 underline-offset-4 transition-colors duration-[var(--dur-fast)] ease-out hover:text-on-art-accent focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
-                >
-                  Check your status
-                </Link>
-              </p>
             </div>
 
             <p className="mt-7 animate-rise text-xs tracking-wide text-on-art-muted/80 uppercase">

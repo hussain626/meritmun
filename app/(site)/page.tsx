@@ -35,7 +35,9 @@ export default async function HomePage() {
   return (
     <main id="content">
       <Hero
-        stats={heroStats}
+        stats={heroStats.map((stat) =>
+          stat.id === "committees" ? { ...stat, value: committees.length } : stat,
+        )}
         city={conference.city}
         datesLabel={conference.datesLabel}
         committeeCount={committees.length}

@@ -97,9 +97,9 @@ const faqs: FaqEntry[] = [
   },
   {
     id: "status",
-    question: "I already applied. How do I check my status?",
+    question: "I already applied. What happens next?",
     answer:
-      "Use the reference or delegate code from your confirmation screen or email on the status page. It shows whether your application has been received, whether your payment is confirmed, and your committee and portfolio once your seat is issued.",
+      "Pay the fee using the bank details in your confirmation email and send the transfer screenshot to Delegate Affairs. Once your payment is confirmed you are allotted on merit, and your committee, portfolio and background guide arrive by email. Questions? Email Delegate Affairs with your reference code.",
     topics: ["registration"],
   },
 ];

@@ -101,10 +101,6 @@ export function generateDelegateCode(): string {
   return body;
 }
 
-export function isValidReferenceShape(value: string): boolean {
-  return /^MMIII-[A-HJ-NP-Z2-9]{6}$/i.test(value.trim());
-}
-
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }

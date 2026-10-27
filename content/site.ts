@@ -55,11 +55,6 @@ export const navItems: NavItem[] = [
         href: "/register/delegation",
         description: "Bringing 5–30 students from one institution.",
       },
-      {
-        label: "Check your status",
-        href: "/register/status",
-        description: "Already applied? Look up your reference code.",
-      },
     ],
   },
 ];

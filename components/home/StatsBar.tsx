@@ -54,14 +54,14 @@ export function StatsBar({ stats }: StatsBarProps) {
       ref={rootRef}
       // Raised (not plain surface) because this panel floats over the hero's
       // dark art field in BOTH themes and has to read as detached from it.
-      className="grid grid-cols-2 gap-x-4 gap-y-7 rounded-lg border border-line-strong bg-surface-raised px-6 py-7 shadow-xl sm:px-8 lg:grid-cols-4 lg:gap-x-8"
+      className="grid grid-cols-1 gap-x-4 gap-y-7 rounded-lg border border-line-strong bg-surface-raised px-6 py-7 shadow-xl sm:grid-cols-3 sm:px-8 lg:gap-x-8"
     >
       {stats.map((stat, index) => (
         <div
           key={stat.id}
           className={
             index > 0
-              ? "lg:border-l lg:border-line lg:pl-8"
+              ? "sm:border-l sm:border-line sm:pl-6 lg:pl-8"
               : undefined
           }
         >

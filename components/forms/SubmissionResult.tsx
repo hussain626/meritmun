@@ -20,7 +20,7 @@ function nextSteps(submission: Submission): string[] {
     case "delegate":
       return [
         `Pay ${fee} to one of the bank accounts in your confirmation email, quoting your delegate code${submission.delegateCode ? ` (${submission.delegateCode})` : ""} as the payment reference.`,
-        "Send the transfer screenshot to Delegate Affairs. Your status moves to payment confirmed once Finance has matched it.",
+        "Send the transfer screenshot to Delegate Affairs. You are emailed as soon as Finance has matched it.",
         "Paid delegates are allotted on merit; your committee, portfolio and background guide arrive by email.",
       ];
     case "delegation":
@@ -57,7 +57,7 @@ export function SubmissionResult({ submission }: SubmissionResultProps) {
       </h2>
       <p className="mt-3 max-w-[52ch] text-lg leading-normal text-fg-muted">
         {isRegistration
-          ? `Thank you, ${submission.name}. Keep the codes below — they are how you pay, check your status, and how we find you at registration.`
+          ? `Thank you, ${submission.name}. Keep the codes below — they are how you pay and how we find you at registration.`
           : `Thank you, ${submission.name}. We have your message.`}
       </p>
 
@@ -119,11 +119,6 @@ export function SubmissionResult({ submission }: SubmissionResultProps) {
       </ol>
 
       <div className="mt-10 flex flex-wrap gap-3">
-        {isRegistration ? (
-          <ButtonLink href="/register/status" variant="secondary">
-            Check your status
-          </ButtonLink>
-        ) : null}
         <ButtonLink href="/committees" variant="outline">
           Browse committees
         </ButtonLink>

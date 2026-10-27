@@ -130,17 +130,6 @@ export default async function RegisterPage({
             );
           })}
         </div>
-
-        <p className="mt-10 text-sm text-fg-muted">
-          Already applied?{" "}
-          <Link
-            href="/register/status"
-            className="font-semibold text-brand-fg underline underline-offset-4 transition-colors duration-[var(--dur-fast)] ease-out hover:text-accent-fg focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
-          >
-            Check your status with your reference code
-          </Link>
-          .
-        </p>
       </Section>
     </main>
   );
