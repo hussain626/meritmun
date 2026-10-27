@@ -14,18 +14,18 @@ import { formatNumber } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "What Model UN is, what MERITMUN is, and how MERITMUN III works — committees, allocation, and registration.",
+    "What Model UN is, what MERITMUN is, and how MERITMUN III works, committees, allocation, and registration.",
 };
 
 /**
  * How the conference works, in terms the site itself guarantees. Every line
- * here must stay true of the product — no invented history or venue detail.
+ * here must stay true of the product, no invented history or venue detail.
  */
 const howItWorks = [
   {
     id: "committees",
     title: "One agenda per committee",
-    body: "Each committee debates a single, published question for the full three days. The agenda and difficulty level of every committee are on the Committees page before you register, so you can choose — and prepare — properly.",
+    body: "Each committee debates a single, published question for the full three days. The agenda and difficulty level of every committee are on the Committees page before you register, so you can choose, and prepare, properly.",
   },
   {
     id: "merit",
@@ -84,9 +84,9 @@ export default async function AboutPage() {
             The work is real work. You research a state you have probably never
             visited, write and defend a position, build a bloc with people who
             started the morning opposing you, and put your name on a resolution
-            that has to survive a vote. The skills that come out of it —
-            reading a brief quickly, speaking under time pressure, writing
-            something other people will sign — are the reason schools keep
+            that has to survive a vote. The skills that come out of it (reading
+            a brief quickly, speaking under time pressure, writing something
+            other people will sign) are the reason schools keep
             sending delegations.
           </p>
           <p>
@@ -107,7 +107,7 @@ export default async function AboutPage() {
           <p>
             It is run by students. The committees are published with their
             agendas and difficulty levels before you pay anything, and if this
-            site does not answer your question, the secretariat will — write to
+            site does not answer your question, the secretariat will, write to
             us from the Contact page.
           </p>
         </Prose>

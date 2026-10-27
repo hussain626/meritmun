@@ -24,7 +24,7 @@ export function storeTheme(theme: Theme): void {
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
-    // Private browsing or storage disabled — the toggle still works for the
+    // Private browsing or storage disabled, the toggle still works for the
     // session, it just will not be remembered. Not worth surfacing.
   }
 }

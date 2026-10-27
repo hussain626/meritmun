@@ -9,8 +9,8 @@ import flags from "@/public/flags.png";
  * Rendered as a repeating background rather than an <Image>, because the source
  * is a 4:1 strip: stretched to the full viewport width it would need a ~480px
  * band to stay uncropped, which would swallow the hero. `background-size:
- * auto 100%` instead scales the strip to the band height — so every flag is
- * shown whole, cloth and mast and finial — and tiles it horizontally to cover
+ * auto 100%` instead scales the strip to the band height, so every flag is
+ * shown whole, cloth and mast and finial, and tiles it horizontally to cover
  * any viewport width.
  */
 export function FlagArray() {

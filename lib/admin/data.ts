@@ -405,7 +405,7 @@ export async function getPublicAnnouncement(): Promise<PublicAnnouncement | null
     if (!data) return null;
     return toPublicAnnouncement(mapAnnouncement(data as Record<string, unknown>));
   } catch (error) {
-    // Never show demo copy on the live site — no bar beats a stale one.
+    // Never show demo copy on the live site, no bar beats a stale one.
     logLiveFailure("getPublicAnnouncement", error);
     return null;
   }
@@ -726,7 +726,7 @@ async function selectAllRows(
 
 /**
  * Strict snapshot for allotment writes. Unlike the list* readers this never
- * falls back to demo data — a failed read must abort the write, not seed the
+ * falls back to demo data, a failed read must abort the write, not seed the
  * database with demo rows.
  */
 export async function loadAllotmentState(

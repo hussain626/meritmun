@@ -34,7 +34,7 @@ export default async function RegisterPage({
       <main id="content">
         <PageHero
           title="Registration coming soon"
-          lead={`${committees.length} committees, three days in ${conference.city}, ${formatNumber(seatCount)} seats. Registration opens here — we're not quite ready yet.`}
+          lead={`${committees.length} committees, three days in ${conference.city}, ${formatNumber(seatCount)} seats. Registration opens here, we're not quite ready yet.`}
         />
         <Section>
           <RegistrationComingSoon />
@@ -53,7 +53,8 @@ export default async function RegisterPage({
       points: [
         "Four minutes, four steps",
         "Three ranked committee preferences",
-        "Seats allotted on merit once you have paid",      ],
+        "Seats allotted on merit once you have paid",
+      ],
       fee: `${pricing.currency} ${formatNumber(pricing.delegate)} per delegate`,
     },
     {
@@ -75,7 +76,7 @@ export default async function RegisterPage({
     <main id="content">
       <PageHero
         title="Register for MERITMUN III"
-        lead={`${committees.length} committees, three days in ${conference.city}, ${formatNumber(seatCount)} seats. Two ways in — pick the one that describes you.`}
+        lead={`${committees.length} committees, three days in ${conference.city}, ${formatNumber(seatCount)} seats. Two ways in, pick the one that describes you.`}
         meta={
           <p className="text-sm text-fg-faint">
             {conference.datesLabel}. Registering now secures your seat and we

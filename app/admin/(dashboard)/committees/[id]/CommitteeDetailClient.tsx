@@ -289,7 +289,7 @@ export function CommitteeDetailClient({
           });
         }}
         title={`Delete ${committee.abbr}?`}
-        description="Its country list and secretariat are deleted with it, and it leaves the public site. Committees that already seated delegates cannot be deleted — unpublish them instead."
+        description="Its country list and secretariat are deleted with it, and it leaves the public site. Committees that already seated delegates cannot be deleted, unpublish them instead."
         confirmLabel="Delete committee"
         tone="danger"
         loading={pending}

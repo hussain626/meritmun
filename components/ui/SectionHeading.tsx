@@ -6,7 +6,7 @@ type SectionHeadingProps = {
   lead?: ReactNode;
   /**
    * Small-caps label above the heading. Budgeted to THREE uses site-wide, where
-   * it does real navigational work — see the eyebrow ban in `ui-rules.md`.
+   * it does real navigational work, see the eyebrow ban in `ui-rules.md`.
    * Spent on: the hero sub-headline, committee detail meta, schedule day marker.
    */
   eyebrow?: string;

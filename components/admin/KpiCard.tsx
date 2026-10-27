@@ -21,7 +21,7 @@ type KpiCardProps = {
   className?: string;
 };
 
-/** Dense ops KPI tile — not the public marketing stats bar. */
+/** Dense ops KPI tile, not the public marketing stats bar. */
 export function KpiCard({
   label,
   value,

@@ -1,5 +1,5 @@
 /**
- * The duotone architectural field behind the hero — an assembly-hall colonnade
+ * The duotone architectural field behind the hero, an assembly-hall colonnade
  * under a dome, in three plies of green. Authored rather than photographed
  * because no licensed photography exists for this conference; the ply tokens
  * are the swap point if that changes.
@@ -31,9 +31,9 @@ export function HeroBackdrop() {
 
         {/* The architecture is a BACKDROP. Held at low opacity as a whole so it
             reads as depth behind the copy rather than as a subject competing
-            with it — see the imagery rule in `context/ui-rules.md`. */}
+            with it, see the imagery rule in `context/ui-rules.md`. */}
         <g opacity="0.62">
-        {/* distant skyline — the quietest ply */}
+        {/* distant skyline, the quietest ply */}
         <g fill="var(--art-mid)" opacity="0.45">
           <rect x="40" y="300" width="90" height="420" />
           <rect x="150" y="350" width="60" height="370" />
@@ -55,7 +55,7 @@ export function HeroBackdrop() {
           <rect x="560" y="274" width="320" height="18" rx="3" fill="var(--art-fore)" />
         </g>
 
-        {/* colonnade — the load-bearing ply of the composition */}
+        {/* colonnade, the load-bearing ply of the composition */}
         <g fill="var(--art-mid)">
           <rect x="300" y="292" width="840" height="16" rx="3" />
           {Array.from({ length: 13 }, (_, index) => {
@@ -86,7 +86,7 @@ export function HeroBackdrop() {
       </svg>
 
       {/* Contrast guarantee for the headline. Stronger on the left where the
-          copy lives, easing right so the collage keeps its depth — but never
+          copy lives, easing right so the collage keeps its depth, but never
           fully clearing, so the figures stay cutouts rather than a busy scene. */}
       <div className="absolute inset-0 bg-[linear-gradient(100deg,var(--art-scrim)_0%,var(--art-scrim)_40%,color-mix(in_oklch,var(--art-scrim)_35%,transparent)_80%)]" />
       <div className="absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(to_top,var(--art-scrim),transparent)]" />

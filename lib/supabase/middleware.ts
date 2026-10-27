@@ -44,7 +44,7 @@ export async function updateSession(request: NextRequest) {
       },
     });
 
-    // Do not add logic between createServerClient and getUser — a simple
+    // Do not add logic between createServerClient and getUser, a simple
     // getSession() can leave a stale token that getUser would have refreshed.
     await supabase.auth.getUser();
   } catch {

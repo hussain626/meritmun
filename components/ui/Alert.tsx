@@ -29,7 +29,7 @@ type AlertProps = {
   children: ReactNode;
 };
 
-/** Tinted fill + icon. No side stripe — see the bans in `ui-rules.md`. */
+/** Tinted fill + icon. No side stripe, see the bans in `ui-rules.md`. */
 export function Alert({
   tone = "info",
   title,

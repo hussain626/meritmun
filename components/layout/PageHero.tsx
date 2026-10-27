@@ -23,7 +23,7 @@ export function PageHero({ title, lead, meta, action, className }: PageHeroProps
         className,
       )}
     >
-      {/* A single quiet meridian arc — orients the page as part of the
+      {/* A single quiet meridian arc, orients the page as part of the
           conference without becoming decoration for its own sake. */}
       <svg
         aria-hidden="true"

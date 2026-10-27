@@ -144,7 +144,7 @@ function earlyBirdActive(enabled: boolean, endsAt: string | null): boolean {
   return Date.now() <= new Date(endsAt).getTime();
 }
 
-/** Fees exactly as set on /admin/pricing — the same numbers Finance confirms. */
+/** Fees exactly as set on /admin/pricing, the same numbers Finance confirms. */
 export async function getPublicPricing(): Promise<PublicPricing> {
   const pricing = await getPricing();
   const window = earlyBirdActive(

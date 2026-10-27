@@ -42,7 +42,7 @@ export const committees: Committee[] = [
     focusPoints: [
       "Facial recognition at demonstrations and the consent problem",
       "Export controls on surveillance technology sold as public safety",
-      "Internet shutdowns as a proportionate response — or never",
+      "Internet shutdowns as a proportionate response, or never",
       "Special Rapporteur mandates with no enforcement teeth",
     ],
     seats: 47,
@@ -64,7 +64,7 @@ export const committees: Committee[] = [
     overview:
       "The First Committee's oldest problem in its newest form: who is accountable when the decision to fire is made in software. A large floor, a long speakers' list, and a resolution that has to survive states which are already fielding the systems.",
     focusPoints: [
-      "Meaningful human control — definition, verification, and enforcement",
+      "Meaningful human control, definition, verification, and enforcement",
       "Whether a pre-emptive ban is achievable or merely declarative",
       "Dual-use research and the limits of export regimes",
       "Attribution and liability under international humanitarian law",
@@ -115,7 +115,7 @@ export const committees: Committee[] = [
       "Delinking antibiotic revenue from volume sold",
       "Veterinary and agricultural use as the largest single driver",
       "Genomic surveillance networks in low-resource health systems",
-      "Access versus excess — stewardship without denying treatment",
+      "Access versus excess, stewardship without denying treatment",
     ],
     seats: 35,
     chairs: [
@@ -174,7 +174,7 @@ export const committees: Committee[] = [
   },
   {
     slug: "historic-crisis",
-    name: "Historic Crisis Committee — Vienna, 1814",
+    name: "Historic Crisis Committee, Vienna, 1814",
     abbr: "HCC",
     type: "crisis",
     difficulty: "advanced",
@@ -197,7 +197,7 @@ export const committees: Committee[] = [
   },
   {
     slug: "joint-crisis",
-    name: "Joint Crisis Committee — Arctic Council",
+    name: "Joint Crisis Committee, Arctic Council",
     abbr: "JCC",
     type: "crisis",
     difficulty: "advanced",
@@ -253,7 +253,7 @@ export const committees: Committee[] = [
       "Built for delegates who have never done this before. Shorter sessions, procedure explained as it happens, and a mandatory pre-conference briefing covering the speakers' list, moderated caucus, and how a working paper is actually written.",
     focusPoints: [
       "Age assurance without building an identity database",
-      "Default settings as policy — what 'off by default' would change",
+      "Default settings as policy, what 'off by default' would change",
       "Curriculum interventions that survive contact with a classroom",
       "Learning the rules of procedure without being punished for it",
     ],

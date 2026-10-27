@@ -12,7 +12,7 @@ const COUNT_DURATION = 1100;
 
 /**
  * The floating panel overlapping the hero base. The only stat block on the
- * site — see the hero-metric ban in `context/ui-rules.md`.
+ * site, see the hero-metric ban in `context/ui-rules.md`.
  *
  * The final figures are rendered server-side, so the correct number is on
  * screen with no JS and under reduced motion. The count-up is layered on top
@@ -32,7 +32,7 @@ export function StatsBar({ stats }: StatsBarProps) {
 
     function tick(now: number) {
       const t = Math.min((now - start) / COUNT_DURATION, 1);
-      // Exponential ease-out — the same curve as --ease-out.
+      // Exponential ease-out, the same curve as --ease-out.
       const eased = 1 - Math.pow(2, -10 * t);
 
       nodes?.forEach((node) => {

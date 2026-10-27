@@ -119,7 +119,7 @@ export function HelpWidget({ faqs }: HelpWidgetProps) {
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
-        aria-label={isOpen ? "Close help" : "Open help — frequently asked questions"}
+        aria-label={isOpen ? "Close help" : "Open help, frequently asked questions"}
         className={cn(
           "flex h-13 items-center gap-2.5 rounded-full bg-accent px-5 text-on-accent shadow-accent",
           "transition-[transform,background-color] duration-[var(--dur-fast)] ease-out",

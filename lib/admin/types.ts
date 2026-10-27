@@ -190,7 +190,7 @@ export type AllotmentRecord = {
 
 export type AllotmentFallbackMode = "emptiest" | "none";
 
-/** Singleton `allotment_rules` row — tunes the merit engine. */
+/** Singleton `allotment_rules` row, tunes the merit engine. */
 export type AllotmentRules = {
   advancedMinScore: number;
   intermediateMinScore: number;

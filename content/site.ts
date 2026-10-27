@@ -1,7 +1,7 @@
 import type { ContactChannel, NavItem } from "@/lib/types";
 
 /**
- * Fallback only — the live gate is `conference_settings.registration_open`,
+ * Fallback only, the live gate is `conference_settings.registration_open`,
  * toggled from /admin/registrations.
  */
 export const registrationOpen = false;
@@ -81,7 +81,7 @@ export const contactChannels: ContactChannel[] = [
   },
 ];
 
-/** Official social accounts. Empty until real handles are confirmed — the
+/** Official social accounts. Empty until real handles are confirmed, the
  *  footer and contact page hide the section when there are none. */
 export const socials: readonly {
   label: string;

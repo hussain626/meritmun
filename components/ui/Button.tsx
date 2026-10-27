@@ -120,7 +120,7 @@ export function Button({
       className={styleFor({ variant, size, fullWidth, className })}
     >
       {/* The label stays in flow (merely invisible) while loading, so the
-          button never changes width mid-submit — a reflowing primary CTA
+          button never changes width mid-submit, a reflowing primary CTA
           reads as a broken form. */}
       <span
         className={cn(

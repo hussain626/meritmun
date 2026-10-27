@@ -1,5 +1,5 @@
 /**
- * P5 (UNSC permanent members with veto) — never auto-allotted by the merit
+ * P5 (UNSC permanent members with veto), never auto-allotted by the merit
  * engine. EB may assign manually. Canonical set: USA, China, Russia, UK, France.
  */
 

@@ -84,7 +84,7 @@ const EMPTY: DelegateApplication = {
   consent: false,
 };
 
-/** committeePrefs is one error but three controls — send focus to the first. */
+/** committeePrefs is one error but three controls, send focus to the first. */
 const FOCUS_TARGET: Record<string, string> = { committeePrefs: "committeePref1" };
 
 export function DelegateForm({
@@ -167,7 +167,7 @@ export function DelegateForm({
 
   const committeeOptions = committees.map((committee) => ({
     value: committee.slug,
-    label: `${committee.abbr} — ${committee.name}`,
+    label: `${committee.abbr}: ${committee.name}`,
   }));
 
   /** A committee already ranked cannot be ranked again. */
@@ -181,7 +181,7 @@ export function DelegateForm({
   }
 
   const committeeName = (slug: string) =>
-    committees.find((c) => c.slug === slug)?.name ?? "—";
+    committees.find((c) => c.slug === slug)?.name ?? "-";
 
   const summary: SummarySection[] = [
     {
@@ -331,7 +331,7 @@ export function DelegateForm({
           currency={fee.currency}
           perHead={fee.amount}
           headline="Individual delegate fee"
-          detail="Covers all three days of the conference. Pay by bank transfer after you submit — the account details and your payment reference arrive in your confirmation email."
+          detail="Covers all three days of the conference. Pay by bank transfer after you submit, the account details and your payment reference arrive in your confirmation email."
         />
       </FormStep>
 
@@ -356,7 +356,7 @@ export function DelegateForm({
           label="Awards or positions held"
           htmlFor="priorAwards"
           optional
-          helper="Best Delegate, chairing, secretariat roles — anything relevant."
+          helper="Best Delegate, chairing, secretariat roles, anything relevant."
           error={errorFor("priorAwards")}
         >
           <Textarea
@@ -367,7 +367,7 @@ export function DelegateForm({
             aria-describedby={describedBy(
               "priorAwards",
               undefined,
-              "Best Delegate, chairing, secretariat roles — anything relevant.",
+              "Best Delegate, chairing, secretariat roles, anything relevant.",
             )}
             onChange={(event) => set("priorAwards", event.target.value)}
           />
@@ -505,7 +505,7 @@ export function DelegateForm({
       <p aria-live="polite" className="sr-only">
         {`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]?.label ?? ""}`}
         {hasErrors(serverErrors)
-          ? ` — ${Object.keys(serverErrors).length} field needs attention.`
+          ? `, ${Object.keys(serverErrors).length} field needs attention.`
           : ""}
       </p>
     </form>

@@ -6,7 +6,7 @@ type SkeletonProps = {
 
 /**
  * Shimmer placeholder. The `motion-reduce:` variant drops to a flat fill rather
- * than removing the block — the alternative is always "final state", never
+ * than removing the block, the alternative is always "final state", never
  * "nothing where something should be".
  */
 export function Skeleton({ className }: SkeletonProps) {

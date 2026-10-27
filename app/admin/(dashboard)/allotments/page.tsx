@@ -36,7 +36,7 @@ export default async function AllotmentsPage() {
   const runMap = new Map(meritRuns.map((r) => [r.delegateId, r]));
 
   // Every paid delegate gets a row (seated or not), plus anyone who already
-  // holds a seat — so EB sees who is still waiting, not just who is placed.
+  // holds a seat, so EB sees who is still waiting, not just who is placed.
   const rows: AllotmentRow[] = delegates
     .filter(
       (d) => d.paymentStatus === "confirmed" || allotmentByDelegate.has(d.id),

@@ -7,7 +7,7 @@ import { listPublicCommittees } from "@/lib/public/data";
 export const metadata: Metadata = {
   title: "Committees",
   description:
-    "The MERITMUN III committees — General Assembly, specialised, crisis and press — each running a single researched agenda. Filter by committee type and difficulty before you rank your three preferences.",
+    "The MERITMUN III committees, General Assembly, specialised, crisis and press, each running a single researched agenda. Filter by committee type and difficulty before you rank your three preferences.",
 };
 
 export default async function CommitteesPage() {
@@ -17,7 +17,7 @@ export default async function CommitteesPage() {
     <main id="content">
       <PageHero
         title="Committees"
-        lead={`${committees.length} committees, each running one researched agenda for the full three days. Read them, then rank three preferences when you register — allocation weights your first choice most heavily.`}
+        lead={`${committees.length} committees, each running one researched agenda for the full three days. Read them, then rank three preferences when you register, allocation weights your first choice most heavily.`}
       />
       <Section>
         <CommitteeFilters committees={committees} />

@@ -1,7 +1,7 @@
 /**
  * Deterministic seat planner. Given merit scores, the country pool
  * (`portfolios`), seats already held, and the allotment rules, place each
- * delegate in a committee + country. Pure — no I/O — so the same logic runs
+ * delegate in a committee + country. Pure, no I/O, so the same logic runs
  * against Supabase and the demo store.
  *
  * Hard rules enforced here regardless of settings:
@@ -83,7 +83,7 @@ export function planAllotments(input: PlanInput): PlanResult {
   }
 
   // Unpublished committees are not offered to delegates, so the engine never
-  // seats anyone there — not by preference and not by fallback.
+  // seats anyone there, not by preference and not by fallback.
   const freeSeats = (committee: CommitteeAdminRecord): Portfolio[] => {
     if (committee.allotmentsPaused || !committee.isPublished) return [];
     return (poolByCommittee.get(committee.id) ?? []).filter(
@@ -144,7 +144,7 @@ export function planAllotments(input: PlanInput): PlanResult {
                 : `${label(c)} full, paused or unpublished`,
           )
           .join("; ");
-        why = `Preferences unavailable${blocked ? ` (${blocked})` : ""} — placed in ${label(committee)}, the committee with the most open seats.`;
+        why = `Preferences unavailable${blocked ? ` (${blocked})` : ""}, placed in ${label(committee)}, the committee with the most open seats.`;
       }
     }
 
@@ -155,11 +155,11 @@ export function planAllotments(input: PlanInput): PlanResult {
         reason:
           prefs.length === 0
             ? rules.fallbackMode === "none"
-              ? "No valid committee preferences and fallback is off — EB must place by hand."
-              : "No valid committee preferences and no committee has an open, eligible seat — EB must place by hand."
+              ? "No valid committee preferences and fallback is off, EB must place by hand."
+              : "No valid committee preferences and no committee has an open, eligible seat, EB must place by hand."
             : rules.fallbackMode === "none"
-              ? "Ranked committees are full, paused, or above this delegate's merit — fallback is off, so EB must place by hand."
-              : "No committee has an open, eligible seat — the preferences and the emptiest-committee fallback are all full, paused or above this delegate's merit. Add countries to the pool or place by hand.",
+              ? "Ranked committees are full, paused, or above this delegate's merit, fallback is off, so EB must place by hand."
+              : "No committee has an open, eligible seat, the preferences and the emptiest-committee fallback are all full, paused or above this delegate's merit. Add countries to the pool or place by hand.",
       });
       continue;
     }

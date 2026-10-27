@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   MERITMUN III — design tokens
+   MERITMUN III, design tokens
    Raw custom properties live here and are overridden per theme.
    They are exposed to Tailwind through the `@theme inline` block below, which
    inlines `var(--x)` into the generated utilities so every utility follows the
@@ -11,37 +11,42 @@
 :root {
   color-scheme: dark;
 
-  /* surfaces — L values are OKLab lightness, which is NOT the same scale as
-     CIE Lab lightness divided by 100. These were tuned empirically so that
-     --bg resolves to a deep emerald (#12251d) rather than to black. */
-  --bg: oklch(0.245 0.03 165);
-  --bg-subtle: oklch(0.285 0.034 165);
-  --surface: oklch(0.315 0.036 166);
-  --surface-raised: oklch(0.365 0.04 167);
-  --surface-inset: oklch(0.205 0.028 164);
+  /* Palette: --green #0F430C (brand), --green-deep #062B15 (page), --cream
+     #F7FFDC (text and primary actions). Every other colour below is mixed
+     from these three, so the theme never drifts off-palette. */
+  --green: #0f430c;
+  --green-deep: #062b15;
+  --cream: #f7ffdc;
+
+  /* surfaces */
+  --bg: var(--green-deep);
+  --bg-subtle: color-mix(in oklch, var(--green-deep) 82%, var(--green));
+  --surface: color-mix(in oklch, var(--green-deep) 55%, var(--green));
+  --surface-raised: color-mix(in oklch, var(--green) 90%, var(--cream));
+  --surface-inset: color-mix(in oklch, var(--green-deep) 80%, black);
 
   /* structure */
-  --line: oklch(0.42 0.036 168);
-  --line-strong: oklch(0.52 0.044 168);
+  --line: color-mix(in oklch, var(--cream) 16%, var(--green-deep));
+  --line-strong: color-mix(in oklch, var(--cream) 30%, var(--green-deep));
 
   /* foreground */
-  --fg: oklch(0.97 0.01 160); /* 14.8:1 on --bg */
-  --fg-muted: oklch(0.83 0.02 162); /*  9.6:1 */
-  --fg-faint: oklch(0.7 0.022 163); /*  6.1:1 — metadata only */
-  --on-accent: oklch(0.22 0.035 100); /* 10.2:1 on --accent */
-  --on-brand: oklch(0.99 0.005 160); /*  5.0:1 on --brand */
+  --fg: var(--cream); /* ~15:1 on --bg */
+  --fg-muted: color-mix(in oklch, var(--cream) 80%, var(--green-deep));
+  --fg-faint: color-mix(in oklch, var(--cream) 64%, var(--green-deep)); /* metadata only */
+  --on-accent: var(--green);
+  --on-brand: var(--cream);
 
   /* brand */
-  --brand: oklch(0.52 0.115 163);
-  --brand-strong: oklch(0.44 0.1 164);
-  --brand-soft: oklch(0.33 0.05 165);
-  --brand-fg: oklch(0.82 0.125 162);
-  --forest: oklch(0.36 0.072 158);
+  --brand: color-mix(in oklch, var(--green) 88%, var(--cream));
+  --brand-strong: var(--green);
+  --brand-soft: color-mix(in oklch, var(--green-deep) 60%, var(--green));
+  --brand-fg: color-mix(in oklch, var(--cream) 78%, var(--green));
+  --forest: var(--green);
 
-  /* accent */
-  --accent: oklch(0.83 0.14 88);
-  --accent-strong: oklch(0.76 0.145 86);
-  --accent-fg: oklch(0.86 0.135 89);
+  /* accent: primary actions are cream on green */
+  --accent: var(--cream);
+  --accent-strong: color-mix(in oklch, var(--cream) 88%, var(--green));
+  --accent-fg: var(--cream);
 
   /* status */
   --success: oklch(0.62 0.135 155);
@@ -50,27 +55,27 @@
   --warning-fg: oklch(0.87 0.12 80);
   --danger: oklch(0.58 0.185 24);
   --danger-fg: oklch(0.78 0.15 24);
-  --focus: oklch(0.87 0.13 90);
+  --focus: var(--cream);
 
-  /* shadows — green-tinted, never neutral grey */
+  /* shadows */
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
   --shadow-md: 0 4px 12px oklch(0 0 0 / 0.45);
   --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.5);
   --shadow-xl: 0 24px 64px oklch(0 0 0 / 0.55);
-  --shadow-accent: 0 6px 20px oklch(0.83 0.14 88 / 0.28);
+  --shadow-accent: 0 6px 20px color-mix(in oklch, var(--cream) 25%, transparent);
 
-  /* hero art tones — the duotone field. Deep in both themes; see note below. */
-  --art-back: oklch(0.3 0.05 164);
-  --art-mid: oklch(0.37 0.066 161);
-  --art-fore: oklch(0.44 0.078 159);
-  --art-scrim: oklch(0.2 0.034 165 / 0.84);
+  /* hero art tones, the duotone field. Deep in both themes; see note below. */
+  --art-back: var(--green-deep);
+  --art-mid: color-mix(in oklch, var(--green-deep) 50%, var(--green));
+  --art-fore: var(--green);
+  --art-scrim: color-mix(in oklch, var(--green-deep) 84%, transparent);
 
   /* Foreground tokens for copy sitting ON the hero art field. Deliberately NOT
-     overridden in the light block — the art is dark in both themes, so this
+     overridden in the light block, the art is dark in both themes, so this
      text must not invert with the rest of the page. */
-  --on-art: oklch(0.98 0.008 160);
-  --on-art-muted: oklch(0.86 0.02 160);
-  --on-art-accent: oklch(0.86 0.135 89);
+  --on-art: var(--cream);
+  --on-art-muted: color-mix(in oklch, var(--cream) 80%, var(--green-deep));
+  --on-art-accent: var(--cream);
 
   /* layout */
   --header-h: 72px;
@@ -82,7 +87,7 @@
   --gutter: clamp(1.25rem, 1rem + 2vw, 2.5rem);
   --measure: 68ch;
 
-  /* z-index — semantic scale, never an ad-hoc number */
+  /* z-index, semantic scale, never an ad-hoc number */
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 100;
@@ -99,42 +104,43 @@
   --dur-slow: 520ms;
   --stagger: 70ms;
 
-  /* admin rail — always a near-black forest, independent of theme */
-  --admin-rail: oklch(0.155 0.032 158);
-  --admin-rail-hover: oklch(0.22 0.038 158);
-  --admin-rail-fg: oklch(0.97 0.008 160);
-  --admin-rail-muted: oklch(0.72 0.028 160);
-  --admin-rail-faint: oklch(0.55 0.024 160);
-  --admin-selected: oklch(0.96 0.016 90);
+  /* admin rail, always the deep green, independent of theme */
+  --admin-rail: var(--green-deep);
+  --admin-rail-hover: color-mix(in oklch, var(--green-deep) 70%, var(--green));
+  --admin-rail-fg: var(--cream);
+  --admin-rail-muted: color-mix(in oklch, var(--cream) 72%, var(--green-deep));
+  --admin-rail-faint: color-mix(in oklch, var(--cream) 50%, var(--green-deep));
+  --admin-selected: var(--cream);
 }
 
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg: oklch(0.99 0.004 160);
-  --bg-subtle: oklch(0.965 0.008 162);
-  --surface: oklch(1 0 0);
-  --surface-raised: oklch(1 0 0);
-  --surface-inset: oklch(0.955 0.01 163);
+  --bg: var(--cream);
+  --bg-subtle: color-mix(in oklch, var(--cream) 94%, var(--green));
+  --surface: color-mix(in oklch, var(--cream) 40%, white);
+  --surface-raised: color-mix(in oklch, var(--cream) 25%, white);
+  --surface-inset: color-mix(in oklch, var(--cream) 90%, var(--green));
 
-  --line: oklch(0.9 0.012 165);
-  --line-strong: oklch(0.8 0.02 165);
+  --line: color-mix(in oklch, var(--green) 14%, var(--cream));
+  --line-strong: color-mix(in oklch, var(--green) 28%, var(--cream));
 
-  --fg: oklch(0.28 0.04 165); /* 14.0:1 on --bg */
-  --fg-muted: oklch(0.47 0.034 165); /*  6.6:1 */
-  --fg-faint: oklch(0.53 0.028 165); /*  4.9:1 — metadata only */
-  --on-accent: oklch(0.24 0.04 90); /*  8.2:1 on --accent */
-  --on-brand: oklch(0.99 0.004 160); /*  6.0:1 on --brand */
+  --fg: var(--green-deep); /* ~15:1 on --bg */
+  --fg-muted: color-mix(in oklch, var(--green-deep) 75%, var(--cream));
+  --fg-faint: color-mix(in oklch, var(--green-deep) 62%, var(--cream)); /* metadata only */
+  --on-accent: var(--cream);
+  --on-brand: var(--cream);
 
-  --brand: oklch(0.48 0.11 163);
-  --brand-strong: oklch(0.4 0.1 164);
-  --brand-soft: oklch(0.94 0.026 163);
-  --brand-fg: oklch(0.44 0.108 163);
-  --forest: oklch(0.3 0.068 158);
+  --brand: var(--green);
+  --brand-strong: var(--green-deep);
+  --brand-soft: color-mix(in oklch, var(--green) 10%, var(--cream));
+  --brand-fg: var(--green);
+  --forest: var(--green);
 
-  --accent: oklch(0.78 0.145 86);
-  --accent-strong: oklch(0.7 0.15 84);
-  --accent-fg: oklch(0.52 0.13 78);
+  /* accent: primary actions are green on cream */
+  --accent: var(--green);
+  --accent-strong: var(--green-deep);
+  --accent-fg: var(--green);
 
   --success: oklch(0.52 0.13 155);
   --success-fg: oklch(0.44 0.12 155);
@@ -142,60 +148,58 @@
   --warning-fg: oklch(0.5 0.13 70);
   --danger: oklch(0.55 0.19 24);
   --danger-fg: oklch(0.5 0.185 25);
-  --focus: oklch(0.52 0.14 80);
+  --focus: var(--green);
 
-  --shadow-sm: 0 1px 2px oklch(0.3 0.04 165 / 0.06);
-  --shadow-md: 0 4px 12px oklch(0.3 0.04 165 / 0.08);
-  --shadow-lg: 0 12px 32px oklch(0.3 0.04 165 / 0.1);
-  --shadow-xl: 0 24px 64px oklch(0.3 0.04 165 / 0.12);
-  --shadow-accent: 0 6px 20px oklch(0.76 0.145 86 / 0.3);
+  --shadow-sm: 0 1px 2px color-mix(in oklch, var(--green-deep) 6%, transparent);
+  --shadow-md: 0 4px 12px color-mix(in oklch, var(--green-deep) 8%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in oklch, var(--green-deep) 10%, transparent);
+  --shadow-xl: 0 24px 64px color-mix(in oklch, var(--green-deep) 12%, transparent);
+  --shadow-accent: 0 6px 20px color-mix(in oklch, var(--green) 28%, transparent);
 
-  /* The hero art stays a deep green field in both themes — it is the one
-     surface that does not invert, because the duotone IS the brand image.
-     Hero copy therefore uses --on-brand / --accent-fg-on-dark, never --fg. */
-  --art-back: oklch(0.28 0.05 164);
-  --art-mid: oklch(0.35 0.07 161);
-  --art-fore: oklch(0.43 0.086 159);
-  --art-scrim: oklch(0.19 0.036 165 / 0.84);
+  /* The hero art stays a deep green field in both themes, it is the one
+     surface that does not invert, because the duotone IS the brand image. */
+  --art-back: var(--green-deep);
+  --art-mid: color-mix(in oklch, var(--green-deep) 50%, var(--green));
+  --art-fore: var(--green);
+  --art-scrim: color-mix(in oklch, var(--green-deep) 84%, transparent);
 
-  --admin-rail: oklch(0.155 0.032 158);
-  --admin-rail-hover: oklch(0.22 0.038 158);
-  --admin-rail-fg: oklch(0.97 0.008 160);
-  --admin-rail-muted: oklch(0.72 0.028 160);
-  --admin-rail-faint: oklch(0.55 0.024 160);
-  --admin-selected: oklch(0.96 0.016 90);
+  --admin-rail: var(--green-deep);
+  --admin-rail-hover: color-mix(in oklch, var(--green-deep) 70%, var(--green));
+  --admin-rail-fg: var(--cream);
+  --admin-rail-muted: color-mix(in oklch, var(--cream) 72%, var(--green-deep));
+  --admin-rail-faint: color-mix(in oklch, var(--cream) 50%, var(--green-deep));
+  --admin-selected: var(--cream);
 }
 
-/* Admin ops console: light canvas + dark forest rail, matching the
-   conference-admin mockups. Tokens remapped on the subtree so the public
-   site’s dark default is unchanged. */
+/* Admin ops console: cream canvas + deep green rail. Tokens remapped on the
+   subtree so the public site's dark default is unchanged. */
 [data-admin-root] {
   color-scheme: light;
 
-  --bg: oklch(0.97 0.006 162);
-  --bg-subtle: oklch(0.955 0.008 162);
-  --surface: oklch(1 0 0);
-  --surface-raised: oklch(1 0 0);
-  --surface-inset: oklch(0.94 0.01 163);
+  --bg: color-mix(in oklch, var(--cream) 70%, white);
+  --bg-subtle: color-mix(in oklch, var(--cream) 85%, white);
+  --surface: white;
+  --surface-raised: white;
+  --surface-inset: color-mix(in oklch, var(--cream) 92%, var(--green));
 
-  --line: oklch(0.9 0.012 165);
-  --line-strong: oklch(0.82 0.018 165);
+  --line: color-mix(in oklch, var(--green) 12%, var(--cream));
+  --line-strong: color-mix(in oklch, var(--green) 24%, var(--cream));
 
-  --fg: oklch(0.22 0.04 165);
-  --fg-muted: oklch(0.47 0.034 165);
-  --fg-faint: oklch(0.55 0.026 165);
-  --on-accent: oklch(0.24 0.04 90);
-  --on-brand: oklch(0.99 0.004 160);
+  --fg: var(--green-deep);
+  --fg-muted: color-mix(in oklch, var(--green-deep) 72%, white);
+  --fg-faint: color-mix(in oklch, var(--green-deep) 58%, white);
+  --on-accent: var(--cream);
+  --on-brand: var(--cream);
 
-  --brand: oklch(0.32 0.072 158);
-  --brand-strong: oklch(0.26 0.064 158);
-  --brand-soft: oklch(0.94 0.026 163);
-  --brand-fg: oklch(0.36 0.08 158);
-  --forest: oklch(0.22 0.05 158);
+  --brand: var(--green);
+  --brand-strong: var(--green-deep);
+  --brand-soft: color-mix(in oklch, var(--green) 10%, var(--cream));
+  --brand-fg: var(--green);
+  --forest: var(--green-deep);
 
-  --accent: oklch(0.82 0.145 88);
-  --accent-strong: oklch(0.74 0.15 86);
-  --accent-fg: oklch(0.48 0.12 78);
+  --accent: var(--green);
+  --accent-strong: var(--green-deep);
+  --accent-fg: var(--green);
 
   --success: oklch(0.52 0.13 155);
   --success-fg: oklch(0.38 0.12 155);
@@ -203,13 +207,13 @@
   --warning-fg: oklch(0.46 0.13 70);
   --danger: oklch(0.55 0.19 24);
   --danger-fg: oklch(0.46 0.18 25);
-  --focus: oklch(0.52 0.14 80);
+  --focus: var(--green);
 
   --shadow-sm: 0 1px 2px oklch(0.3 0.04 165 / 0.06);
   --shadow-md: 0 4px 12px oklch(0.3 0.04 165 / 0.08);
   --shadow-lg: 0 12px 32px oklch(0.3 0.04 165 / 0.1);
   --shadow-xl: 0 24px 64px oklch(0.3 0.04 165 / 0.12);
-  --shadow-accent: 0 6px 20px oklch(0.76 0.145 86 / 0.28);
+  --shadow-accent: 0 6px 20px color-mix(in oklch, var(--green) 28%, transparent);
 }
 
 @media (max-width: 767px) {
@@ -265,7 +269,7 @@
   --color-admin-selected: var(--admin-selected);
 
   /* typography */
-  --font-display: var(--font-eczar), Georgia, serif;
+  --font-display: var(--font-poiret), "Josefin Sans", system-ui, sans-serif;
   --font-sans: var(--font-archivo), system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 
@@ -274,13 +278,13 @@
      Retuned per-step against the actual rendering. */
   --text-display: clamp(2.75rem, 1.6rem + 5.2vw, 5.25rem);
   --text-display--line-height: 1;
-  --text-display--letter-spacing: -0.018em;
+  --text-display--letter-spacing: 0.04em;
   --text-h1: clamp(2.25rem, 1.5rem + 3.2vw, 3.5rem);
   --text-h1--line-height: 1.08;
-  --text-h1--letter-spacing: -0.014em;
+  --text-h1--letter-spacing: 0.03em;
   --text-h2: clamp(1.75rem, 1.3rem + 2vw, 2.5rem);
   --text-h2--line-height: 1.18;
-  --text-h2--letter-spacing: -0.01em;
+  --text-h2--letter-spacing: 0.02em;
   --text-h3: clamp(1.25rem, 1.1rem + 0.8vw, 1.625rem);
   --text-h3--line-height: 1.28;
   --text-h3--letter-spacing: -0.006em;
@@ -299,7 +303,7 @@
   --leading-normal: 1.6;
   --leading-relaxed: 1.75;
 
-  --tracking-display: -0.018em;
+  --tracking-display: 0.04em;
   --tracking-tight: -0.008em;
   --tracking-normal: 0em;
   --tracking-wide: 0.02em;
@@ -324,7 +328,7 @@
   --container-page: 1200px;
   --container-prose: 780px;
 
-  /* easing — exponential out is the house curve */
+  /* easing, exponential out is the house curve */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
@@ -342,7 +346,7 @@
 /* ==========================================================================
    Keyframes
    Reveal animations START from a displaced state and RESOLVE to the natural
-   one. Nothing here gates visibility on a scroll class — if JS never runs,
+   one. Nothing here gates visibility on a scroll class, if JS never runs,
    every word is still on screen in its final position.
    ========================================================================== */
 
@@ -459,6 +463,12 @@
     text-wrap: balance;
   }
 
+  /* Poiret One ships one weight. Never let the browser fake a bold of it:
+     `font-bold` on display text simply renders the true thin face. */
+  .font-display {
+    font-synthesis: none;
+  }
+
   p {
     text-wrap: pretty;
   }
@@ -497,7 +507,7 @@
       transition-duration: 1ms !important;
       scroll-behavior: auto !important;
     }
-    /* the reduced-motion alternative is always "final state, instantly" —
+    /* the reduced-motion alternative is always "final state, instantly",
        never "the thing that should have moved is now missing" */
     *,
     *::before,
@@ -507,7 +517,7 @@
   }
 }
 
-/* Staggered entrance for grid children. Capped at 6 — beyond that it reads slow. */
+/* Staggered entrance for grid children. Capped at 6, beyond that it reads slow. */
 @utility stagger-children {
   & > *:nth-child(1) {
     animation-delay: 0ms;

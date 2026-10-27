@@ -14,7 +14,7 @@ type FieldProps = {
 /**
  * Builds the `aria-describedby` value for a control. Required is the default in
  * this design system, so the only two nodes a control can point at are its error
- * and its helper — and only when they actually render.
+ * and its helper, and only when they actually render.
  */
 export function describedBy(
   id: string,

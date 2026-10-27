@@ -46,7 +46,7 @@ export default async function RegisterDelegatePage({
     <main id="content">
       <PageHero
         title="Register as a delegate"
-        lead="Four steps, about four minutes. After you submit, pay the fee by bank transfer — allocation follows once your payment is confirmed."
+        lead="Four steps, about four minutes. After you submit, pay the fee by bank transfer, allocation follows once your payment is confirmed."
       />
 
       <Section width="prose">

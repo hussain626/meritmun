@@ -34,7 +34,7 @@ export default async function AdminOverviewPage() {
     ...committees
       .filter((committee) => committee.isPublished)
       .map((committee) => ({
-        label: `${committee.abbr} — ${committee.name}`,
+        label: `${committee.abbr}: ${committee.name}`,
         path: `/committees/${committee.slug}`,
       })),
   ];

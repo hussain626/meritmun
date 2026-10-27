@@ -90,7 +90,7 @@ async function insertQuoted(
   const { error } = await client.from(table).insert(rows);
   if (!isMissingQuoteColumn(error)) return error;
   console.warn(
-    `[meritmun] ${table}.quoted_amount missing — run supabase/migrations/008_quoted_amounts.sql`,
+    `[meritmun] ${table}.quoted_amount missing, run supabase/migrations/008_quoted_amounts.sql`,
   );
   const stripped = rows.map((row) => {
     const copy = { ...row };
@@ -113,7 +113,7 @@ function emailWentOut(result: SendResult): boolean {
 }
 
 const SAVE_FAILED =
-  "We could not save your registration just now. Nothing was charged — please try again in a minute, or contact us if it keeps happening.";
+  "We could not save your registration just now. Nothing was charged, please try again in a minute, or contact us if it keeps happening.";
 
 /* ── delegate ────────────────────────────────────────────────────────────── */
 
@@ -572,7 +572,7 @@ export async function submitContact(
     };
     store.queries.unshift(query);
   } else {
-    // supabase-js returns errors rather than throwing, so check explicitly —
+    // supabase-js returns errors rather than throwing, so check explicitly,
     // otherwise a failed save still shows "Message sent".
     const client = await createClient();
     const { error } = await client.from("queries").insert({

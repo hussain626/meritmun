@@ -187,7 +187,7 @@ export function ScheduleClient({ days }: ScheduleClientProps) {
                           {item.start} – {item.end} · {item.kind}
                         </p>
                         <p className="font-semibold text-fg">{item.title}</p>
-                        <p className="text-sm text-fg-muted">{item.venue || "—"}</p>
+                        <p className="text-sm text-fg-muted">{item.venue || "-"}</p>
                       </div>
                       <div className="flex gap-2">
                         <Button

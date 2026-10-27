@@ -195,12 +195,12 @@ async function queueMerit(delegateIds: string[]): Promise<string> {
     return result.ok ? result.message : `Merit run did not complete: ${result.message}`;
   } catch (error) {
     console.warn("[meritmun/admin] queueMerit", error);
-    return "Merit run did not complete — run it from Allotments.";
+    return "Merit run did not complete, run it from Allotments.";
   }
 }
 
 const MEMBER_PAYMENT =
-  "This delegate is part of a delegation — one payment covers the roster. Confirm or reject it from the Delegations tab.";
+  "This delegate is part of a delegation, one payment covers the roster. Confirm or reject it from the Delegations tab.";
 
 /** Payment rejected: free any seat the delegate held so it can be re-allotted. */
 async function releaseSeats(
@@ -248,7 +248,7 @@ function readConfirmForm(formData: FormData): ConfirmInput | string {
   }
   const amount = Number(rawAmount);
   if (amount > MAX_PAYMENT) {
-    return `That amount is above PKR ${MAX_PAYMENT.toLocaleString("en-US")} — check for an extra zero.`;
+    return `That amount is above PKR ${MAX_PAYMENT.toLocaleString("en-US")}, check for an extra zero.`;
   }
   const proof = formData.get("proof");
   const proofError = validateProof(proof);
@@ -412,7 +412,7 @@ async function confirmDelegate(
     if (confirmed) {
       return {
         ok: true,
-        message: "Payment confirmed, but a follow-up step failed — check the email log and run merit from Allotments.",
+        message: "Payment confirmed, but a follow-up step failed, check the email log and run merit from Allotments.",
       };
     }
     if (missingProofColumns(error) || isMissingBucket(error)) {
@@ -1443,7 +1443,7 @@ function summarizePortfolioAdds(input: {
   }
   let message = parts.join("; ") + ".";
   if (p5Count > 0) {
-    message += ` ${p5Count} P5 — merit will not auto-assign ${p5Count === 1 ? "that seat" : "those seats"}.`;
+    message += ` ${p5Count} P5, merit will not auto-assign ${p5Count === 1 ? "that seat" : "those seats"}.`;
   }
   return message;
 }

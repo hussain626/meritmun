@@ -77,7 +77,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[7.5rem_1fr] gap-2 border-b border-line py-2 text-sm last:border-b-0">
       <dt className="text-fg-faint">{label}</dt>
-      <dd className="text-fg">{value || "—"}</dd>
+      <dd className="text-fg">{value || "-"}</dd>
     </div>
   );
 }
@@ -204,7 +204,7 @@ export function AllotmentsClient({
   const selectedPortfolio = portfolios.find((p) => p.id === portfolioId);
   const selectedCommittee = committees.find((c) => c.id === committeeId);
   const committeeNameById = (id: string) =>
-    committees.find((c) => c.id === id)?.abbr ?? "—";
+    committees.find((c) => c.id === id)?.abbr ?? "-";
 
   function openRow(row: AllotmentRow) {
     setSelected(row);
@@ -504,10 +504,10 @@ export function AllotmentsClient({
                         </p>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 text-fg-muted">{row.committeeLabel ?? "—"}</td>
+                    <td className="px-4 py-3 text-fg-muted">{row.committeeLabel ?? "-"}</td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1.5">
-                        {row.countryName ?? "—"}
+                        {row.countryName ?? "-"}
                         {row.isP5 ? (
                           <Badge tone="warning" size="sm">
                             P5
@@ -516,7 +516,7 @@ export function AllotmentsClient({
                       </span>
                     </td>
                     <td className="px-4 py-3 tabular-nums text-fg-muted">
-                      {row.allotment?.score ?? "—"}
+                      {row.allotment?.score ?? "-"}
                     </td>
                     <td className="px-4 py-3">
                       {row.allotment ? (
@@ -527,7 +527,7 @@ export function AllotmentsClient({
                           {row.allotment.source === "merit" ? "Merit" : "Manual"}
                         </Badge>
                       ) : (
-                        <span className="text-fg-faint">—</span>
+                        <span className="text-fg-faint">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -631,7 +631,7 @@ export function AllotmentsClient({
                 label="Experience"
                 value={EXPERIENCE_LABEL[selected.delegate.experience] ?? selected.delegate.experience}
               />
-              <DetailRow label="Awards" value={selected.delegate.priorAwards ?? "—"} />
+              <DetailRow label="Awards" value={selected.delegate.priorAwards ?? "-"} />
               <DetailRow
                 label="Preferences"
                 value={selected.delegate.committeePrefs
@@ -646,9 +646,9 @@ export function AllotmentsClient({
                 <>
                   <DetailRow
                     label="Current seat"
-                    value={`${committeeNameById(selected.allotment.committeeId)} · ${selected.countryName ?? "—"} (${selected.allotment.source}, ${selected.allotment.status})`}
+                    value={`${committeeNameById(selected.allotment.committeeId)} · ${selected.countryName ?? "-"} (${selected.allotment.source}, ${selected.allotment.status})`}
                   />
-                  <DetailRow label="Rationale" value={selected.allotment.rationale ?? "—"} />
+                  <DetailRow label="Rationale" value={selected.allotment.rationale ?? "-"} />
                 </>
               ) : selected.meritNote ? (
                 <DetailRow label="Merit run" value={selected.meritNote} />
@@ -657,7 +657,7 @@ export function AllotmentsClient({
 
             {selected.delegate.paymentStatus !== "confirmed" ? (
               <p className="rounded-sm border border-line bg-surface-inset px-3 py-2 text-sm text-warning-fg">
-                Payment is not confirmed — confirm it in Registrations before seating.
+                Payment is not confirmed, confirm it in Registrations before seating.
               </p>
             ) : null}
 
@@ -700,7 +700,7 @@ export function AllotmentsClient({
             </label>
             {selectedPortfolio?.isP5 ? (
               <p className="rounded-sm border border-line bg-surface-inset px-3 py-2 text-sm text-warning-fg">
-                P5 seat — never auto-allotted. You are assigning it as an EB manual seat.
+                P5 seat, never auto-allotted. You are assigning it as an EB manual seat.
               </p>
             ) : null}
             {selectedCommittee?.allotmentsPaused ? (

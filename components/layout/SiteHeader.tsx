@@ -63,7 +63,7 @@ export function SiteHeader({ items, registrationOpen }: SiteHeaderProps) {
       <div className="container-page flex h-full items-center justify-between gap-4">
         <Link
           href="/"
-          aria-label="MERITMUN III — home"
+          aria-label="MERITMUN III, home"
           className="rounded-sm focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-4"
         >
           {/* Wrapped rather than passing a display class into Wordmark: its base

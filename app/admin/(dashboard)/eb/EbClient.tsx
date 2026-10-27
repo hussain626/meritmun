@@ -164,7 +164,7 @@ export function EbClient({ members }: EbClientProps) {
                         <div>
                           <p className="font-semibold text-fg">{member.name}</p>
                           <p className="text-xs text-fg-faint">
-                            {member.email ?? "—"}
+                            {member.email ?? "-"}
                           </p>
                         </div>
                       </div>

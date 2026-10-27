@@ -33,7 +33,7 @@ type DataTableProps<T extends Record<string, unknown>> = {
 
 function cellValue(row: Record<string, unknown>, key: string): ReactNode {
   const value = row[key];
-  if (value == null) return "—";
+  if (value == null) return "-";
   if (typeof value === "string" || typeof value === "number") return value;
   return String(value);
 }

@@ -41,7 +41,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[11rem_1fr] gap-3 border-b border-neutral-200 py-1.5 text-sm last:border-0">
       <dt className="text-neutral-500">{label}</dt>
-      <dd className="font-medium">{value || "—"}</dd>
+      <dd className="font-medium">{value || "-"}</dd>
     </div>
   );
 }
@@ -65,12 +65,12 @@ export default async function TranscriptPage({ params }: PageProps) {
       listPortfolios(),
       getPricing(),
     ]);
-  const committeeName = new Map(committees.map((c) => [c.id, `${c.abbr} — ${c.name}`]));
+  const committeeName = new Map(committees.map((c) => [c.id, `${c.abbr}: ${c.name}`]));
   const committeeBySlug = new Map(committees.map((c) => [c.slug, c.abbr]));
   const country = new Map(portfolios.map((p) => [p.id, p.countryName]));
   const seatOf = (delegateId: string) => {
     const a = allotments.find((x) => x.delegateId === delegateId && x.status === "confirmed");
-    return a ? `${committeeName.get(a.committeeId) ?? "—"} · ${country.get(a.portfolioId) ?? "—"}` : "Not issued yet";
+    return a ? `${committeeName.get(a.committeeId) ?? "-"} · ${country.get(a.portfolioId) ?? "-"}` : "Not issued yet";
   };
   const prefs = (d: DelegateRecord) =>
     d.committeePrefs.map((s) => committeeBySlug.get(s) ?? s.toUpperCase()).join(" › ");
@@ -116,7 +116,7 @@ export default async function TranscriptPage({ params }: PageProps) {
       { label: "Institution", value: d.institution },
       { label: "City", value: d.city },
       { label: "Experience", value: EXPERIENCE[d.experience] ?? d.experience },
-      { label: "Awards", value: d.priorAwards ?? "—" },
+      { label: "Awards", value: d.priorAwards ?? "-" },
       { label: "Preferences", value: prefs(d) },
       { label: "Registered", value: formatAdminDateTime(d.createdAt) },
       { label: "Seat", value: seatOf(d.id) },
@@ -218,10 +218,10 @@ export default async function TranscriptPage({ params }: PageProps) {
                 value={formatPkr(Math.abs(discount))}
               />
             ) : null}
-            <Row label="Note" value={note ?? "—"} />
+            <Row label="Note" value={note ?? "-"} />
             <Row
               label="Confirmed"
-              value={confirmedAt ? formatAdminDateTime(confirmedAt) : "—"}
+              value={confirmedAt ? formatAdminDateTime(confirmedAt) : "-"}
             />
           </dl>
         </section>

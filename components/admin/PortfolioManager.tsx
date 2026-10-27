@@ -236,7 +236,7 @@ export function PortfolioManager({
                           P5
                         </Badge>
                       ) : (
-                        <span className="text-fg-faint">—</span>
+                        <span className="text-fg-faint">-</span>
                       )}
                     </td>
                   )}

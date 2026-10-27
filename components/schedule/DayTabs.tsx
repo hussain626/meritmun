@@ -8,7 +8,7 @@ import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { ButtonLink } from "@/components/ui/Button";
 import type { ScheduleDay } from "@/lib/types";
 
-/** Shared by the tablist and every panel — they must agree or the wiring breaks. */
+/** Shared by the tablist and every panel, they must agree or the wiring breaks. */
 const ID_BASE = "schedule";
 
 type DayTabsProps = { days: ScheduleDay[]; registrationOpen: boolean };
@@ -67,7 +67,7 @@ export function DayTabs({ days, registrationOpen }: DayTabsProps) {
 
       <TabPanel idBase={ID_BASE} tabId={activeDay.id} className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-b border-line pb-5">
-          {/* The one sanctioned eyebrow on this page — it marks which day of the
+          {/* The one sanctioned eyebrow on this page, it marks which day of the
               sequence you are reading, which the rail alone cannot say. */}
           <p className="text-xs font-semibold tracking-caps text-brand-fg uppercase">
             {activeDay.label}

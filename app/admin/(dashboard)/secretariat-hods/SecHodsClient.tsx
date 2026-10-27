@@ -353,7 +353,7 @@ export function SecHodsClient({
                           />
                           <div>
                             <p className="font-semibold text-fg">{row.name}</p>
-                            <p className="text-xs text-fg-faint">{row.email ?? "—"}</p>
+                            <p className="text-xs text-fg-faint">{row.email ?? "-"}</p>
                           </div>
                         </div>
                       </td>
@@ -462,7 +462,7 @@ export function SecHodsClient({
               defaultValue={secEditing?.committeeId ?? committeeOptions[0]?.id}
               options={committeeOptions.map((c) => ({
                 value: c.id,
-                label: `${c.abbr} — ${c.name}`,
+                label: `${c.abbr}: ${c.name}`,
               }))}
             />
           </label>

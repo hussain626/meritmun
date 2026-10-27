@@ -34,10 +34,10 @@ export function LoginForm({
       <div className="flex flex-col gap-4">
         <p className="rounded-sm border border-line bg-surface-inset px-3 py-2.5 text-sm text-fg-muted">
           Supabase is not configured. Running in demo mode with a full admin
-          session — changes stay in memory for this process.
+          session, changes stay in memory for this process.
         </p>
         <ButtonLink href="/admin" variant="primary" size="lg" fullWidth>
-          Demo mode — continue
+          Demo mode, continue
         </ButtonLink>
       </div>
     );

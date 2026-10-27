@@ -99,7 +99,7 @@ function createStore(): DemoStore {
 }
 
 // Kept on globalThis so dev hot reloads and separately bundled route chunks
-// share one store — otherwise a registration lands in a copy admin never reads.
+// share one store, otherwise a registration lands in a copy admin never reads.
 const globalForDemo = globalThis as typeof globalThis & {
   __meritmunDemoStore?: DemoStore;
 };

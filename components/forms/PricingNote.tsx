@@ -9,7 +9,7 @@ type PricingNoteProps = {
 
 /**
  * Shown inside the form, not at the end of it. Cost is never a surprise at
- * submit — that is the single biggest cause of abandonment on a paid form.
+ * submit, that is the single biggest cause of abandonment on a paid form.
  */
 export function PricingNote({
   currency,

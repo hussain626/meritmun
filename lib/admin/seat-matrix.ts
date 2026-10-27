@@ -1,5 +1,5 @@
 /**
- * Committee × country seat matrix. Pure — shared by the country matrix,
+ * Committee × country seat matrix. Pure, shared by the country matrix,
  * roll-call sheets, and waivers so every view counts seats the same way.
  */
 

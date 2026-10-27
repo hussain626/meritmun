@@ -38,7 +38,7 @@ export function FormSummary({ sections, onEdit }: FormSummaryProps) {
               >
                 <dt className="text-sm text-fg-faint">{row.label}</dt>
                 <dd className="text-sm break-words text-fg">
-                  {row.value || "—"}
+                  {row.value || "-"}
                 </dd>
               </div>
             ))}

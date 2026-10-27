@@ -226,7 +226,7 @@ export function DelegationForm({
           label: "Rate",
           value:
             size > 0
-              ? `${pricing.currency} ${formatNumber(perHead)} per head — ${pricing.currency} ${formatNumber(total)} total`
+              ? `${pricing.currency} ${formatNumber(perHead)} per head, ${pricing.currency} ${formatNumber(total)} total`
               : "",
         },
         {
@@ -342,7 +342,7 @@ export function DelegationForm({
           <Field
             label="Your role"
             htmlFor="headRole"
-            helper="e.g. President, MUN Society — or Faculty Advisor."
+            helper="e.g. President, MUN Society, or Faculty Advisor."
             error={errorFor("headRole")}
           >
             <Input
@@ -353,7 +353,7 @@ export function DelegationForm({
               aria-describedby={describedBy(
                 "headRole",
                 errorFor("headRole"),
-                "e.g. President, MUN Society — or Faculty Advisor.",
+                "e.g. President, MUN Society, or Faculty Advisor.",
               )}
               onChange={(event) => set("headRole", event.target.value)}
               onBlur={() => touch("headRole")}
@@ -393,7 +393,7 @@ export function DelegationForm({
 
       <FormStep
         title="Your delegates"
-        description={`Add every student attending — between ${pricing.minDelegation} and ${pricing.maxDelegation}. Each delegate gets their own seat, so we need their own contact details and committee choices.`}
+        description={`Add every student attending, between ${pricing.minDelegation} and ${pricing.maxDelegation}. Each delegate gets their own seat, so we need their own contact details and committee choices.`}
         active={step === 2}
       >
         <DelegationRoster
@@ -444,7 +444,7 @@ export function DelegationForm({
           headline="Delegation rate, per head"
           detail={
             size > 0
-              ? `${size} delegates — ${pricing.currency} ${formatNumber(total)} in total${flatNote}. The bank details arrive with your confirmation email; one payment covers the whole roster.`
+              ? `${size} delegates, ${pricing.currency} ${formatNumber(total)} in total${flatNote}. The bank details arrive with your confirmation email; one payment covers the whole roster.`
               : `Add delegates to see your total${flatNote}. One payment covers the whole roster.`
           }
         />
@@ -463,7 +463,7 @@ export function DelegationForm({
             <span className="ml-1.5 font-normal text-fg-faint">(optional)</span>
           </legend>
           <p className="mb-3 text-xs text-fg-faint">
-            Guidance only — individual allocations still follow each student&apos;s
+            Guidance only, individual allocations still follow each student&apos;s
             own preferences.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -472,7 +472,7 @@ export function DelegationForm({
                 key={committee.slug}
                 name="committeeSpread"
                 value={committee.slug}
-                label={`${committee.abbr} — ${committee.name}`}
+                label={`${committee.abbr}: ${committee.name}`}
                 checked={values.committeeSpread.includes(committee.slug)}
                 onChange={(event) =>
                   toggleCommittee(committee.slug, event.target.checked)

@@ -16,12 +16,12 @@ export const DEFAULT_ALLOTMENT_RULES: AllotmentRules = {
   updatedAt: new Date(0).toISOString(),
 };
 
-/** Rules that cannot be switched off — shown read-only on the rules page. */
+/** Rules that cannot be switched off, shown read-only on the rules page. */
 export const FIXED_ALLOTMENT_RULES: string[] = [
   "P5 seats (USA, China, Russia, UK, France) are never auto-allotted. EB can assign them by hand.",
   "Only delegates with a confirmed payment enter the merit engine.",
   "One seat per delegate, and one delegate per country in each committee.",
-  "Confirmed and manual allotments are locked — re-runs only replace merit drafts.",
+  "Confirmed and manual allotments are locked, re-runs only replace merit drafts.",
   "Paused committees and inactive countries are skipped by the engine.",
   "Higher merit scores are seated first; ties go to the earlier registration.",
 ];

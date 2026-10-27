@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 type EmptyStateProps = {
   title: string;
-  /** What happened, why, what to do next — three short sentences maximum. */
+  /** What happened, why, what to do next, three short sentences maximum. */
   body: string;
   action?: ReactNode;
   glyph?: ReactNode;

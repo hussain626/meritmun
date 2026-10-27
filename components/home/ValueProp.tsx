@@ -5,7 +5,7 @@ type ValuePropProps = {
 };
 
 /**
- * Deliberately NOT a three-identical-cards grid — see the ban in `ui-rules.md`.
+ * Deliberately NOT a three-identical-cards grid, see the ban in `ui-rules.md`.
  * An editorial two-column layout: the argument on the left, the numbered
  * points as a rhythmic list on the right, with the first point given weight.
  */

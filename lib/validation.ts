@@ -1,6 +1,6 @@
 /**
  * The single source of validation truth. Imported by the client forms for
- * instant inline feedback AND by the server actions as the authority — one
+ * instant inline feedback AND by the server actions as the authority, one
  * module, no drift. See `context/architecture.md`, constraint 6.
  */
 import type {
@@ -182,7 +182,7 @@ function validateMembers(
   const count = values.members.length;
   errors.members =
     count < limits.min || count > limits.max
-      ? `Add between ${limits.min} and ${limits.max} delegates — you have ${count}.`
+      ? `Add between ${limits.min} and ${limits.max} delegates, you have ${count}.`
       : null;
 
   const seenEmails = new Map<string, number>();

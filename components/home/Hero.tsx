@@ -31,7 +31,7 @@ export function Hero({
         <FlagArray />
 
         <div className="relative container-page grid min-h-[var(--hero-min-h)] items-center gap-8 pt-[calc(var(--chrome-h)+2.5rem)] pb-44 lg:grid-cols-[7fr_5fr] lg:gap-4 lg:pb-40">
-          {/* Left — the pitch. Staggered rather than risen as one block: this is
+          {/* Left, the pitch. Staggered rather than risen as one block: this is
               a single ordered sequence (label → name → offer → action), which is
               what a stagger is for. The global reduced-motion reset collapses
               every delay to zero, so the fallback is the final state instantly. */}
@@ -39,10 +39,10 @@ export function Hero({
             <p className="animate-rise text-xs font-semibold tracking-caps text-on-art-accent uppercase sm:text-sm">
               Discover the world of diplomacy with
             </p>
-            {/* nowrap only from sm up — below that the display size would
+            {/* nowrap only from sm up, below that the display size would
                 overflow the viewport rather than wrap. */}
-            <h1 className="mt-4 animate-rise font-display text-display font-extrabold text-on-art sm:text-nowrap">
-              MERITMUN <span className="text-on-art-accent">III</span>
+            <h1 className="mt-4 animate-rise font-display text-display text-on-art uppercase sm:text-nowrap">
+              Meritmun <span className="text-on-art-accent">III</span>
             </h1>
             <p className="mt-5 max-w-[34ch] animate-rise text-lg leading-snug text-on-art-muted">
               {committeeCount} committees. Three days in {city}.
@@ -68,7 +68,7 @@ export function Hero({
             </p>
           </div>
 
-          {/* Right — the collage. Absolutely placed so it can run past the
+          {/* Right, the collage. Absolutely placed so it can run past the
               grid's bottom padding to the banner floor and stand in front of
               the flag row, with its hard crop edge clipped by the overflow.
               Hidden below lg, where it would crowd the copy rather than

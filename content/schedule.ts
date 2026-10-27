@@ -96,7 +96,7 @@ export const scheduleDays: ScheduleDay[] = [
     id: "day-2",
     date: null,
     label: "Day Two",
-    theme: "The long day — drafting, crisis, and the press cycle",
+    theme: "The long day, drafting, crisis, and the press cycle",
     items: [
       {
         id: "d2-bulletin",
@@ -149,7 +149,7 @@ export const scheduleDays: ScheduleDay[] = [
         id: "d2-jcc",
         start: "15:00",
         end: "16:00",
-        title: "Joint Crisis Committee — joint session",
+        title: "Joint Crisis Committee, joint session",
         kind: "session",
         venue: "Main Auditorium",
         description:
@@ -181,7 +181,7 @@ export const scheduleDays: ScheduleDay[] = [
         end: "22:00",
         title: "Delegate dinner",
         kind: "social",
-        venue: "Off-site — coach transport provided",
+        venue: "Off-site, coach transport provided",
         description:
           "Included in the registration fee. Coaches leave from the main gate at 19:15.",
       },

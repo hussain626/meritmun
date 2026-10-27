@@ -38,7 +38,7 @@ export function MainNav({ items, className }: MainNavProps) {
                   )}
                 >
                   {item.label}
-                  {/* Gold underline is the active indicator — one of the three
+                  {/* Gold underline is the active indicator, one of the three
                       sanctioned uses of the accent. */}
                   <span
                     aria-hidden="true"

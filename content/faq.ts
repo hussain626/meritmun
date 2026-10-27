@@ -28,7 +28,7 @@ function feesAnswer(pricing: FaqPricing | null): string {
     : "";
   return (
     `${money(pricing, pricing.delegate)} for an individual delegate. Delegations of ${pricing.minDelegation} to ${pricing.maxDelegation} students pay ${money(pricing, pricing.perDelegate)} per head${flat}.${early} ` +
-    "You pay by bank transfer after registering — the account details arrive in your confirmation email. The fee covers all three days of the conference."
+    "You pay by bank transfer after registering, the account details arrive in your confirmation email. The fee covers all three days of the conference."
   );
 }
 
@@ -50,7 +50,7 @@ const faqs: FaqEntry[] = [
     id: "when",
     question: "When is MERITMUN III?",
     answer:
-      "Dates are not announced yet. The conference runs over three days in Karachi. Register now and you will be emailed the dates the moment they are confirmed — registering does not lock you into a date you have not seen.",
+      "Dates are not announced yet. The conference runs over three days in Karachi. Register now and you will be emailed the dates the moment they are confirmed, registering does not lock you into a date you have not seen.",
     topics: ["logistics", "registration"],
   },
   {
@@ -64,21 +64,21 @@ const faqs: FaqEntry[] = [
     id: "delegate-vs-delegation",
     question: "What is the difference between a delegate and a delegation?",
     answer:
-      "Register as a delegate if you are applying on your own. Register a delegation if you are a society head or faculty member bringing five or more students from one institution — you fill in one form, get a reduced per-head rate, and your students are allocated as a group.",
+      "Register as a delegate if you are applying on your own. Register a delegation if you are a society head or faculty member bringing five or more students from one institution, you fill in one form, get a reduced per-head rate, and your students are allocated as a group.",
     topics: ["registration", "fees"],
   },
   {
     id: "allocation",
     question: "How does committee allocation work?",
     answer:
-      "You rank three committees in order of preference. Once your payment is confirmed, seats are allotted on merit — your preferences weighed against your stated experience and each committee's difficulty — and your committee and portfolio arrive by email.",
+      "You rank three committees in order of preference. Once your payment is confirmed, seats are allotted on merit, your preferences weighed against your stated experience and each committee's difficulty, and your committee and portfolio arrive by email.",
     topics: ["committees", "registration"],
   },
   {
     id: "fees",
     question: "What does registration cost?",
     answer:
-      "Built from live pricing — see feesAnswer().",
+      "Built from live pricing, see feesAnswer().",
     topics: ["fees", "registration"],
   },
   {

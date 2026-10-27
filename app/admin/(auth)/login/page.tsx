@@ -55,7 +55,7 @@ export default async function AdminLoginPage({
               <div className="flex flex-col gap-4">
                 <p className="rounded-sm border border-line bg-surface-inset px-3 py-2.5 text-sm text-fg-muted">
                   You are signed in as {signedIn.user.email} ({signedIn.role}).
-                  That page needs a different role — ask an admin if you
+                  That page needs a different role, ask an admin if you
                   should have access.
                 </p>
                 <ButtonLink href="/admin" variant="primary" size="lg" fullWidth>

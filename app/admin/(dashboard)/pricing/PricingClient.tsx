@@ -145,7 +145,7 @@ export function PricingClient({
 
       {readOnly ? (
         <p className="rounded-sm border border-line bg-surface-inset px-3 py-2 text-sm text-warning-fg">
-          Read-only for EB — ask an admin to change fees or bank details.
+          Read-only for EB, ask an admin to change fees or bank details.
         </p>
       ) : null}
 

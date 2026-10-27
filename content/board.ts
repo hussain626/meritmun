@@ -1,7 +1,7 @@
 import type { BoardMember } from "@/lib/types";
 
 /**
- * All names are PLACEHOLDER. Replace with the real secretariat before launch —
+ * All names are PLACEHOLDER. Replace with the real secretariat before launch,
  * `grep -rn "PLACEHOLDER" content/` is the launch checklist.
  */
 export const boardMembers: BoardMember[] = [
@@ -19,7 +19,7 @@ export const boardMembers: BoardMember[] = [
     name: "Arsalan Baig", // PLACEHOLDER
     role: "Deputy Secretary-General",
     tier: "secretariat",
-    bio: "Runs the substantive side day to day — chair training, guide review, and the awards rubric that committees are held to.",
+    bio: "Runs the substantive side day to day, chair training, guide review, and the awards rubric that committees are held to.",
     initials: "AB",
     email: "dsg@meritmun.systemsummit.online",
   },
@@ -127,7 +127,7 @@ export const boardMembers: BoardMember[] = [
     name: "Bushra Latif", // PLACEHOLDER
     role: "Director of Hospitality",
     tier: "directorate",
-    bio: "Looks after visiting delegations — accommodation, dietary requirements, and faculty coordination for out-of-city institutions.",
+    bio: "Looks after visiting delegations, accommodation, dietary requirements, and faculty coordination for out-of-city institutions.",
     initials: "BL",
     email: null,
   },

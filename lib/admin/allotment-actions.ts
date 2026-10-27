@@ -138,7 +138,7 @@ export async function runMeritEngineAction(
   );
 
   if (eligible.length === 0) {
-    return ok("Nothing to allot — every paid delegate already has a locked seat.");
+    return ok("Nothing to allot, every paid delegate already has a locked seat.");
   }
   if (!state.portfolios.some((p) => p.isActive)) {
     return fail("The country pool is empty. Add countries under Committees first.");
@@ -284,7 +284,7 @@ export async function runMeritEngineAction(
     } catch (error) {
       console.warn("[meritmun/admin] runMeritEngine save", error);
       return fail(
-        "The engine ran but the seats could not be saved. Someone may have changed allotments at the same time — run it again.",
+        "The engine ran but the seats could not be saved. Someone may have changed allotments at the same time, run it again.",
       );
     }
   }
@@ -487,12 +487,12 @@ export async function saveManualAllotment(input: {
   }
 
   revalidateAllotments();
-  const p5Note = portfolio.isP5 ? " (P5 — manual EB seat)" : "";
+  const p5Note = portfolio.isP5 ? " (P5, manual EB seat)" : "";
   if (isConfirmed) {
     return ok(
       emailSentAt
         ? `Allotment changed to ${portfolio.countryName}${p5Note}; the delegate has been emailed.`
-        : `Allotment changed to ${portfolio.countryName}${p5Note}, but the email failed — use Issue allotments to retry.`,
+        : `Allotment changed to ${portfolio.countryName}${p5Note}, but the email failed, use Issue allotments to retry.`,
     );
   }
   return ok(`${delegate.fullName} → ${committee.abbr} · ${portfolio.countryName}${p5Note} (draft).`);
@@ -507,7 +507,7 @@ export async function clearAllotment(id: string): Promise<ActionResult> {
     const store = getDemoStore();
     const row = store.allotments.find((a) => a.id === id);
     if (!row) return fail("Allotment not found.");
-    if (row.status === "confirmed") return fail("Issued allotments cannot be cleared — change the seat instead.");
+    if (row.status === "confirmed") return fail("Issued allotments cannot be cleared, change the seat instead.");
     store.allotments = store.allotments.filter((a) => a.id !== id);
     revalidateAllotments();
     return ok("Draft cleared (demo).");
@@ -615,7 +615,7 @@ function describeIssue(outcome: IssueOutcome): string {
   const parts = [`Issued ${outcome.sent} allotment${outcome.sent === 1 ? "" : "s"}`];
   if (outcome.failed) {
     parts.push(
-      `${outcome.failed} email${outcome.failed === 1 ? "" : "s"} not sent, still pending — ${[...outcome.reasons].join(" ") || "retry"}`,
+      `${outcome.failed} email${outcome.failed === 1 ? "" : "s"} not sent, still pending, ${[...outcome.reasons].join(" ") || "retry"}`,
     );
   }
   if (outcome.skipped) parts.push(`${outcome.skipped} skipped (payment not confirmed)`);
@@ -660,7 +660,7 @@ export async function issueAllotments(
         (!committeeId || a.committeeId === committeeId) &&
         (a.status === "draft" || !a.emailSentAt),
     );
-    if (rows.length === 0) return ok("Nothing to issue — every allotment has been sent.");
+    if (rows.length === 0) return ok("Nothing to issue, every allotment has been sent.");
     const outcome = await issueRows(state, rows, auth.userId, client);
     revalidateAllotments();
     return { ok: outcome.failed === 0, message: describeIssue(outcome) };
@@ -736,8 +736,8 @@ export async function setCommitteeAllotmentsPaused(
     revalidatePath("/admin/committees");
     return ok(
       paused
-        ? "Paused — the merit engine will skip this committee."
-        : "Resumed — the merit engine will fill this committee again.",
+        ? "Paused, the merit engine will skip this committee."
+        : "Resumed, the merit engine will fill this committee again.",
     );
   } catch (error) {
     console.warn("[meritmun/admin] setCommitteeAllotmentsPaused", error);

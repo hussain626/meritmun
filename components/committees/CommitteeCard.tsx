@@ -37,7 +37,7 @@ export function CommitteeCard({ committee, className }: CommitteeCardProps) {
       padding="none"
       className={cn("group/card overflow-hidden", className)}
     >
-      {/* The whole card is the link, with a real accessible name — not a
+      {/* The whole card is the link, with a real accessible name, not a
           "read more" affordance with a handler on the parent. */}
       <Link
         href={`/committees/${committee.slug}`}

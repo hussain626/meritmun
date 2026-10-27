@@ -1,12 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ComponentType, type SVGProps } from "react";
 import { InitialsMedallion } from "@/components/board/InitialsMedallion";
 import { Building } from "@/components/icons/Building";
-import logo from "@/public/logo.png";
+import { LogoMark } from "@/components/layout/Wordmark";
 import { Calendar } from "@/components/icons/Calendar";
 import { Close } from "@/components/icons/Close";
 import { CreditCard } from "@/components/icons/CreditCard";
@@ -165,15 +164,10 @@ function NavList({
 function BrandBlock() {
   return (
     <div className="flex items-center gap-2.5 px-1">
-      <Image
-        src={logo}
-        alt=""
-        aria-hidden
-        className="h-10 w-auto shrink-0 object-contain"
-      />
+      <LogoMark className="h-10 text-admin-rail-fg" />
       <div className="min-w-0">
-        <p className="truncate text-sm font-bold tracking-wide text-admin-rail-fg">
-          MERITMUN III
+        <p className="truncate font-display text-base tracking-[0.12em] text-admin-rail-fg uppercase">
+          Meritmun III
         </p>
         <p className="truncate text-[0.6875rem] font-medium text-admin-rail-muted">
           Conference Admin

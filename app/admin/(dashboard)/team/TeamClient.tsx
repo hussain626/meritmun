@@ -445,7 +445,7 @@ export function TeamClient({
           });
         }}
         title={`Remove ${removing?.fullName ?? "this member"}?`}
-        description={`${removing?.email ?? "They"} will lose access to the admin panel immediately. Their login is deleted and cannot be restored — you would need to create a new account.`}
+        description={`${removing?.email ?? "They"} will lose access to the admin panel immediately. Their login is deleted and cannot be restored, you would need to create a new account.`}
         confirmLabel="Remove member"
         tone="danger"
         loading={pending}

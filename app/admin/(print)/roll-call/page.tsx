@@ -38,7 +38,7 @@ export default async function RollCallPage({
   const matrix = buildSeatMatrix({
     committees,
     portfolios,
-    // Printed sheets list issued seats only — drafts can still move.
+    // Printed sheets list issued seats only, drafts can still move.
     allotments: allotments.filter((a) => a.status === "confirmed"),
     delegates,
     delegations,
@@ -72,7 +72,7 @@ export default async function RollCallPage({
 
       {matrix.length === 0 ? (
         <p className="p-8 text-sm text-neutral-600">
-          No issued seats yet — issue allotments first.
+          No issued seats yet, issue allotments first.
         </p>
       ) : null}
 
@@ -91,7 +91,7 @@ export default async function RollCallPage({
                   MERITMUN III · Roll call
                 </p>
                 <h1 className="text-xl font-bold">
-                  {c.committee.abbr} — {c.committee.name}
+                  {c.committee.abbr}, {c.committee.name}
                 </h1>
               </div>
               <p className="text-sm text-neutral-600">{seated.length} delegates</p>

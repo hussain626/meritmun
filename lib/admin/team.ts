@@ -1,7 +1,7 @@
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 /**
- * Team ownership. Only this account may remove team members — removing a
+ * Team ownership. Only this account may remove team members, removing a
  * login is irreversible, so it is not delegated to every admin.
  */
 export const TEAM_OWNER_EMAIL = "hussain@systemsummit.online";

@@ -153,10 +153,10 @@ export function CountriesClient({
           }}
           aria-label="Committee"
           options={[
-            { value: "overview", label: "All committees — overview" },
+            { value: "overview", label: "All committees, overview" },
             ...matrix.map((c) => ({
               value: c.committee.id,
-              label: `${c.committee.abbr} — ${c.taken}/${c.total} taken`,
+              label: `${c.committee.abbr}: ${c.taken}/${c.total} taken`,
             })),
           ]}
           className="min-h-9 w-72 text-sm"
@@ -380,7 +380,7 @@ function SeatRow({
           <span className="text-fg-faint">Free</span>
         )}
       </td>
-      <td className="px-4 py-3 text-fg-muted">{holder?.delegate.phone ?? "—"}</td>
+      <td className="px-4 py-3 text-fg-muted">{holder?.delegate.phone ?? "-"}</td>
       <td className="px-4 py-3">
         {holder ? (
           <Badge
@@ -390,7 +390,7 @@ function SeatRow({
             {holder.allotment.status === "confirmed" ? "Issued" : "Draft"}
           </Badge>
         ) : (
-          <span className="text-fg-faint">—</span>
+          <span className="text-fg-faint">-</span>
         )}
       </td>
       {days.map((day) => (

@@ -7,7 +7,7 @@ import {
 
 /**
  * Browser Supabase client (Client Components). Relies on cookie storage via
- * `@supabase/ssr`. Throws if public env vars are missing — call
+ * `@supabase/ssr`. Throws if public env vars are missing, call
  * `isSupabaseConfigured()` first when demo fallback is acceptable.
  */
 export function createBrowserClient() {

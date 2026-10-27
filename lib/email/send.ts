@@ -1,6 +1,6 @@
 /**
  * Resend wrappers for admin / registration transactional mail.
- * Without RESEND_API_KEY, logs the payload and returns `mocked: true` — callers
+ * Without RESEND_API_KEY, logs the payload and returns `mocked: true`, callers
  * must not report that an email went out in that case. Every send is recorded
  * in `email_logs` when the service role is available.
  */
@@ -108,7 +108,7 @@ export function deliveryNote(result: SendResult): string {
     return `The email could not be sent: ${result.error}${resendHint(result.error)}`;
   }
   if (result.mocked) {
-    return "No email was sent — RESEND_API_KEY is not set on this deployment (add it in Netlify with the Functions scope, then redeploy).";
+    return "No email was sent, RESEND_API_KEY is not set on this deployment (add it in Netlify with the Functions scope, then redeploy).";
   }
   return "Email sent.";
 }
@@ -117,13 +117,13 @@ export function deliveryNote(result: SendResult): string {
 function resendHint(error: string): string {
   const text = error.toLowerCase();
   if (text.includes("domain") && (text.includes("verif") || text.includes("not found"))) {
-    return ` — the From address (${getFromAddress()}) must use a domain verified in Resend. Verify it under Resend → Domains, or set EMAIL_FROM to an address on a verified domain.`;
+    return `, the From address (${getFromAddress()}) must use a domain verified in Resend. Verify it under Resend → Domains, or set EMAIL_FROM to an address on a verified domain.`;
   }
   if (text.includes("testing emails") || text.includes("own email address")) {
-    return " — Resend is in test mode and only delivers to your own address until a domain is verified.";
+    return ", Resend is in test mode and only delivers to your own address until a domain is verified.";
   }
   if (text.includes("api key") || text.includes("unauthorized") || text.includes("invalid")) {
-    return " — check that RESEND_API_KEY is a valid, full-access key.";
+    return ", check that RESEND_API_KEY is a valid, full-access key.";
   }
   return "";
 }
@@ -148,7 +148,7 @@ function bankBlock(accounts: BankAccount[]): { html: string; text: string } {
   const html = active
     .map(
       (a) =>
-        `<li><strong>${escapeHtml(a.bankName)}</strong> — ${escapeHtml(a.accountTitle)}<br/>` +
+        `<li><strong>${escapeHtml(a.bankName)}</strong>, ${escapeHtml(a.accountTitle)}<br/>` +
         `Account: ${escapeHtml(a.accountNumber)}` +
         (a.iban ? `<br/>IBAN: ${escapeHtml(a.iban)}` : "") +
         (a.instructions
@@ -161,7 +161,7 @@ function bankBlock(accounts: BankAccount[]): { html: string; text: string } {
   const text = active
     .map(
       (a) =>
-        `${a.bankName} — ${a.accountTitle}\nAccount: ${a.accountNumber}` +
+        `${a.bankName}: ${a.accountTitle}\nAccount: ${a.accountNumber}` +
         (a.iban ? `\nIBAN: ${a.iban}` : "") +
         (a.instructions ? `\n${a.instructions}` : ""),
     )
@@ -184,7 +184,7 @@ export async function sendRegistrationConfirmation(input: {
   bankAccounts: BankAccount[];
 }): Promise<SendResult> {
   const banks = bankBlock(input.bankAccounts);
-  const subject = `MERITMUN III — Registration received (${input.delegateCode})`;
+  const subject = `MERITMUN III, Registration received (${input.delegateCode})`;
   const text =
     `Hello ${input.fullName},\n\n` +
     `We have your registration. Reference: ${input.reference}. ` +
@@ -192,7 +192,7 @@ export async function sendRegistrationConfirmation(input: {
     `Fee: ${input.currency} ${input.feeAmount}.\n\n` +
     `Pay using one of the active accounts below and keep your delegate code as the payment reference.\n\n` +
     `${banks.text}\n\n` +
-    `— MERITMUN Secretariat`;
+    `MERITMUN Secretariat`;
 
   const html =
     `<p>Hello ${escapeHtml(input.fullName)},</p>` +
@@ -202,7 +202,7 @@ export async function sendRegistrationConfirmation(input: {
     `<strong>Fee:</strong> ${escapeHtml(input.currency)} ${input.feeAmount}</p>` +
     `<p>Pay using one of the active accounts below and keep your delegate code as the payment reference.</p>` +
     banks.html +
-    `<p>— MERITMUN Secretariat</p>`;
+    `<p>MERITMUN Secretariat</p>`;
 
   return sendMail({
     template: "registration-confirmation",
@@ -226,14 +226,14 @@ export async function sendDelegationRegistrationConfirmation(input: {
   bankAccounts: BankAccount[];
 }): Promise<SendResult> {
   const banks = bankBlock(input.bankAccounts);
-  const subject = `MERITMUN III — Delegation registered (${input.reference})`;
+  const subject = `MERITMUN III, Delegation registered (${input.reference})`;
   const rosterText = input.members
-    .map((m, i) => `${i + 1}. ${m.fullName} — ${m.delegateCode}`)
+    .map((m, i) => `${i + 1}. ${m.fullName}: ${m.delegateCode}`)
     .join("\n");
   const rosterHtml = input.members
     .map(
       (m) =>
-        `<li>${escapeHtml(m.fullName)} — <code>${escapeHtml(m.delegateCode)}</code></li>`,
+        `<li>${escapeHtml(m.fullName)}, <code>${escapeHtml(m.delegateCode)}</code></li>`,
     )
     .join("");
   const text =
@@ -243,7 +243,7 @@ export async function sendDelegationRegistrationConfirmation(input: {
     `Fee: ${input.currency} ${input.feeAmount} for the whole delegation.\n\n` +
     `Pay using one of the active accounts below and use ${input.reference} as the payment reference.\n\n` +
     `${banks.text}\n\n` +
-    `— MERITMUN Secretariat`;
+    `MERITMUN Secretariat`;
   const html =
     `<p>Hello ${escapeHtml(input.headName)},</p>` +
     `<p>We have the registration for <strong>${escapeHtml(input.institutionName)}</strong>.</p>` +
@@ -252,7 +252,7 @@ export async function sendDelegationRegistrationConfirmation(input: {
     `<p><strong>Delegates (${input.members.length})</strong></p><ol>${rosterHtml}</ol>` +
     `<p>Pay using one of the active accounts below and use ${escapeHtml(input.reference)} as the payment reference.</p>` +
     banks.html +
-    `<p>— MERITMUN Secretariat</p>`;
+    `<p>MERITMUN Secretariat</p>`;
 
   return sendMail({
     template: "delegation-registration-confirmation",
@@ -272,19 +272,19 @@ export async function sendPaymentConfirmed(input: {
   /** Amount recorded as received, in PKR. */
   amount?: number;
 }): Promise<SendResult> {
-  const subject = `MERITMUN III — Payment confirmed (${input.reference})`;
+  const subject = `MERITMUN III, Payment confirmed (${input.reference})`;
   const paid =
     input.amount != null ? ` of PKR ${input.amount.toLocaleString("en-US")}` : "";
   const text =
     `Hello ${input.fullName},\n\n` +
     `We have received your payment${paid} for ${input.reference}. ` +
     `Committee allotment will follow once the Executive Board confirms your seat.\n\n` +
-    `— MERITMUN Secretariat`;
+    `MERITMUN Secretariat`;
   const html =
     `<p>Hello ${escapeHtml(input.fullName)},</p>` +
     `<p>We have received your payment${escapeHtml(paid)} for <strong>${escapeHtml(input.reference)}</strong>. ` +
     `Committee allotment will follow once the Executive Board confirms your seat.</p>` +
-    `<p>— MERITMUN Secretariat</p>`;
+    `<p>MERITMUN Secretariat</p>`;
 
   return sendMail({
     template: "payment-confirmed",
@@ -304,7 +304,7 @@ export async function sendAllotmentConfirmed(input: {
   countryName: string;
   studyGuideUrl: string | null;
 }): Promise<SendResult> {
-  const subject = `MERITMUN III — Allotment confirmed (${input.committeeName})`;
+  const subject = `MERITMUN III, Allotment confirmed (${input.committeeName})`;
   const guideLine = input.studyGuideUrl
     ? `Background guide: ${input.studyGuideUrl}`
     : "Background guide will be published on your committee page.";
@@ -314,7 +314,7 @@ export async function sendAllotmentConfirmed(input: {
     `Committee: ${input.committeeName}\n` +
     `Portfolio: ${input.countryName}\n` +
     `${guideLine}\n\n` +
-    `— MERITMUN Secretariat`;
+    `MERITMUN Secretariat`;
   const html =
     `<p>Hello ${escapeHtml(input.fullName)},</p>` +
     `<p>Your allotment is confirmed.</p>` +
@@ -323,7 +323,7 @@ export async function sendAllotmentConfirmed(input: {
     (input.studyGuideUrl
       ? `<p><a href="${escapeHtml(input.studyGuideUrl)}">Background guide</a></p>`
       : `<p>Background guide will be published on your committee page.</p>`) +
-    `<p>— MERITMUN Secretariat</p>`;
+    `<p>MERITMUN Secretariat</p>`;
 
   return sendMail({
     template: "allotment-confirmed",
@@ -343,7 +343,7 @@ export async function sendAllotmentChanged(input: {
   countryName: string;
   studyGuideUrl: string | null;
 }): Promise<SendResult> {
-  const subject = `MERITMUN III — Allotment updated (${input.committeeName})`;
+  const subject = `MERITMUN III, Allotment updated (${input.committeeName})`;
   const guideLine = input.studyGuideUrl
     ? `Background guide: ${input.studyGuideUrl}`
     : "Background guide will be published on your committee page.";
@@ -354,7 +354,7 @@ export async function sendAllotmentChanged(input: {
     `Committee: ${input.committeeName}\n` +
     `Portfolio: ${input.countryName}\n` +
     `${guideLine}\n\n` +
-    `— MERITMUN Secretariat`;
+    `MERITMUN Secretariat`;
   const html =
     `<p>Hello ${escapeHtml(input.fullName)},</p>` +
     `<p>Your allotment has been changed by the Executive Board. ` +
@@ -364,7 +364,7 @@ export async function sendAllotmentChanged(input: {
     (input.studyGuideUrl
       ? `<p><a href="${escapeHtml(input.studyGuideUrl)}">Background guide</a></p>`
       : `<p>Background guide will be published on your committee page.</p>`) +
-    `<p>— MERITMUN Secretariat</p>`;
+    `<p>MERITMUN Secretariat</p>`;
 
   return sendMail({
     template: "allotment-changed",
@@ -387,11 +387,11 @@ export async function sendQueryReply(input: {
   const text =
     `Hello ${input.name},\n\n` +
     `${input.replyBody}\n\n` +
-    `— MERITMUN Secretariat`;
+    `MERITMUN Secretariat`;
   const html =
     `<p>Hello ${escapeHtml(input.name)},</p>` +
     `<p>${escapeHtml(input.replyBody).replace(/\n/g, "<br/>")}</p>` +
-    `<p>— MERITMUN Secretariat</p>`;
+    `<p>MERITMUN Secretariat</p>`;
 
   return sendMail({
     template: "query-reply",
@@ -413,17 +413,17 @@ export async function sendBroadcast(input: {
   const text =
     `Hello ${input.name},\n\n` +
     `${input.body}\n\n` +
-    `— MERITMUN Secretariat`;
+    `MERITMUN Secretariat`;
   const html =
     `<p>Hello ${escapeHtml(input.name)},</p>` +
     `<p>${escapeHtml(input.body).replace(/\n/g, "<br/>")}</p>` +
-    `<p>— MERITMUN Secretariat</p>`;
+    `<p>MERITMUN Secretariat</p>`;
 
   return sendMail({
     template: "broadcast",
     to: input.to,
     related: input.related,
-    subject: `MERITMUN III — ${input.subject}`,
+    subject: `MERITMUN III, ${input.subject}`,
     html,
     text,
   });

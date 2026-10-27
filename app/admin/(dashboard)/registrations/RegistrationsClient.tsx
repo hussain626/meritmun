@@ -62,7 +62,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[7.5rem_1fr] gap-2 border-b border-line py-2 text-sm last:border-b-0">
       <dt className="text-fg-faint">{label}</dt>
-      <dd className="text-fg">{value || "—"}</dd>
+      <dd className="text-fg">{value || "-"}</dd>
     </div>
   );
 }
@@ -476,7 +476,7 @@ export function RegistrationsClient({
                     </td>
                     <td className="px-3 py-3 text-fg-muted">{row.institution}</td>
                     <td className="px-3 py-3 uppercase text-fg-muted">
-                      {row.committeePrefs[0] ? prefLabel(row.committeePrefs[0]) : "—"}
+                      {row.committeePrefs[0] ? prefLabel(row.committeePrefs[0]) : "-"}
                     </td>
                     <td className="px-3 py-3 text-fg-muted">
                       {EXPERIENCE_LABEL[row.experience] ?? row.experience}
@@ -567,7 +567,7 @@ export function RegistrationsClient({
                   <td className="px-3 py-3 tabular-nums text-fg-muted">
                     {row.paymentAmount != null
                       ? formatPkr(row.paymentAmount)
-                      : "—"}
+                      : "-"}
                   </td>
                   <td className="px-3 py-3">
                     <button
@@ -668,7 +668,7 @@ export function RegistrationsClient({
               label="Experience"
               value={EXPERIENCE_LABEL[selected.experience] ?? selected.experience}
             />
-            <DetailRow label="Awards" value={selected.priorAwards ?? "—"} />
+            <DetailRow label="Awards" value={selected.priorAwards ?? "-"} />
             <DetailRow
               label="Prefs"
               value={selected.committeePrefs.map(prefLabel).join(", ")}
@@ -688,7 +688,7 @@ export function RegistrationsClient({
             {selected.delegationId ? (
               <DetailRow
                 label="Delegation"
-                value={`${delegations.find((d) => d.id === selected.delegationId)?.institutionName ?? "Delegation"} — payment is confirmed on the Delegations tab`}
+                value={`${delegations.find((d) => d.id === selected.delegationId)?.institutionName ?? "Delegation"}, payment is confirmed on the Delegations tab`}
               />
             ) : null}
             {selected.paymentNote ? (
@@ -785,7 +785,7 @@ export function RegistrationsClient({
               {selectedDelegation.paymentNote ? (
                 <DetailRow label="Payment note" value={selectedDelegation.paymentNote} />
               ) : null}
-              <DetailRow label="Notes" value={selectedDelegation.notes ?? "—"} />
+              <DetailRow label="Notes" value={selectedDelegation.notes ?? "-"} />
             </dl>
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
@@ -856,7 +856,7 @@ export function RegistrationsClient({
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
               <span className="font-medium text-fg">
-                Note{amountChanged() ? " (required — why is it different?)" : " (optional)"}
+                Note{amountChanged() ? " (required, why is it different?)" : " (optional)"}
               </span>
               <Textarea
                 rows={2}

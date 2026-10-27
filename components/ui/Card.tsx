@@ -18,7 +18,7 @@ const paddings = {
 } as const;
 
 /**
- * A container of last resort — see the cards rule in `context/ui-rules.md`.
+ * A container of last resort, see the cards rule in `context/ui-rules.md`.
  * Used by exactly three features: committees, board members, and the register
  * hub. Anything else wanting a card should re-read that rule first.
  */

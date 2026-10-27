@@ -90,7 +90,7 @@ export function MobileNav({ items, registrationOpen }: MobileNavProps) {
             tabIndex={-1}
             aria-hidden="true"
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-[var(--z-modal-backdrop)] cursor-default bg-[oklch(0.12_0.02_165/0.7)] backdrop-blur-sm animate-fade"
+            className="fixed inset-0 z-[var(--z-modal-backdrop)] cursor-default bg-[color-mix(in_oklch,var(--green-deep)_80%,transparent)] backdrop-blur-sm animate-fade"
           />
           <div
             ref={sheetRef}

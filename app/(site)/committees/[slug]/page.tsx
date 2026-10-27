@@ -19,7 +19,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${committee.abbr} — ${committee.name}`,
+    title: `${committee.abbr}: ${committee.name}`,
     description: committee.agenda,
   };
 }

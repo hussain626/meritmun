@@ -10,7 +10,7 @@ import { cn, pluralise } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "EB",
   description:
-    "The EB and HODs running MERITMUN III — who holds which portfolio, and which address reaches them.",
+    "The EB and HODs running MERITMUN III, who holds which portfolio, and which address reaches them.",
 };
 
 /** Board `1 / 2 / 4`, per the grid rule in `context/ui-rules.md`. */

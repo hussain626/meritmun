@@ -1,5 +1,5 @@
 /**
- * Homepage announcement bar — singleton CMS row and public projection.
+ * Homepage announcement bar, singleton CMS row and public projection.
  */
 
 export type AnnouncementLinkType = "none" | "internal" | "external";

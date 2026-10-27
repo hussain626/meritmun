@@ -32,7 +32,7 @@ function nextSteps(submission: Submission): string[] {
     case "contact":
       return [
         "The relevant desk has your message and answers within two working days.",
-        "Replies come from an @meritmun.systemsummit.online address — check spam if nothing arrives.",
+        "Replies come from an @meritmun.systemsummit.online address, check spam if nothing arrives.",
       ];
   }
 }
@@ -57,7 +57,7 @@ export function SubmissionResult({ submission }: SubmissionResultProps) {
       </h2>
       <p className="mt-3 max-w-[52ch] text-lg leading-normal text-fg-muted">
         {isRegistration
-          ? `Thank you, ${submission.name}. Keep the codes below — they are how you pay and how we find you at registration.`
+          ? `Thank you, ${submission.name}. Keep the codes below, they are how you pay and how we find you at registration.`
           : `Thank you, ${submission.name}. We have your message.`}
       </p>
 
@@ -101,7 +101,7 @@ export function SubmissionResult({ submission }: SubmissionResultProps) {
           className="mt-7 max-w-[60ch]"
         >
           Your registration is saved, but we could not email the bank details.
-          Note the codes above and email Delegate Affairs — they will send the
+          Note the codes above and email Delegate Affairs, they will send the
           payment details directly.
         </Alert>
       ) : null}

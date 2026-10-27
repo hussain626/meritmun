@@ -13,7 +13,7 @@ import { getPublicSchedule, getRegistrationOpen } from "@/lib/admin/data";
 export const metadata: Metadata = {
   title: "Schedule",
   description:
-    "The three-day running order for MERITMUN III — registration, six committee sessions, crisis, press, and the closing awards. Calendar dates are announced to registrants by email.",
+    "The three-day running order for MERITMUN III. Calendar dates and the venue are emailed to registrants first.",
 };
 
 export default async function SchedulePage() {

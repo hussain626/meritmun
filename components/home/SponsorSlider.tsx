@@ -16,7 +16,7 @@ type SponsorSliderProps = {
 };
 
 /**
- * Continuous logo band for the home page (below hero). Logos only — no cards.
+ * Continuous logo band for the home page (below hero). Logos only, no cards.
  * Duplicates the row for a seamless marquee; pauses on hover / focus-within.
  */
 export function SponsorSlider({ sponsors, className }: SponsorSliderProps) {

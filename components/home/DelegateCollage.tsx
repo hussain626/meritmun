@@ -2,7 +2,7 @@ import Image from "next/image";
 import delegates from "@/public/ppl.png";
 
 /**
- * The cutout collage of delegates on the right of the hero — speaking at
+ * The cutout collage of delegates on the right of the hero, speaking at
  * microphones, holding placards, presenting.
  *
  * This was originally authored as flat SVG figures because no photography was

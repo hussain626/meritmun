@@ -308,12 +308,12 @@ export function CommitteesClient({
                   <div className="flex flex-col gap-3 text-sm">
                     <div>
                       <p className="text-xs font-semibold text-fg-muted">Agenda</p>
-                      <p className="mt-1 text-fg">{selected.agenda || "—"}</p>
+                      <p className="mt-1 text-fg">{selected.agenda || "-"}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-fg-muted">Overview</p>
                       <p className="mt-1 line-clamp-6 text-fg-muted">
-                        {selected.overview || "—"}
+                        {selected.overview || "-"}
                       </p>
                     </div>
                   </div>

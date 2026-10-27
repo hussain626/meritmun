@@ -23,7 +23,7 @@ const socialIcons = { instagram: Instagram, linkedin: Linkedin } as const;
 export function SiteFooter({ items, conference, socials, registrationOpen }: SiteFooterProps) {
   const registerItem = items.find((item) => item.href === "/register");
   const pageItems = items.filter((item) => item.href !== "/register");
-  const year = 2026; // Static build — no Date() so output stays deterministic.
+  const year = 2026; // Static build, no Date() so output stays deterministic.
 
   return (
     <footer className="mt-auto bg-forest text-on-brand">
@@ -105,7 +105,7 @@ export function SiteFooter({ items, conference, socials, registrationOpen }: Sit
               {conference.datesLabel}.
               {registrationOpen
                 ? " Register and we will email you the moment they are confirmed."
-                : " Registration opens soon — the announcement goes up on this site."}
+                : " Registration opens soon, the announcement goes up on this site."}
             </p>
             {socials.length > 0 ? (
             <ul className="mt-5 flex gap-2">

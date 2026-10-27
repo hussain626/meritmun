@@ -69,7 +69,7 @@ export type ScheduleItem = {
 };
 
 /**
- * `date` is nullable by design — conference dates are unannounced. Every
+ * `date` is nullable by design, conference dates are unannounced. Every
  * consumer renders the "to be announced" state rather than inventing a date.
  */
 export type ScheduleDay = {
@@ -162,7 +162,7 @@ export type DelegationApplication = {
   headEmail: string;
   headPhone: string;
   headRole: string;
-  /** Always equals `members.length` — derived, kept for the summary and invoice. */
+  /** Always equals `members.length`, derived, kept for the summary and invoice. */
   delegationSize: number;
   members: DelegationMember[];
   facultyAccompanying: boolean;

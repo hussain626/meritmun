@@ -15,7 +15,7 @@ type InitialsMedallionProps = {
 };
 
 /**
- * Stands in for a photograph until real portraits exist. Always decorative —
+ * Stands in for a photograph until real portraits exist. Always decorative,
  * the person's name is rendered adjacent in text, so announcing the initials
  * again would only repeat it.
  */

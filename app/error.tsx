@@ -26,7 +26,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
             Something broke on our end
           </h1>
           <p className="mt-5 text-lg leading-normal text-fg-muted">
-            This is our fault, not yours. Try again — if it keeps happening,
+            This is our fault, not yours. Try again, if it keeps happening,
             email the secretariat and we will sort it out.
           </p>
           {error.digest ? (

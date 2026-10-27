@@ -1,7 +1,7 @@
 /**
  * Merit scoring (0–100) from experience band + prior awards.
  * Gemini scores in batches when enabled; otherwise a local heuristic.
- * Only the experience band and awards text leave the server — no names,
+ * Only the experience band and awards text leave the server, no names,
  * emails, or phone numbers.
  */
 
@@ -109,7 +109,7 @@ async function scoreChunkWithGemini(
 
 /**
  * Score every delegate. With AI on and a key present, Gemini failure fails
- * the whole run closed (no seats) — EB can switch AI scoring off in rules.
+ * the whole run closed (no seats), EB can switch AI scoring off in rules.
  */
 export async function scoreDelegates(
   delegates: DelegateRecord[],

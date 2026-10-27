@@ -23,7 +23,7 @@ export const EMPTY_MEMBER: DelegationMember = {
   committeePrefs: ["", "", ""],
 };
 
-/** DOM id of one roster control — also how the stepper focuses the first error. */
+/** DOM id of one roster control, also how the stepper focuses the first error. */
 export function memberControlId(index: number, field: string): string {
   return `member-${index}-${field}`;
 }
@@ -58,7 +58,7 @@ export function DelegationRoster({
 }: DelegationRosterProps) {
   const committeeOptions = committees.map((committee) => ({
     value: committee.slug,
-    label: `${committee.abbr} — ${committee.name}`,
+    label: `${committee.abbr}: ${committee.name}`,
   }));
 
   const headListed = members.some(
@@ -110,7 +110,7 @@ export function DelegationRoster({
               <h3 id={id("heading")} className="text-sm font-semibold text-fg">
                 Delegate {index + 1}
                 {member.fullName.trim() ? (
-                  <span className="font-normal text-fg-muted"> — {member.fullName}</span>
+                  <span className="font-normal text-fg-muted">, {member.fullName}</span>
                 ) : null}
               </h3>
               <button
@@ -154,7 +154,7 @@ export function DelegationRoster({
               <Field
                 label="Phone number"
                 htmlFor={id("phone")}
-                helper="WhatsApp preferred — used for conference-day logistics."
+                helper="WhatsApp preferred, used for conference-day logistics."
                 error={err("phone")}
               >
                 <Input
@@ -166,7 +166,7 @@ export function DelegationRoster({
                   aria-describedby={describedBy(
                     id("phone"),
                     err("phone"),
-                    "WhatsApp preferred — used for conference-day logistics.",
+                    "WhatsApp preferred, used for conference-day logistics.",
                   )}
                   onChange={(e) => update(index, { phone: e.target.value })}
                   onBlur={() => touch("phone")}

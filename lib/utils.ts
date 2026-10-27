@@ -1,5 +1,5 @@
 /**
- * Small local utilities. Deliberately dependency-free — see
+ * Small local utilities. Deliberately dependency-free, see
  * `context/library-docs.md` for why `clsx`/`tailwind-merge` were rejected.
  */
 
@@ -79,7 +79,7 @@ export function minutesFromTime(time: string): number {
 
 const REFERENCE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-/** MMIII-XXXXXX. Ambiguous glyphs (I, O, 0, 1) are excluded — people read these aloud. */
+/** MMIII-XXXXXX. Ambiguous glyphs (I, O, 0, 1) are excluded, people read these aloud. */
 export function generateReference(): string {
   let body = "";
   for (let index = 0; index < 6; index += 1) {

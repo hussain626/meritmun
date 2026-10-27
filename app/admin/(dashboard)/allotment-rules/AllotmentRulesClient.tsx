@@ -159,7 +159,7 @@ export function AllotmentRulesClient({
             {new Date(rules.updatedAt).getTime() > 0
               ? `Last saved ${formatAdminDateTime(rules.updatedAt)}.`
               : "Using the default rules."}{" "}
-            Changes apply from the next run — existing drafts stay until you re-run.
+            Changes apply from the next run, existing drafts stay until you re-run.
           </p>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -318,7 +318,7 @@ export function AllotmentRulesClient({
                         </Badge>
                       ) : null}
                       {row.activeCountries === 0 ? (
-                        <p className="text-xs text-danger-fg">Empty pool — engine skips it</p>
+                        <p className="text-xs text-danger-fg">Empty pool, engine skips it</p>
                       ) : null}
                     </td>
                     <td className="px-4 py-3 tabular-nums text-fg-muted">{row.taken}</td>

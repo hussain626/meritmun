@@ -26,7 +26,7 @@ type BadgeProps = {
   children: ReactNode;
 };
 
-/** Tinted pill. No border, no side stripe — see the bans in `ui-rules.md`. */
+/** Tinted pill. No border, no side stripe, see the bans in `ui-rules.md`. */
 export function Badge({
   tone = "neutral",
   size = "md",
