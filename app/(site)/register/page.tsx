@@ -79,8 +79,7 @@ export default async function RegisterPage({
         lead={`${committees.length} committees, three days in ${conference.city}, ${formatNumber(seatCount)} seats. Two ways in, pick the one that describes you.`}
         meta={
           <p className="text-sm text-fg-faint">
-            {conference.datesLabel}. Registering now secures your seat and we
-            email you the dates the moment they are confirmed.
+            {conference.datesLabel} at {conference.venue}, {conference.city}.
           </p>
         }
       />

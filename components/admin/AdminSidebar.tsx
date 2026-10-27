@@ -166,7 +166,7 @@ function BrandBlock() {
     <div className="flex items-center gap-2.5 px-1">
       <LogoMark className="h-10 text-admin-rail-fg" />
       <div className="min-w-0">
-        <p className="truncate font-display text-base tracking-[0.12em] text-admin-rail-fg uppercase">
+        <p className="truncate font-wordmark text-base tracking-[0.12em] text-admin-rail-fg uppercase">
           Meritmun III
         </p>
         <p className="truncate text-[0.6875rem] font-medium text-admin-rail-muted">

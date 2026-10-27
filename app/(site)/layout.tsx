@@ -38,6 +38,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
           country: conference.country,
           datesLabel: conference.datesLabel,
           venue: conference.venue,
+          venueUrl: conference.venueUrl,
         }}
         socials={socials}
         registrationOpen={registrationOpen}

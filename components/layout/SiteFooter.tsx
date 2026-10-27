@@ -14,6 +14,7 @@ type SiteFooterProps = {
     country: string;
     datesLabel: string;
     venue: string;
+    venueUrl: string;
   };
   socials: readonly { label: string; href: string; icon: string }[];
 };
@@ -42,7 +43,14 @@ export function SiteFooter({ items, conference, socials, registrationOpen }: Sit
             <p className="mt-5 flex items-start gap-2 text-sm text-on-brand/75">
               <MapPin className="mt-0.5 size-4 shrink-0" />
               <span>
-                {conference.venue}
+                <a
+                  href={conference.venueUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4 transition-colors duration-[var(--dur-fast)] ease-out hover:text-on-brand focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
+                >
+                  {conference.venue}
+                </a>
                 <br />
                 {conference.city}, {conference.country}
               </span>
@@ -104,7 +112,7 @@ export function SiteFooter({ items, conference, socials, registrationOpen }: Sit
             <p className="mt-4 text-sm leading-normal text-on-brand/75">
               {conference.datesLabel}.
               {registrationOpen
-                ? " Register and we will email you the moment they are confirmed."
+                ? " Registration is open, and your committee and portfolio arrive by email once your payment is confirmed."
                 : " Registration opens soon, the announcement goes up on this site."}
             </p>
             {socials.length > 0 ? (

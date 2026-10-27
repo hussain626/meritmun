@@ -269,7 +269,8 @@
   --color-admin-selected: var(--admin-selected);
 
   /* typography */
-  --font-display: var(--font-poiret), "Josefin Sans", system-ui, sans-serif;
+  --font-display: var(--font-josefin), system-ui, sans-serif;
+  --font-wordmark: var(--font-poiret), var(--font-josefin), system-ui, sans-serif;
   --font-sans: var(--font-archivo), system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 
@@ -459,18 +460,24 @@
   h2,
   h3,
   h4 {
+    font-family: var(--font-display);
     font-weight: 700;
     text-wrap: balance;
   }
 
-  /* Poiret One ships one weight. Never let the browser fake a bold of it:
-     `font-bold` on display text simply renders the true thin face. */
-  .font-display {
+  /* Poiret One (logo lockup) ships one weight; never fake a bold of it. */
+  .font-wordmark {
     font-synthesis: none;
   }
 
   p {
     text-wrap: pretty;
+  }
+
+  /* Netlify injects a "Powered by Netlify" badge iframe on this site. It is
+     also switchable off in the Netlify UI; this keeps it hidden regardless. */
+  #nl-badge-frame {
+    display: none !important;
   }
 
   :focus-visible {

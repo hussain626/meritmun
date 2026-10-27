@@ -41,7 +41,7 @@ export function Hero({
             </p>
             {/* nowrap only from sm up, below that the display size would
                 overflow the viewport rather than wrap. */}
-            <h1 className="mt-4 animate-rise font-display text-display text-on-art uppercase sm:text-nowrap">
+            <h1 className="mt-4 animate-rise font-display text-display font-bold text-on-art uppercase sm:text-nowrap">
               Meritmun <span className="text-on-art-accent">III</span>
             </h1>
             <p className="mt-5 max-w-[34ch] animate-rise text-lg leading-snug text-on-art-muted">

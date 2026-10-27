@@ -52,6 +52,9 @@ export default async function ContactPage() {
                     {channel.href ? (
                       <a
                         href={channel.href}
+                        {...(channel.href.startsWith("http")
+                          ? { target: "_blank", rel: "noopener noreferrer" }
+                          : {})}
                         className="font-medium text-brand-fg underline-offset-4 transition-colors duration-[var(--dur-fast)] ease-out hover:text-accent-fg hover:underline focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
                       >
                         {channel.value}

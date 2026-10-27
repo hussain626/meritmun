@@ -54,10 +54,10 @@ export default async function AboutPage() {
   const institutions = heroStats.find((stat) => stat.id === "institutions");
   const alumni = heroStats.find((stat) => stat.id === "alumni");
 
-  const facts = [
+  const facts: { label: string; value: string; href?: string }[] = [
     { label: "Iteration", value: `${conference.name} ${conference.iteration}` },
     { label: "Host city", value: `${conference.city}, ${conference.country}` },
-    { label: "Venue", value: conference.venue },
+    { label: "Venue", value: conference.venue, href: conference.venueUrl },
     { label: "Dates", value: conference.datesLabel },
     { label: "Length", value: `${conference.durationDays} days` },
     { label: "Committees", value: String(committeeCount) },
@@ -144,7 +144,18 @@ export default async function AboutPage() {
                 >
                   <dt className="shrink-0 text-fg-faint">{fact.label}</dt>
                   <dd className="text-right font-medium text-fg">
-                    {fact.value}
+                    {fact.href ? (
+                      <a
+                        href={fact.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-fg underline underline-offset-4 hover:text-accent-fg focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
+                      >
+                        {fact.value}
+                      </a>
+                    ) : (
+                      fact.value
+                    )}
                   </dd>
                 </div>
               ))}
@@ -155,9 +166,9 @@ export default async function AboutPage() {
 
       <Section width="prose">
         <Alert tone="info" title={conference.datesLabel} className="max-w-[70ch]">
-          The venue and calendar dates are not published yet. Everyone who
-          registers is emailed them the moment they are confirmed, before any
-          public announcement.
+          {conference.fullName} runs over three days at {conference.venue},{" "}
+          {conference.city}. Confirmed delegates receive their committee,
+          portfolio and background guide by email ahead of the first day.
         </Alert>
       </Section>
 

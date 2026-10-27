@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Archivo, Poiret_One } from "next/font/google";
+import { Archivo, Josefin_Sans, Poiret_One } from "next/font/google";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -10,13 +10,21 @@ import "./globals.css";
  * The object is a committee placard and an engraved rostrum nameplate:
  * engraved, deliberate, meant to be spoken aloud.
  *
- * Poiret One carries the display and the wordmark: the thin, geometric Art
- * Deco capitals of the MERITMUN III logo. Archivo takes the text and the UI.
+ * Josefin Sans carries the headings: geometric Art Deco capitals with real
+ * bold weights. Poiret One is kept for the MERITMUN III logo lockup only, to
+ * match the logo. Archivo takes the text and the UI.
  */
 const poiret = Poiret_One({
   variable: "--font-poiret",
   subsets: ["latin"],
   weight: "400",
+  display: "swap",
+});
+
+const josefin = Josefin_Sans({
+  variable: "--font-josefin",
+  subsets: ["latin"],
+  weight: ["600", "700"],
   display: "swap",
 });
 
@@ -76,7 +84,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${poiret.variable} ${archivo.variable} h-full`}
+      className={`${poiret.variable} ${josefin.variable} ${archivo.variable} h-full`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

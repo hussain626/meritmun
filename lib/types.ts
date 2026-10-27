@@ -69,7 +69,7 @@ export type ScheduleItem = {
 };
 
 /**
- * `date` is nullable by design, conference dates are unannounced. Every
+ * `date` is nullable: days without one fall back to the conference dates. Every
  * consumer renders the "to be announced" state rather than inventing a date.
  */
 export type ScheduleDay = {

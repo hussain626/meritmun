@@ -13,7 +13,7 @@ import { getPublicSchedule, getRegistrationOpen } from "@/lib/admin/data";
 export const metadata: Metadata = {
   title: "Schedule",
   description:
-    "The three-day running order for MERITMUN III. Calendar dates and the venue are emailed to registrants first.",
+    "The three-day running order for MERITMUN III, 1, 2 and 3 January 2027 in Karachi.",
 };
 
 export default async function SchedulePage() {
@@ -21,6 +21,11 @@ export default async function SchedulePage() {
     getPublicSchedule(),
     getRegistrationOpen(),
   ]);
+  // Days without a date set in the admin take the conference dates in order.
+  const datedDays = scheduleDays.map((day, index) => ({
+    ...day,
+    date: day.date ?? conference.dayDates[index] ?? null,
+  }));
   return (
     <main id="content">
       <PageHero
@@ -34,7 +39,14 @@ export default async function SchedulePage() {
             </span>
             <span className="flex items-center gap-2">
               <MapPin className="size-4 shrink-0 text-brand-fg" />
-              {conference.venue}, {conference.city}
+              <a
+                href={conference.venueUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
+              >
+                {conference.venue}, {conference.city}
+              </a>
             </span>
           </div>
         }
@@ -42,9 +54,8 @@ export default async function SchedulePage() {
 
       <Section>
         <Alert tone="info" title={conference.datesLabel} className="max-w-[70ch]">
-          Calendar dates and the venue are still to be confirmed. Registrants
-          are emailed them before they go public anywhere else, and times below
-          may change until then.
+          Three days at {conference.venue}, {conference.city}. Times below may
+          still be adjusted; registrants are emailed any change.
         </Alert>
 
         <div className="mt-14">
@@ -55,7 +66,7 @@ export default async function SchedulePage() {
 
           <div className="mt-10">
             {scheduleDays.length > 0 ? (
-              <DayTabs days={scheduleDays} registrationOpen={registrationOpen} />
+              <DayTabs days={datedDays} registrationOpen={registrationOpen} />
             ) : (
               <EmptyState
                 title="The running order is being finalised"

@@ -50,7 +50,7 @@ const faqs: FaqEntry[] = [
     id: "when",
     question: "When is MERITMUN III?",
     answer:
-      "Dates are not announced yet. The conference runs over three days in Karachi. Register now and you will be emailed the dates the moment they are confirmed, registering does not lock you into a date you have not seen.",
+      "MERITMUN III runs on 1, 2 and 3 January 2027 at Meritorious College, PECHS Campus (AKUEB & A Levels), Karachi. The full running order is on the Schedule page.",
     topics: ["logistics", "registration"],
   },
   {

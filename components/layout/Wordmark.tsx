@@ -36,7 +36,7 @@ export function Wordmark({ variant = "full", className }: WordmarkProps) {
     <span className={cn("inline-flex items-center gap-3 text-fg", className)}>
       <LogoMark className={variant === "mark" ? "h-8" : "h-10"} />
       {variant === "full" ? (
-        <span className="font-display text-[1.4rem] leading-none tracking-[0.12em] whitespace-nowrap uppercase">
+        <span className="font-wordmark text-[1.4rem] leading-none tracking-[0.12em] whitespace-nowrap uppercase">
           Meritmun <span className="tracking-[0.2em]">III</span>
         </span>
       ) : null}

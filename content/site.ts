@@ -12,14 +12,16 @@ export const conference = {
   fullName: "MERITMUN III",
   longName: "Meritorious Model United Nations, Third Iteration",
   tagline: "Discover the World of Diplomacy",
-  /** Dates are unannounced. Consumers must render the TBD state, never invent one. */
-  dates: null as string | null,
-  datesLabel: "Dates to be announced",
+  /** Conference days, in order (ISO dates, Karachi time). */
+  dayDates: ["2027-01-01", "2027-01-02", "2027-01-03"] as readonly string[],
+  datesLabel: "1, 2 and 3 January 2027",
   durationDays: 3,
   city: "Karachi",
   country: "Pakistan",
-  /** Shown until the venue is confirmed; registrants are told first. */
-  venue: "Venue to be announced",
+  venue: "Meritorious College, PECHS Campus (AKUEB & A Levels)",
+  /** Opens the venue in Google Maps. */
+  venueUrl:
+    "https://www.google.com/maps/search/?api=1&query=Meritorious+College+PECHS+Campus+Karachi",
 } as const;
 
 /** Demo-mode seed fees. The live site reads /admin/pricing. */
@@ -75,9 +77,9 @@ export const contactChannels: ContactChannel[] = [
   {
     id: "venue",
     label: "Venue",
-    value: `${conference.venue} · ${conference.city}`,
-    href: null,
-    note: "Registrants are emailed the venue and dates before they are announced publicly.",
+    value: `${conference.venue}, ${conference.city}`,
+    href: conference.venueUrl,
+    note: "Open in Google Maps for directions.",
   },
 ];
 
