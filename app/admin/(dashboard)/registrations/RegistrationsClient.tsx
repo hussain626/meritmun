@@ -275,7 +275,7 @@ export function RegistrationsClient({
     if (tab === "delegates") {
       exportCsv(
         "meritmun-delegates.csv",
-        "Code,Name,Email,Phone,Institution,Pref1,Experience,Payment,Amount PKR,Registered",
+        "Code,Name,Email,Phone,Institution,Pref1,Experience,Referred by,Payment,Amount PKR,Registered",
         filteredDelegates.map((d) =>
           [
             d.delegateCode,
@@ -285,6 +285,7 @@ export function RegistrationsClient({
             d.institution,
             d.committeePrefs[0] ? prefLabel(d.committeePrefs[0]) : "",
             d.experience,
+            d.referredBy ?? "",
             d.paymentStatus,
             d.paymentAmount ?? "",
             formatAdminDate(d.createdAt),
@@ -297,7 +298,7 @@ export function RegistrationsClient({
     }
     exportCsv(
       "meritmun-delegations.csv",
-      "Reference,Institution,Head,Email,Phone,Size,Payment,Amount PKR,Registered",
+      "Reference,Institution,Head,Email,Phone,Size,Referred by,Payment,Amount PKR,Registered",
       filteredDelegations.map((d) =>
         [
           d.reference,
@@ -306,6 +307,7 @@ export function RegistrationsClient({
           d.headEmail,
           d.headPhone,
           d.delegationSize,
+          d.referredBy ?? "",
           d.paymentStatus,
           d.paymentAmount ?? "",
           formatAdminDate(d.createdAt),
@@ -675,6 +677,7 @@ export function RegistrationsClient({
               value={EXPERIENCE_LABEL[selected.experience] ?? selected.experience}
             />
             <DetailRow label="Awards" value={selected.priorAwards ?? "-"} />
+            <DetailRow label="Referred by" value={selected.referredBy || "-"} />
             <DetailRow
               label="Prefs"
               value={selected.committeePrefs.map(prefLabel).join(", ")}
@@ -789,6 +792,7 @@ export function RegistrationsClient({
               <DetailRow label="Head" value={selectedDelegation.headName} />
               <DetailRow label="Email" value={selectedDelegation.headEmail} />
               <DetailRow label="Phone" value={selectedDelegation.headPhone} />
+              <DetailRow label="Referred by" value={selectedDelegation.referredBy || "-"} />
               <DetailRow
                 label="Size"
                 value={String(selectedDelegation.delegationSize)}

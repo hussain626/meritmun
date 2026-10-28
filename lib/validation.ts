@@ -128,7 +128,7 @@ export const CONTACT_TOPICS = [
  */
 export const DELEGATE_STEP_FIELDS: string[][] = [
   ["fullName", "email", "phone", "city", "institution"],
-  ["experience", "hearAbout"],
+  ["experience", "hearAbout", "referredBy"],
   [
     "committeePrefs",
     "coDelegate",
@@ -146,7 +146,7 @@ export const DELEGATE_STEP_FIELDS: string[][] = [
  */
 export const DELEGATION_STEP_FIELDS: string[][] = [
   ["institutionName", "institutionCity", "institutionType"],
-  ["headName", "headEmail", "headPhone", "headRole"],
+  ["headName", "headEmail", "headPhone", "headRole", "referredBy"],
   ["members"],
   ["delegationSize", "accommodationCount"],
   ["consent"],
@@ -273,6 +273,11 @@ function validateMembers(
   return errors;
 }
 
+/** The optional reference only needs a sane length. */
+function referenceError(value: string | null): string | null {
+  return value && value.length > 120 ? "Keep the reference under 120 characters." : null;
+}
+
 export function validateDelegate(
   values: DelegateApplication,
   validCommitteeSlugs: readonly string[],
@@ -294,6 +299,7 @@ export function validateDelegate(
     institution: minLength(values.institution, 2, "Institution"),
     experience: oneOf(values.experience, EXPERIENCE_LEVELS, "Experience level"),
     hearAbout: oneOf(values.hearAbout, HEAR_ABOUT, "Answer"),
+    referredBy: referenceError(values.referredBy),
     committeePrefs: prefError,
     ...coDelegateErrors,
     consent: values.consent
@@ -333,6 +339,7 @@ export function validateDelegation(
     headEmail: validEmail(values.headEmail),
     headPhone: validPhone(values.headPhone),
     headRole: required(values.headRole, "Your role"),
+    referredBy: referenceError(values.referredBy),
     ...validateMembers(values, validCommitteeSlugs, limits, doubleCommittees),
     accommodationCount: accommodationError,
     committeeSpread: spreadError,

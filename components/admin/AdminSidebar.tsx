@@ -14,6 +14,7 @@ import { Gavel } from "@/components/icons/Gavel";
 import { Globe } from "@/components/icons/Globe";
 import { Inbox } from "@/components/icons/Inbox";
 import { LayoutDashboard } from "@/components/icons/LayoutDashboard";
+import { Mail } from "@/components/icons/Mail";
 import { Megaphone } from "@/components/icons/Megaphone";
 import { Menu } from "@/components/icons/Menu";
 import { Settings } from "@/components/icons/Settings";
@@ -84,6 +85,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "Secretariat & HODs",
     icon: Building,
     roles: ["admin", "eb"],
+  },
+  {
+    href: "/admin/mail",
+    label: "Mail",
+    icon: Mail,
+    roles: ["admin"],
   },
   {
     href: "/admin/team",

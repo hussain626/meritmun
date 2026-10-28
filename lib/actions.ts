@@ -101,14 +101,22 @@ async function registrationClient() {
 
 type DbError = { code?: string; message?: string } | null;
 
-/** Migration 008 not applied yet: the quoted_amount column is missing. */
-function isMissingQuoteColumn(error: DbError): boolean {
-  if (!error) return false;
-  return (
-    error.code === "PGRST204" ||
-    error.code === "42703" ||
-    /quoted_amount/i.test(error.message ?? "")
-  );
+/**
+ * Columns added by later migrations. If a deployment has not run one yet, the
+ * insert is retried without it so registration keeps working.
+ */
+const OPTIONAL_COLUMNS: Record<string, string> = {
+  quoted_amount: "008_quoted_amounts.sql",
+  referred_by: "013_referrals.sql",
+};
+
+function missingOptionalColumn(error: DbError): string | null {
+  if (!error) return null;
+  const message = error.message ?? "";
+  const named = Object.keys(OPTIONAL_COLUMNS).find((c) => message.includes(c));
+  if (named) return named;
+  // Older PostgREST errors may not name the column; quoted_amount came first.
+  return error.code === "PGRST204" || error.code === "42703" ? "quoted_amount" : null;
 }
 
 function isUniqueViolation(error: DbError): boolean {
@@ -124,18 +132,22 @@ async function insertQuoted(
   table: "delegates" | "delegations",
   rows: Record<string, unknown>[],
 ): Promise<DbError> {
-  const { error } = await client.from(table).insert(rows);
-  if (!isMissingQuoteColumn(error)) return error;
-  console.warn(
-    `[meritmun] ${table}.quoted_amount missing, run supabase/migrations/008_quoted_amounts.sql`,
-  );
-  const stripped = rows.map((row) => {
-    const copy = { ...row };
-    delete copy.quoted_amount;
-    return copy;
-  });
-  const retry = await client.from(table).insert(stripped);
-  return retry.error;
+  let current = rows;
+  const stripped = new Set<string>();
+  for (;;) {
+    const { error } = await client.from(table).insert(current);
+    const column = missingOptionalColumn(error);
+    if (!column || stripped.has(column)) return error;
+    stripped.add(column);
+    console.warn(
+      `[meritmun] ${table}.${column} missing, run supabase/migrations/${OPTIONAL_COLUMNS[column]}`,
+    );
+    current = current.map((row) => {
+      const copy = { ...row };
+      delete copy[column];
+      return copy;
+    });
+  }
 }
 
 /** Reference / delegate-code collisions are rare; retry with fresh codes. */
@@ -252,6 +264,7 @@ async function persistDelegate(app: DelegateApplication): Promise<Submission> {
       experience: app.experience,
       priorAwards: app.priorAwards,
       quotedAmount: fee,
+      referredBy: app.referredBy,
       paidBy: null,
     };
     store.delegates.unshift(record);
@@ -277,6 +290,7 @@ async function persistDelegate(app: DelegateApplication): Promise<Submission> {
           payment_status: "pending",
           fee_type: pricing.delegateFeeType,
           quoted_amount: fee,
+          ...(app.referredBy ? { referred_by: app.referredBy } : {}),
           ...(pairId ? { pair_id: pairId } : {}),
         },
       ];
@@ -389,6 +403,7 @@ async function persistDelegation(
       headEmail: app.headEmail,
       headPhone: app.headPhone,
       headRole: app.headRole,
+      referredBy: app.referredBy,
       delegationSize: members.length,
       facultyAccompanying: app.facultyAccompanying,
       committeeSpread: app.committeeSpread,
@@ -449,6 +464,7 @@ async function persistDelegation(
           head_email: app.headEmail,
           head_phone: app.headPhone,
           head_role: app.headRole,
+          ...(app.referredBy ? { referred_by: app.referredBy } : {}),
           delegation_size: members.length,
           faculty_accompanying: app.facultyAccompanying,
           committee_spread: app.committeeSpread,
@@ -560,6 +576,7 @@ function readDelegateForm(formData: FormData): DelegateApplication {
     // Radio "socialTier": "with" or "without"; default with social.
     withSocial: getField(formData, "socialTier") !== "without",
     hearAbout: getField(formData, "hearAbout") as HearAbout,
+    referredBy: getField(formData, "referredBy") || null,
     coDelegate: readCoDelegate(formData),
     consent: getCheckbox(formData, "consent"),
   };
@@ -652,6 +669,7 @@ function readDelegationForm(formData: FormData): DelegationApplication {
     headEmail: getField(formData, "headEmail"),
     headPhone: getField(formData, "headPhone"),
     headRole: getField(formData, "headRole"),
+    referredBy: getField(formData, "referredBy") || null,
     delegationSize: members.length,
     members,
     facultyAccompanying: getCheckbox(formData, "facultyAccompanying"),

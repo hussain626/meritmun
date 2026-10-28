@@ -137,6 +137,8 @@ export type DelegateApplication = {
   /** Fee tier: with social (true) or without social (false). */
   withSocial: boolean;
   hearAbout: HearAbout;
+  /** Optional: who referred them (an ambassador, team member or friend). */
+  referredBy: string | null;
   /**
    * Only when the first choice is a double-delegate committee: be paired with
    * a random co-delegate, or bring one (and pay for both).
@@ -184,6 +186,8 @@ export type DelegationApplication = {
   headEmail: string;
   headPhone: string;
   headRole: string;
+  /** Optional: who referred the delegation. */
+  referredBy: string | null;
   /** Always equals `members.length`, derived, kept for the summary and invoice. */
   delegationSize: number;
   members: DelegationMember[];

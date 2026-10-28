@@ -74,6 +74,7 @@ const EMPTY: DelegationApplication = {
   headEmail: "",
   headPhone: "",
   headRole: "",
+  referredBy: null,
   delegationSize: 0,
   members: [],
   facultyAccompanying: false,
@@ -208,6 +209,7 @@ export function DelegationForm({
         { label: "Role", value: values.headRole },
         { label: "Email", value: values.headEmail },
         { label: "Phone", value: values.headPhone },
+        { label: "Reference", value: values.referredBy ?? "" },
       ],
     },
     {
@@ -398,6 +400,28 @@ export function DelegationForm({
               aria-describedby={describedBy("headPhone", errorFor("headPhone"))}
               onChange={(event) => set("headPhone", event.target.value)}
               onBlur={() => touch("headPhone")}
+            />
+          </Field>
+
+          <Field
+            label="Reference"
+            htmlFor="referredBy"
+            optional
+            helper="Did someone refer your delegation? Add their name, e.g. a campus ambassador or a MERITMUN team member."
+            error={errorFor("referredBy")}
+          >
+            <Input
+              id="referredBy"
+              name="referredBy"
+              maxLength={120}
+              value={values.referredBy ?? ""}
+              invalid={Boolean(errorFor("referredBy"))}
+              aria-describedby={describedBy(
+                "referredBy",
+                errorFor("referredBy"),
+                "Did someone refer your delegation? Add their name, e.g. a campus ambassador or a MERITMUN team member.",
+              )}
+              onChange={(event) => set("referredBy", event.target.value)}
             />
           </Field>
         </div>

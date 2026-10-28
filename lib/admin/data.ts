@@ -134,6 +134,7 @@ export function mapDelegateRow(row: Record<string, unknown>): DelegateRecord {
       : [],
     accommodation: Boolean(row.accommodation),
     hearAbout: row.hear_about as DelegateRecord["hearAbout"],
+    referredBy: row.referred_by == null ? null : String(row.referred_by),
     paymentStatus: row.payment_status as DelegateRecord["paymentStatus"],
     paymentAmount:
       row.payment_amount == null ? null : Number(row.payment_amount),
@@ -174,6 +175,7 @@ function mapDelegation(row: Record<string, unknown>): DelegationRecord {
     headEmail: String(row.head_email),
     headPhone: String(row.head_phone),
     headRole: String(row.head_role),
+    referredBy: row.referred_by == null ? null : String(row.referred_by),
     delegationSize: Number(row.delegation_size),
     facultyAccompanying: Boolean(row.faculty_accompanying),
     committeeSpread: Array.isArray(row.committee_spread)

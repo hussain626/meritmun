@@ -101,6 +101,8 @@ export type DelegateRecord = {
   committeePrefs: string[];
   accommodation: boolean;
   hearAbout: HearAbout;
+  /** Who referred them, if they said. */
+  referredBy?: string | null;
   paymentStatus: PaymentStatus;
   paymentAmount: number | null;
   /** Fee quoted at registration (emailed with the bank details). */
@@ -138,6 +140,8 @@ export type DelegationRecord = {
   headEmail: string;
   headPhone: string;
   headRole: string;
+  /** Who referred the delegation, if they said. */
+  referredBy?: string | null;
   delegationSize: number;
   facultyAccompanying: boolean;
   committeeSpread: string[];

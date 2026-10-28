@@ -87,6 +87,7 @@ const EMPTY: DelegateApplication = {
   accommodation: false,
   withSocial: true,
   hearAbout: "" as HearAbout,
+  referredBy: null,
   coDelegate: null,
   consent: false,
 };
@@ -258,6 +259,7 @@ export function DelegateForm({
             HEAR_ABOUT_OPTIONS.find((o) => o.value === values.hearAbout)
               ?.label ?? "",
         },
+        { label: "Reference", value: values.referredBy ?? "" },
       ],
     },
     {
@@ -462,6 +464,28 @@ export function DelegateForm({
               set("hearAbout", event.target.value as HearAbout);
               setTouched((c) => new Set([...c, "hearAbout"]));
             }}
+          />
+        </Field>
+
+        <Field
+          label="Reference"
+          htmlFor="referredBy"
+          optional
+          helper="Did someone refer you? Add their name, e.g. a campus ambassador or a MERITMUN team member."
+          error={errorFor("referredBy")}
+        >
+          <Input
+            id="referredBy"
+            name="referredBy"
+            maxLength={120}
+            value={values.referredBy ?? ""}
+            invalid={Boolean(errorFor("referredBy"))}
+            aria-describedby={describedBy(
+              "referredBy",
+              errorFor("referredBy"),
+              "Did someone refer you? Add their name, e.g. a campus ambassador or a MERITMUN team member.",
+            )}
+            onChange={(event) => set("referredBy", event.target.value)}
           />
         </Field>
       </FormStep>

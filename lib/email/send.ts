@@ -39,14 +39,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Best-effort audit row; a logging failure never fails the send. */
 async function logEmail(
-  input: { template: string; to: string; related?: EmailRelated },
+  input: { template: string; to: string | string[]; related?: EmailRelated },
   result: SendResult,
 ): Promise<void> {
   const service = createServiceClient();
   if (!service) return;
   try {
     const { error } = await service.from("email_logs").insert({
-      to_email: input.to,
+      to_email: Array.isArray(input.to) ? input.to.join(", ") : input.to,
       template: input.template,
       related_type: input.related?.type ?? null,
       related_id:
@@ -62,7 +62,12 @@ async function logEmail(
 
 async function sendMail(input: {
   template: string;
-  to: string;
+  to: string | string[];
+  /** Extra recipients: everyone in `to` sees them. */
+  cc?: string[];
+  /** Overrides the default sender, e.g. a named inbox on the domain. */
+  from?: string;
+  replyTo?: string;
   subject: string;
   html: string;
   text: string;
@@ -83,8 +88,10 @@ async function sendMail(input: {
     // become { ok: false } so a send can never abort the caller mid-batch.
     try {
       const { data, error } = await client.emails.send({
-        from: getFromAddress(),
+        from: input.from ?? getFromAddress(),
         to: input.to,
+        ...(input.cc?.length ? { cc: input.cc } : {}),
+        ...(input.replyTo ? { replyTo: input.replyTo } : {}),
         subject: input.subject,
         html: input.html,
         text: input.text,
@@ -751,6 +758,51 @@ export async function sendBroadcast(input: {
     to: input.to,
     related: input.related,
     subject: `MERITMUN III, ${input.subject}`,
+    html,
+    text,
+  });
+}
+
+/** The president's inbox; replies land there because it is also Reply-To. */
+export function getPresidentAddress(): string {
+  const from = process.env.PRESIDENT_EMAIL_FROM?.trim();
+  return from && from.length > 0
+    ? from
+    : "President, MERITMUN III <president@meritmun.systemsummit.online>";
+}
+
+/**
+ * A personal email from the president, sent from the president's inbox in the
+ * MERITMUN layout. Blank lines in the body start new paragraphs.
+ */
+export async function sendPresidentMail(input: {
+  to: string[];
+  cc?: string[];
+  subject: string;
+  body: string;
+  signature: string;
+}): Promise<SendResult> {
+  const from = getPresidentAddress();
+  const paragraphs = input.body
+    .split(/\r?\n\s*\r?\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const text = `${paragraphs.join("\n\n")}\n\n${input.signature}`;
+  const html = renderEmail({
+    preheader: input.body.replace(/\s+/g, " ").slice(0, 120),
+    heading: input.subject,
+    bodyHtml:
+      paragraphs.map((p) => paragraph(multiline(p))).join("") +
+      paragraph(multiline(input.signature)),
+  });
+
+  return sendMail({
+    template: "president",
+    to: input.to,
+    cc: input.cc,
+    from,
+    replyTo: from.match(/<([^>]+)>/)?.[1] ?? from,
+    subject: input.subject,
     html,
     text,
   });

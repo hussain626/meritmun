@@ -41,6 +41,7 @@ import {
   sendPaymentConfirmed,
   sendQueryReply,
   sendBroadcast,
+  sendPresidentMail,
   sendRegistrationConfirmation,
 } from "@/lib/email/send";
 import { runMeritEngineAction } from "@/lib/admin/allotment-actions";
@@ -2161,4 +2162,76 @@ export async function updateTeamMemberRole(
     console.warn("[meritmun/admin] updateTeamMemberRole", error);
     return { ok: false, message: "Could not change the role." };
   }
+}
+
+const EMAIL_PATTERN = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
+const MAX_MAIL_RECIPIENTS = 20;
+
+/** "a@x.com, b@y.com; c@z.com" → unique addresses, plus any that are invalid. */
+function parseAddresses(raw: string): { valid: string[]; invalid: string[] } {
+  const seen = new Set<string>();
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  for (const part of raw.split(/[\s,;]+/)) {
+    const address = part.trim();
+    if (!address) continue;
+    const key = address.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    (EMAIL_PATTERN.test(address) ? valid : invalid).push(address);
+  }
+  return { valid, invalid };
+}
+
+/** Send an email from the president's inbox (/mail). Admin only. */
+export async function sendPresidentEmail(input: {
+  to: string;
+  cc: string;
+  subject: string;
+  body: string;
+  signature: string;
+}): Promise<{ ok: boolean; message: string }> {
+  const auth = await authorizeAction(ADMIN_ONLY, "send email as the president");
+  if (!auth.ok) return auth;
+
+  const to = parseAddresses(input.to);
+  const cc = parseAddresses(input.cc);
+  const subject = input.subject.trim();
+  const body = input.body.trim();
+  const signature = input.signature.trim();
+
+  const invalid = [...to.invalid, ...cc.invalid];
+  if (invalid.length > 0) {
+    return { ok: false, message: `Not a valid email address: ${invalid.join(", ")}` };
+  }
+  if (to.valid.length === 0) return { ok: false, message: "Add at least one recipient." };
+  if (to.valid.length + cc.valid.length > MAX_MAIL_RECIPIENTS) {
+    return {
+      ok: false,
+      message: `Up to ${MAX_MAIL_RECIPIENTS} recipients per email. Use the broadcast on the Overview page for larger lists.`,
+    };
+  }
+  if (!subject || !body) return { ok: false, message: "Add a subject and a message." };
+  if (subject.length > 150) {
+    return { ok: false, message: "Keep the subject under 150 characters." };
+  }
+  if (body.length > 20000) return { ok: false, message: "The message is too long." };
+
+  const ccOnly = cc.valid.filter(
+    (address) => !to.valid.some((t) => t.toLowerCase() === address.toLowerCase()),
+  );
+  const sent = await sendPresidentMail({
+    to: to.valid,
+    cc: ccOnly,
+    subject,
+    body,
+    signature,
+  });
+  if (!sent.ok) return { ok: false, message: deliveryNote(sent) };
+  if (sent.mocked) return { ok: false, message: deliveryNote(sent) };
+  const count = to.valid.length + ccOnly.length;
+  return {
+    ok: true,
+    message: `Sent to ${count} recipient${count === 1 ? "" : "s"}.`,
+  };
 }
