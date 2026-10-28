@@ -44,7 +44,9 @@ import {
   sendRegistrationConfirmation,
 } from "@/lib/email/send";
 import { runMeritEngineAction } from "@/lib/admin/allotment-actions";
+import { listFinanceRows } from "@/lib/admin/finances";
 import {
+  isPdfProof,
   proofUrl,
   removeProof,
   saveProof,
@@ -690,6 +692,50 @@ export async function getPaymentProofUrl(
   return url
     ? { ok: true, message: "Opened.", url }
     : { ok: false, message: "The screenshot could not be found in storage." };
+}
+
+export type ProofSheet = {
+  munCode: string;
+  payer: string;
+  reference: string;
+  typeLabel: string;
+  received: number | null;
+  quoted: number;
+  confirmedBy: string | null;
+  confirmedAt: string | null;
+  url: string | null;
+  isPdf: boolean;
+};
+
+/**
+ * Every attached payment screenshot for a status filter (empty = all), with
+ * the MUN code and payer to print above it. The browser fetches each URL and
+ * builds the combined PDF.
+ */
+export async function listPaymentProofSheets(
+  status: string,
+): Promise<{ ok: boolean; message: string; sheets?: ProofSheet[] }> {
+  const auth = await authorizeAction(PAYMENT_ROLES, "download payment screenshots");
+  if (!auth.ok) return auth;
+
+  const rows = (await listFinanceRows()).filter(
+    (r) => r.proofPath && (!status || r.status === status),
+  );
+  const sheets = await Promise.all(
+    rows.map(async (r): Promise<ProofSheet> => ({
+      munCode: r.munCode,
+      payer: r.payer,
+      reference: r.reference,
+      typeLabel: r.typeLabel,
+      received: r.received,
+      quoted: r.quoted,
+      confirmedBy: r.confirmedBy,
+      confirmedAt: r.confirmedAt,
+      url: await proofUrl(r.proofPath as string),
+      isPdf: isPdfProof(r.proofPath as string),
+    })),
+  );
+  return { ok: true, message: `${sheets.length} screenshots.`, sheets };
 }
 
 export async function rejectDelegationPayment(

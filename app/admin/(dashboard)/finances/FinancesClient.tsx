@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Download } from "@/components/icons/Download";
 import { FileText } from "@/components/icons/FileText";
 import { KpiCard } from "@/components/admin/KpiCard";
@@ -10,7 +10,9 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { listPaymentProofSheets } from "@/lib/admin/actions";
 import type { FinanceRow, FinanceSummary } from "@/lib/admin/finances";
+import { buildProofPdf } from "@/lib/admin/proof-pdf";
 import { formatAdminDateTime, formatNumber, formatPkr } from "@/lib/utils";
 
 type FinancesClientProps = {
@@ -26,6 +28,8 @@ function csvCell(value: string | number | null): string {
 export function FinancesClient({ rows, summary }: FinancesClientProps) {
   const [status, setStatus] = useState("confirmed");
   const [query, setQuery] = useState("");
+  const [pdfPending, startPdf] = useTransition();
+  const [pdfMessage, setPdfMessage] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -85,6 +89,33 @@ export function FinancesClient({ rows, summary }: FinancesClientProps) {
     URL.revokeObjectURL(url);
   }
 
+  function downloadScreenshots() {
+    setPdfMessage(null);
+    startPdf(async () => {
+      const result = await listPaymentProofSheets(status);
+      if (!result.ok || !result.sheets) {
+        setPdfMessage(result.message);
+        return;
+      }
+      if (result.sheets.length === 0) {
+        setPdfMessage("No screenshots are attached for this filter.");
+        return;
+      }
+      try {
+        const blob = await buildProofPdf(result.sheets);
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `meritmun-payment-screenshots-${status || "all"}.pdf`;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setPdfMessage(`Downloaded ${result.sheets.length} screenshot${result.sheets.length === 1 ? "" : "s"} in one PDF.`);
+      } catch {
+        setPdfMessage("Could not build the PDF. Try again.");
+      }
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -100,6 +131,16 @@ export function FinancesClient({ rows, summary }: FinancesClientProps) {
             >
               Download CSV
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              iconStart={<Download className="size-4" />}
+              onClick={downloadScreenshots}
+              loading={pdfPending}
+              loadingLabel="Building PDF…"
+            >
+              Screenshots PDF
+            </Button>
             <ButtonLink
               href={`/admin/finances-report?status=${status}`}
               target="_blank"
@@ -112,6 +153,12 @@ export function FinancesClient({ rows, summary }: FinancesClientProps) {
           </>
         }
       />
+
+      {pdfMessage ? (
+        <p role="status" className="text-sm text-fg-muted">
+          {pdfMessage}
+        </p>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Received" value={formatPkr(summary.received)} hint={`${summary.confirmed} confirmed payments`} />

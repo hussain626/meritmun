@@ -13,6 +13,8 @@ export type FinanceRow = {
   id: string;
   kind: "delegate" | "delegation";
   reference: string;
+  /** The MUN code to match a payment by: delegate code, or delegation reference. */
+  munCode: string;
   payer: string;
   email: string;
   institution: string;
@@ -27,6 +29,8 @@ export type FinanceRow = {
   confirmedBy: string | null;
   confirmedAt: string | null;
   hasProof: boolean;
+  /** Storage path of the transfer screenshot, when attached. */
+  proofPath: string | null;
   registeredAt: string;
 };
 
@@ -66,6 +70,7 @@ export async function listFinanceRows(): Promise<FinanceRow[]> {
       id: d.id,
       kind: "delegate",
       reference: d.reference,
+      munCode: d.delegateCode,
       payer: d.fullName,
       email: d.email,
       institution: d.institution,
@@ -78,6 +83,7 @@ export async function listFinanceRows(): Promise<FinanceRow[]> {
       confirmedBy: staffName(d.paymentConfirmedBy),
       confirmedAt: d.paymentStatus === "confirmed" ? d.paymentConfirmedAt : null,
       hasProof: Boolean(d.paymentProofPath),
+      proofPath: d.paymentProofPath ?? null,
       registeredAt: d.createdAt,
     });
   }
@@ -92,6 +98,7 @@ export async function listFinanceRows(): Promise<FinanceRow[]> {
       id: g.id,
       kind: "delegation",
       reference: g.reference,
+      munCode: g.reference,
       payer: `${g.institutionName} (${g.headName})`,
       email: g.headEmail,
       institution: g.institutionName,
@@ -104,6 +111,7 @@ export async function listFinanceRows(): Promise<FinanceRow[]> {
       confirmedBy: staffName(g.paymentConfirmedBy),
       confirmedAt: g.paymentStatus === "confirmed" ? (g.paymentConfirmedAt ?? null) : null,
       hasProof: Boolean(g.paymentProofPath),
+      proofPath: g.paymentProofPath ?? null,
       registeredAt: g.createdAt,
     });
   }
