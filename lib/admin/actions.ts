@@ -181,6 +181,8 @@ export async function signOutAdmin(): Promise<void> {
 const STAFF: AdminRole[] = ["admin", "eb"];
 /** Fees and bank accounts are admin-only (RLS: pricing/bank admin write). */
 const ADMIN_ONLY: AdminRole[] = ["admin"];
+/** Payments: admins, the EB and reviewers confirm or reject them. */
+const PAYMENT_ROLES: AdminRole[] = ["admin", "eb", "reviewer"];
 
 /**
  * Re-plan drafts after a payment so the newly paid delegates compete on merit
@@ -188,8 +190,15 @@ const ADMIN_ONLY: AdminRole[] = ["admin"];
  * Existing draft scores are reused, so only the new delegates are scored.
  * Payment stays confirmed even if this fails.
  */
-async function queueMerit(delegateIds: string[]): Promise<string> {
+async function queueMerit(
+  delegateIds: string[],
+  role: AdminRole = "admin",
+): Promise<string> {
   if (delegateIds.length === 0) return "No delegates to allot.";
+  // Reviewers confirm payments but do not run allotments.
+  if (role === "reviewer") {
+    return "An admin or EB member seats them on the next merit run.";
+  }
   try {
     const result = await runMeritEngineAction({ reuseScores: true });
     return result.ok ? result.message : `Merit run did not complete: ${result.message}`;
@@ -201,6 +210,42 @@ async function queueMerit(delegateIds: string[]): Promise<string> {
 
 const MEMBER_PAYMENT =
   "This delegate is part of a delegation, one payment covers the roster. Confirm or reject it from the Delegations tab.";
+
+const COVERED_PAYMENT =
+  "This co-delegate's fee is paid through the delegate who registered them. Confirm or reject that registration instead.";
+
+/** Mark the co-delegates whose fee this registration paid (demo store). */
+function confirmCoveredDemo(payerId: string, userId: string, stamp: string): string[] {
+  const covered = getDemoStore().delegates.filter((d) => d.paidBy === payerId);
+  for (const d of covered) {
+    d.paymentStatus = "confirmed";
+    d.paymentAmount = null;
+    d.paymentConfirmedAt = stamp;
+    d.paymentConfirmedBy = userId;
+    d.paymentRejectedAt = null;
+    d.rejectionReason = null;
+    d.updatedAt = stamp;
+  }
+  return covered.map((d) => d.id);
+}
+
+/** Same for Supabase. Before migration 011 there is no paid_by column, so no co-delegates. */
+async function updateCovered(
+  client: Awaited<ReturnType<typeof createClient>>,
+  payerId: string,
+  patch: Record<string, unknown>,
+): Promise<string[]> {
+  const { data, error } = await client
+    .from("delegates")
+    .update(patch)
+    .eq("paid_by", payerId)
+    .select("id");
+  if (error) {
+    if (error.code === "42703" || /paid_by/i.test(error.message)) return [];
+    throw error;
+  }
+  return (data ?? []).map((row) => String(row.id));
+}
 
 /** Payment rejected: free any seat the delegate held so it can be re-allotted. */
 async function releaseSeats(
@@ -291,20 +336,21 @@ const MIGRATION_009 =
 export async function confirmPayment(
   formData: FormData,
 ): Promise<{ ok: boolean; message: string }> {
-  const auth = await authorizeAction(STAFF, "confirm payments");
+  const auth = await authorizeAction(PAYMENT_ROLES, "confirm payments");
   if (!auth.ok) return auth;
 
   const input = readConfirmForm(formData);
   if (typeof input === "string") return { ok: false, message: input };
 
   return input.kind === "delegate"
-    ? confirmDelegate(input, auth.session.user.id)
-    : confirmDelegation(input, auth.session.user.id);
+    ? confirmDelegate(input, auth.session.user.id, auth.session.role)
+    : confirmDelegation(input, auth.session.user.id, auth.session.role);
 }
 
 async function confirmDelegate(
   input: ConfirmInput,
   userId: string,
+  role: AdminRole,
 ): Promise<{ ok: boolean; message: string }> {
   const { id, amount, note } = input;
 
@@ -313,10 +359,11 @@ async function confirmDelegate(
     const delegate = store.delegates.find((d) => d.id === id);
     if (!delegate) return { ok: false, message: "Delegate not found." };
     if (delegate.delegationId) return { ok: false, message: MEMBER_PAYMENT };
+    if (delegate.paidBy) return { ok: false, message: COVERED_PAYMENT };
     if (delegate.paymentStatus === "confirmed") {
       return { ok: false, message: "This payment is already confirmed." };
     }
-    const owed = owedAmount(delegate.quotedAmount, delegate.feeType, store.pricing);
+    const owed = owedAmount(delegate.quotedAmount, delegate.feeType, store.pricing, delegate.withSocial ?? true);
     const noteError = amountNoteError(amount, owed, note);
     if (noteError) return { ok: false, message: noteError };
 
@@ -326,9 +373,11 @@ async function confirmDelegate(
     delegate.paymentProofPath = proofPath;
     delegate.paymentNote = note;
     delegate.paymentConfirmedAt = nowIso();
+    delegate.paymentConfirmedBy = userId;
     delegate.paymentRejectedAt = null;
     delegate.rejectionReason = null;
     delegate.updatedAt = nowIso();
+    const covered = confirmCoveredDemo(id, userId, nowIso());
 
     const sent = await sendPaymentConfirmed({
       to: delegate.email,
@@ -336,7 +385,7 @@ async function confirmDelegate(
       reference: delegate.reference,
       amount,
     });
-    const merit = await queueMerit([id]);
+    const merit = await queueMerit([id, ...covered], role);
 
     revalidateAdmin();
     return {
@@ -358,10 +407,11 @@ async function confirmDelegate(
     if (fetchError) throw fetchError;
     if (!delegate) return { ok: false, message: "Delegate not found." };
     if (delegate.delegation_id) return { ok: false, message: MEMBER_PAYMENT };
+    if (delegate.paid_by) return { ok: false, message: COVERED_PAYMENT };
     if (delegate.payment_status === "confirmed") {
       return { ok: false, message: "This payment is already confirmed." };
     }
-    const owed = owedAmount(delegate.quoted_amount, delegate.fee_type as FeeType, pricing);
+    const owed = owedAmount(delegate.quoted_amount, delegate.fee_type as FeeType, pricing, delegate.with_social !== false);
     const noteError = amountNoteError(amount, owed, note);
     if (noteError) return { ok: false, message: noteError };
 
@@ -390,6 +440,15 @@ async function confirmDelegate(
       return { ok: false, message: "You do not have permission to confirm payments." };
     }
     confirmed = true;
+    const covered = await updateCovered(client, id, {
+      payment_status: "confirmed",
+      payment_amount: null,
+      payment_confirmed_by: userId,
+      payment_confirmed_at: nowIso(),
+      payment_rejected_at: null,
+      rejection_reason: null,
+      updated_at: nowIso(),
+    });
 
     const sent = await sendPaymentConfirmed({
       to: String(delegate.email),
@@ -398,7 +457,7 @@ async function confirmDelegate(
       amount,
       related: { type: "delegate", id },
     });
-    const merit = await queueMerit([id]);
+    const merit = await queueMerit([id, ...covered], role);
 
     revalidateAdmin();
     return {
@@ -425,6 +484,7 @@ async function confirmDelegate(
 async function confirmDelegation(
   input: ConfirmInput,
   userId: string,
+  role: AdminRole,
 ): Promise<{ ok: boolean; message: string }> {
   const { id, amount, note } = input;
 
@@ -439,7 +499,7 @@ async function confirmDelegation(
     const owed = owedAmountTotal(
       delegation.quotedAmount,
       members.reduce(
-        (sum, m) => sum + owedAmount(m.quotedAmount, m.feeType, store.pricing),
+        (sum, m) => sum + owedAmount(m.quotedAmount, m.feeType, store.pricing, m.withSocial ?? true),
         0,
       ) + store.pricing.delegationFee,
     );
@@ -450,8 +510,9 @@ async function confirmDelegation(
     const stamp = nowIso();
     for (const member of members) {
       member.paymentStatus = "confirmed";
-      member.paymentAmount = owedAmount(member.quotedAmount, member.feeType, store.pricing);
+      member.paymentAmount = owedAmount(member.quotedAmount, member.feeType, store.pricing, member.withSocial ?? true);
       member.paymentConfirmedAt = stamp;
+      member.paymentConfirmedBy = userId;
       member.paymentRejectedAt = null;
       member.rejectionReason = null;
       member.updatedAt = stamp;
@@ -461,6 +522,7 @@ async function confirmDelegation(
     delegation.paymentProofPath = proofPath;
     delegation.paymentNote = note;
     delegation.paymentConfirmedAt = stamp;
+    delegation.paymentConfirmedBy = userId;
     delegation.updatedAt = stamp;
 
     const sent = await sendPaymentConfirmed({
@@ -470,7 +532,7 @@ async function confirmDelegation(
       amount,
     });
     const merit = members.length
-      ? await queueMerit(members.map((m) => m.id))
+      ? await queueMerit(members.map((m) => m.id), role)
       : "No roster members to allot.";
 
     revalidateAdmin();
@@ -498,13 +560,13 @@ async function confirmDelegation(
 
     const { data: members, error: membersError } = await client
       .from("delegates")
-      .select("id, fee_type, quoted_amount")
+      .select("*")
       .eq("delegation_id", id);
     if (membersError) throw membersError;
 
     const memberAmounts = (members ?? []).map((m) => ({
       id: String(m.id),
-      amount: owedAmount(m.quoted_amount, m.fee_type as FeeType, pricing),
+      amount: owedAmount(m.quoted_amount, m.fee_type as FeeType, pricing, m.with_social !== false),
     }));
     const owed = owedAmountTotal(
       delegation.quoted_amount,
@@ -562,7 +624,7 @@ async function confirmDelegation(
     });
     const memberIds = memberAmounts.map((m) => m.id);
     const merit = memberIds.length
-      ? await queueMerit(memberIds)
+      ? await queueMerit(memberIds, role)
       : "No roster members to allot.";
 
     revalidateAdmin();
@@ -597,7 +659,7 @@ export async function getPaymentProofUrl(
   kind: ProofKind,
   id: string,
 ): Promise<{ ok: boolean; message: string; url?: string }> {
-  const auth = await authorizeAction(STAFF, "view payment proofs");
+  const auth = await authorizeAction(PAYMENT_ROLES, "view payment proofs");
   if (!auth.ok) return auth;
 
   let path: string | null | undefined;
@@ -634,7 +696,7 @@ export async function rejectDelegationPayment(
   id: string,
   reason?: string,
 ): Promise<{ ok: boolean; message: string }> {
-  const auth = await authorizeAction(STAFF, "reject payments");
+  const auth = await authorizeAction(PAYMENT_ROLES, "reject payments");
   if (!auth.ok) return auth;
 
   const rejection = reason?.trim() || "Rejected by admin.";
@@ -709,7 +771,7 @@ export async function rejectDelegatePayment(
   id: string,
   reason?: string,
 ): Promise<{ ok: boolean; message: string }> {
-  const auth = await authorizeAction(STAFF, "reject payments");
+  const auth = await authorizeAction(PAYMENT_ROLES, "reject payments");
   if (!auth.ok) return auth;
 
   if (!isSupabaseConfigured()) {
@@ -719,14 +781,22 @@ export async function rejectDelegatePayment(
       return { ok: false, message: "Delegate not found." };
     }
     if (delegate.delegationId) return { ok: false, message: MEMBER_PAYMENT };
-    delegate.paymentStatus = "rejected";
-    delegate.paymentAmount = null;
-    delegate.paymentRejectedAt = nowIso();
-    delegate.rejectionReason = reason?.trim() || "Rejected by admin.";
-    delegate.paymentConfirmedAt = null;
-    delegate.updatedAt = nowIso();
+    if (delegate.paidBy) return { ok: false, message: COVERED_PAYMENT };
+    const group = [
+      delegate,
+      ...store.delegates.filter((d) => d.paidBy === id),
+    ];
+    for (const d of group) {
+      d.paymentStatus = "rejected";
+      d.paymentAmount = null;
+      d.paymentRejectedAt = nowIso();
+      d.rejectionReason = reason?.trim() || "Rejected by admin.";
+      d.paymentConfirmedAt = null;
+      d.updatedAt = nowIso();
+    }
+    const groupIds = new Set(group.map((d) => d.id));
     const before = store.allotments.length;
-    store.allotments = store.allotments.filter((a) => a.delegateId !== id);
+    store.allotments = store.allotments.filter((a) => !groupIds.has(a.delegateId));
     revalidateAdmin();
     return {
       ok: true,
@@ -738,12 +808,13 @@ export async function rejectDelegatePayment(
     const client = await createClient();
     const { data: delegate, error: fetchError } = await client
       .from("delegates")
-      .select("id, delegation_id")
+      .select("*")
       .eq("id", id)
       .maybeSingle();
     if (fetchError) throw fetchError;
     if (!delegate) return { ok: false, message: "Delegate not found." };
     if (delegate.delegation_id) return { ok: false, message: MEMBER_PAYMENT };
+    if (delegate.paid_by) return { ok: false, message: COVERED_PAYMENT };
 
     const { data: updated, error } = await client
       .from("delegates")
@@ -761,7 +832,15 @@ export async function rejectDelegatePayment(
     if (!updated?.length) {
       return { ok: false, message: "You do not have permission to reject payments." };
     }
-    const released = await releaseSeats(client, [id]);
+    const covered = await updateCovered(client, id, {
+      payment_status: "rejected",
+      payment_amount: null,
+      payment_rejected_at: nowIso(),
+      rejection_reason: reason?.trim() || "Rejected by admin.",
+      payment_confirmed_at: null,
+      updated_at: nowIso(),
+    });
+    const released = await releaseSeats(client, [id, ...covered]);
     revalidateAdmin();
     return { ok: true, message: `Payment rejected.${releasedNote(released)}` };
   } catch (error) {
@@ -806,7 +885,7 @@ export async function resendRegistrationEmail(
         fullName: delegate.fullName,
         reference: delegate.reference,
         delegateCode: delegate.delegateCode,
-        feeAmount: owedAmount(delegate.quotedAmount, delegate.feeType, pricing),
+        feeAmount: owedAmount(delegate.quotedAmount, delegate.feeType, pricing, delegate.withSocial ?? true),
         currency: pricing.currency,
         bankAccounts: active,
         related: { type: "delegate", id },
@@ -822,7 +901,7 @@ export async function resendRegistrationEmail(
     );
     const total = owedAmountTotal(
       delegation.quotedAmount,
-      roster.reduce((sum, m) => sum + owedAmount(m.quotedAmount, m.feeType, pricing), 0) +
+      roster.reduce((sum, m) => sum + owedAmount(m.quotedAmount, m.feeType, pricing, m.withSocial ?? true), 0) +
         pricing.delegationFee,
     );
     const sent = await sendDelegationRegistrationConfirmation({
@@ -996,14 +1075,19 @@ export async function savePricing(
         id: 1,
         currency: "PKR",
         delegate_fee: data.delegateFee,
+        delegate_fee_no_social: data.delegateFeeNoSocial,
         delegation_fee: data.delegationFee,
         per_delegate_fee: data.perDelegateFee,
+        per_delegate_fee_no_social: data.perDelegateFeeNoSocial,
         delegation_min: data.delegationMin,
         delegation_max: data.delegationMax,
         early_bird_enabled: data.earlyBirdEnabled,
         early_bird_delegate_fee: data.earlyBirdDelegateFee,
+        early_bird_delegate_fee_no_social: data.earlyBirdDelegateFeeNoSocial,
         early_bird_per_delegate_fee: data.earlyBirdPerDelegateFee,
+        early_bird_per_delegate_fee_no_social: data.earlyBirdPerDelegateFeeNoSocial,
         early_bird_ends_at: data.earlyBirdEndsAt,
+        payment_contact_numbers: data.paymentContacts,
         updated_at: nowIso(),
         updated_by: auth.session.user.id,
       });
@@ -1343,6 +1427,7 @@ export async function saveCommitteeFields(
     difficulty: Difficulty;
     focusPoints: string[];
     studyGuideUrl: string | null;
+    isDoubleDelegate: boolean;
   }>,
 ): Promise<{ ok: boolean; message: string }> {
   const auth = await authorizeAction(STAFF, "edit committees");
@@ -1395,6 +1480,9 @@ export async function saveCommitteeFields(
           : {}),
         ...(patch.studyGuideUrl !== undefined
           ? { study_guide_url: patch.studyGuideUrl }
+          : {}),
+        ...(patch.isDoubleDelegate !== undefined
+          ? { is_double_delegate: patch.isDoubleDelegate }
           : {}),
         updated_at: nowIso(),
       })

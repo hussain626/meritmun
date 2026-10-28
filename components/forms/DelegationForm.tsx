@@ -31,6 +31,8 @@ type Pricing = {
   currency: string;
   /** Per-head fee from /admin/pricing (early-bird already applied). */
   perDelegate: number;
+  /** Per-head fee without social. */
+  perDelegateNoSocial: number;
   /** Flat fee charged once per delegation on top of the per-head fees. */
   delegationFlat: number;
   minDelegation: number;
@@ -38,7 +40,7 @@ type Pricing = {
 };
 
 type DelegationFormProps = {
-  committees: Pick<Committee, "slug" | "abbr" | "name">[];
+  committees: Pick<Committee, "slug" | "abbr" | "name" | "doubleDelegate">[];
   pricing: Pricing;
   action: (
     prev: ActionResult<Submission> | null,
@@ -95,10 +97,14 @@ export function DelegationForm({
 
   if (state?.ok) return <SubmissionResult submission={state.data} />;
 
+  const doubles = committees
+    .filter((c) => c.doubleDelegate)
+    .map(({ slug, abbr }) => ({ slug, abbr }));
   const clientErrors = validateDelegation(
     { ...values, delegationSize: values.members.length },
     committees.map((c) => c.slug),
     { min: pricing.minDelegation, max: pricing.maxDelegation },
+    doubles,
   );
   const serverErrors: FieldErrors = state && !state.ok ? state.errors : {};
 
@@ -164,7 +170,13 @@ export function DelegationForm({
   // Total is live: the head delegate sees it move as they build the roster.
   const size = values.members.length;
   const perHead = pricing.perDelegate;
-  const total = size > 0 ? perHead * size + pricing.delegationFlat : 0;
+  // Each member pays their own tier: with or without social.
+  const membersTotal = values.members.reduce(
+    (sum, m) => sum + (m.withSocial ? pricing.perDelegate : pricing.perDelegateNoSocial),
+    0,
+  );
+  const withoutSocialCount = values.members.filter((m) => !m.withSocial).length;
+  const total = size > 0 ? membersTotal + pricing.delegationFlat : 0;
   const flatNote =
     pricing.delegationFlat > 0
       ? ` (including a ${pricing.currency} ${formatNumber(pricing.delegationFlat)} delegation fee)`
@@ -226,7 +238,7 @@ export function DelegationForm({
           label: "Rate",
           value:
             size > 0
-              ? `${pricing.currency} ${formatNumber(perHead)} per head, ${pricing.currency} ${formatNumber(total)} total`
+              ? `${pricing.currency} ${formatNumber(total)} total, including the ${pricing.currency} ${formatNumber(pricing.delegationFlat)} delegation fee`
               : "",
         },
         {
@@ -396,10 +408,24 @@ export function DelegationForm({
         description={`Add every student attending, between ${pricing.minDelegation} and ${pricing.maxDelegation}. Each delegate gets their own seat, so we need their own contact details and committee choices.`}
         active={step === 2}
       >
+        {doubles.length > 0 ? (
+          <Alert tone="info" title="Two delegates per country">
+            {doubles.map((c) => c.abbr).join(", ")} seat{doubles.length === 1 ? "s" : ""}{" "}
+            two delegates per country. Delegates who rank{" "}
+            {doubles.length === 1 ? "it" : "one of them"} first must come in
+            pairs, and are paired in the order you list them.
+          </Alert>
+        ) : null}
+
         <DelegationRoster
           members={values.members}
           committees={committees}
           maxMembers={pricing.maxDelegation}
+          fees={{
+            currency: pricing.currency,
+            withSocial: pricing.perDelegate,
+            withoutSocial: pricing.perDelegateNoSocial,
+          }}
           head={{
             name: values.headName,
             email: values.headEmail,
@@ -413,7 +439,7 @@ export function DelegationForm({
 
       <FormStep
         title="The delegation"
-        description={`${size} delegate${size === 1 ? "" : "s"} on your roster at ${pricing.currency} ${formatNumber(perHead)} per head.`}
+        description={`${size} delegate${size === 1 ? "" : "s"} on your roster: ${size - withoutSocialCount} with social at ${pricing.currency} ${formatNumber(pricing.perDelegate)}, ${withoutSocialCount} without at ${pricing.currency} ${formatNumber(pricing.perDelegateNoSocial)}.`}
         active={step === 3}
       >
         <div className="grid gap-5 sm:grid-cols-2">
@@ -441,7 +467,7 @@ export function DelegationForm({
         <PricingNote
           currency={pricing.currency}
           perHead={perHead}
-          headline="Delegation rate, per head"
+          headline="Per delegate, with social"
           detail={
             size > 0
               ? `${size} delegates, ${pricing.currency} ${formatNumber(total)} in total${flatNote}. The bank details arrive with your confirmation email; one payment covers the whole roster.`

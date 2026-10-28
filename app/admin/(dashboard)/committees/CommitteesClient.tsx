@@ -398,6 +398,7 @@ export function CommitteesClient({
                 ) as CommitteeAdminRecord["difficulty"],
                 agenda: String(form.get("agenda") ?? ""),
                 seats: Number(form.get("seats") ?? 0),
+                isDoubleDelegate: form.get("isDoubleDelegate") === "on",
               });
               setCreateStatus(result.message);
               if (result.ok) setCreateOpen(false);
@@ -440,6 +441,10 @@ export function CommitteesClient({
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-fg">Seats</span>
             <Input name="seats" type="number" min={0} defaultValue={15} required />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="isDoubleDelegate" className="size-4 accent-[var(--accent)]" />
+            <span className="text-fg">Double delegate committee (two delegates per country)</span>
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-fg">Agenda</span>

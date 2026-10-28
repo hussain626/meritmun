@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /** Board `1 / 2 / 4`, per the grid rule in `context/ui-rules.md`. */
-const boardGrid = "grid gap-5 stagger-children md:grid-cols-2 lg:grid-cols-4";
+const boardGrid = "grid grid-cols-1 gap-5 stagger-children md:grid-cols-2 lg:grid-cols-4";
 
 export default async function ExecutiveBoardPage() {
   const { secretariat, directorate } = await listPublicBoard();

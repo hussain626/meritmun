@@ -47,15 +47,26 @@ export type Profile = {
 export type PricingSettings = {
   id: number;
   currency: string;
+  /** Individual delegate, with social. */
   delegateFee: number;
+  /** Individual delegate, without social. */
+  delegateFeeNoSocial: number;
+  /** Flat fee charged once per delegation. */
   delegationFee: number;
+  /** Delegate in a delegation, with social. */
   perDelegateFee: number;
+  /** Delegate in a delegation, without social. */
+  perDelegateFeeNoSocial: number;
   delegationMin: number;
   delegationMax: number;
   earlyBirdEnabled: boolean;
   earlyBirdDelegateFee: number | null;
+  earlyBirdDelegateFeeNoSocial: number | null;
   earlyBirdPerDelegateFee: number | null;
+  earlyBirdPerDelegateFeeNoSocial: number | null;
   earlyBirdEndsAt: string | null;
+  /** Numbers (WhatsApp) registrants send their transfer screenshot to. */
+  paymentContacts: string[];
   updatedAt: string;
   updatedBy: string | null;
 };
@@ -89,12 +100,13 @@ export type DelegateRecord = {
   priorAwards: string | null;
   committeePrefs: string[];
   accommodation: boolean;
-  dietary: string | null;
   hearAbout: HearAbout;
   paymentStatus: PaymentStatus;
   paymentAmount: number | null;
   /** Fee quoted at registration (emailed with the bank details). */
   quotedAmount?: number | null;
+  /** Chose the "with social" fee tier (default true for older rows). */
+  withSocial?: boolean;
   paymentConfirmedAt: string | null;
   paymentRejectedAt: string | null;
   rejectionReason: string | null;
@@ -105,6 +117,12 @@ export type DelegateRecord = {
   delegationId: string | null;
   /** First member of a delegation roster (the head is also a delegate). */
   isHeadDelegate: boolean;
+  /** Shared by two delegates seated together in a double-delegate committee. */
+  pairId?: string | null;
+  /** Co-delegate whose fee was paid by this other delegate's registration. */
+  paidBy?: string | null;
+  /** Profile id of the staff member who confirmed the payment. */
+  paymentConfirmedBy?: string | null;
   feeType: FeeType;
   createdAt: string;
   updatedAt: string;
@@ -132,6 +150,7 @@ export type DelegationRecord = {
   paymentProofPath?: string | null;
   paymentNote?: string | null;
   paymentConfirmedAt?: string | null;
+  paymentConfirmedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -156,6 +175,8 @@ export type CommitteeAdminRecord = {
   isPublished: boolean;
   /** Merit engine skips this committee; manual placement still works. */
   allotmentsPaused: boolean;
+  /** Two delegates share each country (e.g. UNSC). */
+  isDoubleDelegate: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

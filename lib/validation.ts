@@ -129,7 +129,14 @@ export const CONTACT_TOPICS = [
 export const DELEGATE_STEP_FIELDS: string[][] = [
   ["fullName", "email", "phone", "city", "institution"],
   ["experience", "hearAbout"],
-  ["committeePrefs"],
+  [
+    "committeePrefs",
+    "coDelegate",
+    "coDelegate.fullName",
+    "coDelegate.email",
+    "coDelegate.phone",
+    "coDelegate.experience",
+  ],
   ["consent"],
 ];
 
@@ -169,6 +176,61 @@ export function validateCommitteePrefs(
   return null;
 }
 
+/** A committee that seats two delegates per country. */
+export type DoubleCommittee = { slug: string; abbr: string };
+
+/** The co-delegate choice applies when the first choice is a double-delegate committee. */
+export function needsCoDelegate(
+  committeePrefs: string[],
+  doubleCommittees: readonly DoubleCommittee[],
+): boolean {
+  const first = committeePrefs[0];
+  return Boolean(first) && doubleCommittees.some((c) => c.slug === first);
+}
+
+function validateCoDelegate(values: DelegateApplication): Record<string, string | null> {
+  const choice = values.coDelegate;
+  if (!choice) {
+    return {
+      coDelegate:
+        "Choose whether to be paired with a co-delegate or bring your own.",
+    };
+  }
+  if (choice.mode === "random") return {};
+  const ownEmail = values.email.trim().toLowerCase();
+  let emailError = validEmail(choice.email);
+  if (!emailError && choice.email.trim().toLowerCase() === ownEmail) {
+    emailError = "Your co-delegate needs their own email address.";
+  }
+  return {
+    "coDelegate.fullName": minLength(choice.fullName, 2, "Co-delegate name"),
+    "coDelegate.email": emailError,
+    "coDelegate.phone": validPhone(choice.phone),
+    "coDelegate.experience": oneOf(
+      choice.experience,
+      EXPERIENCE_LEVELS,
+      "Experience level",
+    ),
+  };
+}
+
+/**
+ * Members who rank a double-delegate committee first are seated in pairs, in
+ * the order they are listed, so each such committee needs an even count.
+ */
+function pairingError(
+  members: DelegationApplication["members"],
+  doubleCommittees: readonly DoubleCommittee[],
+): string | null {
+  for (const committee of doubleCommittees) {
+    const count = members.filter((m) => m.committeePrefs[0] === committee.slug).length;
+    if (count % 2 === 1) {
+      return `${committee.abbr} seats two delegates per country, so delegates who rank it first must come in pairs. You have ${count}; add or move one.`;
+    }
+  }
+  return null;
+}
+
 export type DelegationLimits = { min: number; max: number };
 
 const DEFAULT_LIMITS: DelegationLimits = { min: MIN_DELEGATION, max: MAX_DELEGATION };
@@ -177,13 +239,14 @@ function validateMembers(
   values: DelegationApplication,
   validCommitteeSlugs: readonly string[],
   limits: DelegationLimits,
+  doubleCommittees: readonly DoubleCommittee[],
 ): Record<string, string | null> {
   const errors: Record<string, string | null> = {};
   const count = values.members.length;
   errors.members =
     count < limits.min || count > limits.max
       ? `Add between ${limits.min} and ${limits.max} delegates, you have ${count}.`
-      : null;
+      : pairingError(values.members, doubleCommittees);
 
   const seenEmails = new Map<string, number>();
   values.members.forEach((member, index) => {
@@ -213,11 +276,15 @@ function validateMembers(
 export function validateDelegate(
   values: DelegateApplication,
   validCommitteeSlugs: readonly string[],
+  doubleCommittees: readonly DoubleCommittee[] = [],
 ): FieldErrors {
   const prefError = validateCommitteePrefs(
     values.committeePrefs,
     validCommitteeSlugs,
   );
+  const coDelegateErrors = needsCoDelegate(values.committeePrefs, doubleCommittees)
+    ? validateCoDelegate(values)
+    : {};
 
   return prune({
     fullName: minLength(values.fullName, 2, "Full name"),
@@ -228,6 +295,7 @@ export function validateDelegate(
     experience: oneOf(values.experience, EXPERIENCE_LEVELS, "Experience level"),
     hearAbout: oneOf(values.hearAbout, HEAR_ABOUT, "Answer"),
     committeePrefs: prefError,
+    ...coDelegateErrors,
     consent: values.consent
       ? null
       : "Please confirm the information you have given is accurate.",
@@ -238,6 +306,7 @@ export function validateDelegation(
   values: DelegationApplication,
   validCommitteeSlugs: readonly string[],
   limits: DelegationLimits = DEFAULT_LIMITS,
+  doubleCommittees: readonly DoubleCommittee[] = [],
 ): FieldErrors {
   const accommodationError =
     Number.isNaN(values.accommodationCount) ||
@@ -264,7 +333,7 @@ export function validateDelegation(
     headEmail: validEmail(values.headEmail),
     headPhone: validPhone(values.headPhone),
     headRole: required(values.headRole, "Your role"),
-    ...validateMembers(values, validCommitteeSlugs, limits),
+    ...validateMembers(values, validCommitteeSlugs, limits, doubleCommittees),
     accommodationCount: accommodationError,
     committeeSpread: spreadError,
     consent: values.consent

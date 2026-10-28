@@ -47,9 +47,16 @@ export function CommitteeCard({ committee, className }: CommitteeCardProps) {
           <span className="font-display text-h3 leading-none font-bold tracking-tight text-brand-fg">
             {committee.abbr}
           </span>
-          <Badge tone={difficultyTone[committee.difficulty]} size="sm">
-            {difficultyLabel[committee.difficulty]}
-          </Badge>
+          <span className="flex flex-wrap justify-end gap-1.5">
+            {committee.doubleDelegate ? (
+              <Badge tone="accent" size="sm">
+                Double delegation
+              </Badge>
+            ) : null}
+            <Badge tone={difficultyTone[committee.difficulty]} size="sm">
+              {difficultyLabel[committee.difficulty]}
+            </Badge>
+          </span>
         </div>
 
         <h3 className="mt-3 text-base leading-snug font-semibold text-fg text-balance">

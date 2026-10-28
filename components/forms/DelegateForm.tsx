@@ -17,10 +17,12 @@ import { Select } from "@/components/ui/Select";
 import { Stepper } from "@/components/ui/Stepper";
 import { Textarea } from "@/components/ui/Textarea";
 import {
+  needsCoDelegate,
   DELEGATE_STEP_FIELDS,
   hasErrors,
   validateDelegate,
 } from "@/lib/validation";
+import { formatNumber } from "@/lib/utils";
 import type {
   ActionResult,
   Committee,
@@ -32,9 +34,13 @@ import type {
 } from "@/lib/types";
 
 type DelegateFormProps = {
-  committees: Pick<Committee, "slug" | "abbr" | "name" | "difficulty">[];
+  committees: Pick<
+    Committee,
+    "slug" | "abbr" | "name" | "difficulty" | "doubleDelegate"
+  >[];
   preselect?: string;
-  fee: { currency: string; amount: number };
+  /** Individual fee for each social tier (early bird already applied). */
+  fee: { currency: string; withSocial: number; withoutSocial: number };
   action: (
     prev: ActionResult<Submission> | null,
     formData: FormData,
@@ -79,8 +85,9 @@ const EMPTY: DelegateApplication = {
   priorAwards: null,
   committeePrefs: ["", "", ""],
   accommodation: false,
-  dietary: null,
+  withSocial: true,
   hearAbout: "" as HearAbout,
+  coDelegate: null,
   consent: false,
 };
 
@@ -110,10 +117,43 @@ export function DelegateForm({
 
   if (state?.ok) return <SubmissionResult submission={state.data} />;
 
+  const chosenFee = values.withSocial ? fee.withSocial : fee.withoutSocial;
+  const doubles = committees
+    .filter((c) => c.doubleDelegate)
+    .map(({ slug, abbr }) => ({ slug, abbr }));
+  const showCoDelegate = needsCoDelegate(values.committeePrefs, doubles);
+  const firstChoice = committees.find((c) => c.slug === values.committeePrefs[0]);
+  const partner = values.coDelegate?.mode === "partner" ? values.coDelegate : null;
   const clientErrors = validateDelegate(
-    values,
+    showCoDelegate ? values : { ...values, coDelegate: null },
     committees.map((c) => c.slug),
+    doubles,
   );
+
+  function setCoMode(mode: "random" | "partner") {
+    setValues((current) => ({
+      ...current,
+      coDelegate:
+        mode === "random"
+          ? { mode: "random" }
+          : {
+              mode: "partner",
+              fullName: "",
+              email: "",
+              phone: "",
+              experience: "" as ExperienceLevel,
+              ...(current.coDelegate?.mode === "partner" ? current.coDelegate : {}),
+            },
+    }));
+  }
+
+  function setPartner(field: "fullName" | "email" | "phone" | "experience", value: string) {
+    setValues((current) =>
+      current.coDelegate?.mode === "partner"
+        ? { ...current, coDelegate: { ...current.coDelegate, [field]: value } }
+        : current,
+    );
+  }
   const serverErrors: FieldErrors = state && !state.ok ? state.errors : {};
 
   /** A field shows an error once the user has been past it, or once the server says so. */
@@ -194,6 +234,10 @@ export function DelegateForm({
         { label: "Phone", value: values.phone },
         { label: "City", value: values.city },
         { label: "Institution", value: values.institution },
+        {
+          label: "Fee option",
+          value: `${values.withSocial ? "With social" : "Without social"}, ${fee.currency} ${formatNumber(chosenFee)}`,
+        },
       ],
     },
     {
@@ -224,8 +268,19 @@ export function DelegateForm({
         { label: "First choice", value: committeeName(values.committeePrefs[0]) },
         { label: "Second choice", value: committeeName(values.committeePrefs[1]) },
         { label: "Third choice", value: committeeName(values.committeePrefs[2]) },
+        ...(showCoDelegate
+          ? [
+              {
+                label: "Co-delegate",
+                value: partner
+                  ? `${partner.fullName} (${partner.email}), you pay for both`
+                  : values.coDelegate?.mode === "random"
+                    ? "Pair me with a co-delegate"
+                    : "",
+              },
+            ]
+          : []),
         { label: "Accommodation", value: values.accommodation ? "Yes, please" : "Not needed" },
-        { label: "Dietary needs", value: values.dietary ?? "" },
       ],
     },
   ];
@@ -327,10 +382,27 @@ export function DelegateForm({
           </Field>
         </div>
 
+        <RadioGroup
+          name="socialTier"
+          legend="Fee option"
+          options={[
+            {
+              value: "with",
+              label: `With social, ${fee.currency} ${formatNumber(fee.withSocial)}`,
+            },
+            {
+              value: "without",
+              label: `Without social, ${fee.currency} ${formatNumber(fee.withoutSocial)}`,
+            },
+          ]}
+          value={values.withSocial ? "with" : "without"}
+          onChange={(value) => set("withSocial", value === "with")}
+        />
+
         <PricingNote
           currency={fee.currency}
-          perHead={fee.amount}
-          headline="Individual delegate fee"
+          perHead={chosenFee}
+          headline={values.withSocial ? "Individual fee, with social" : "Individual fee, without social"}
           detail="Covers all three days of the conference. Pay by bank transfer after you submit, the account details and your payment reference arrive in your confirmation email."
         />
       </FormStep>
@@ -428,6 +500,100 @@ export function DelegateForm({
           ))}
         </div>
 
+        {showCoDelegate && firstChoice ? (
+          <div className="grid gap-5 rounded-md border border-line bg-surface p-5">
+            <RadioGroup
+              name="coDelegateMode"
+              legend={`${firstChoice.abbr} seats two delegates per country. Who is your co-delegate?`}
+              options={[
+                {
+                  value: "random",
+                  label: "Pair me with a co-delegate",
+                  description: "We match you with another delegate. You pay for one seat.",
+                },
+                {
+                  value: "partner",
+                  label: "I am bringing my co-delegate",
+                  description: `You register and pay for both of you (${fee.currency} ${formatNumber(chosenFee * 2)}). You are seated together.`,
+                },
+              ]}
+              value={values.coDelegate?.mode ?? ""}
+              error={errorFor("coDelegate")}
+              onChange={(value) => {
+                setCoMode(value as "random" | "partner");
+                setTouched((c) => new Set([...c, "coDelegate"]));
+              }}
+            />
+            {partner ? (
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field
+                  label="Co-delegate full name"
+                  htmlFor="coFullName"
+                  error={errorFor("coDelegate.fullName")}
+                  className="sm:col-span-2"
+                >
+                  <Input
+                    id="coFullName"
+                    name="coFullName"
+                    value={partner.fullName}
+                    invalid={Boolean(errorFor("coDelegate.fullName"))}
+                    onChange={(event) => setPartner("fullName", event.target.value)}
+                    onBlur={() => setTouched((c) => new Set([...c, "coDelegate.fullName"]))}
+                  />
+                </Field>
+                <Field label="Co-delegate email" htmlFor="coEmail" error={errorFor("coDelegate.email")}>
+                  <Input
+                    id="coEmail"
+                    name="coEmail"
+                    type="email"
+                    value={partner.email}
+                    invalid={Boolean(errorFor("coDelegate.email"))}
+                    onChange={(event) => setPartner("email", event.target.value)}
+                    onBlur={() => setTouched((c) => new Set([...c, "coDelegate.email"]))}
+                  />
+                </Field>
+                <Field label="Co-delegate phone" htmlFor="coPhone" error={errorFor("coDelegate.phone")}>
+                  <Input
+                    id="coPhone"
+                    name="coPhone"
+                    type="tel"
+                    placeholder="+92 300 1234567"
+                    value={partner.phone}
+                    invalid={Boolean(errorFor("coDelegate.phone"))}
+                    onChange={(event) => setPartner("phone", event.target.value)}
+                    onBlur={() => setTouched((c) => new Set([...c, "coDelegate.phone"]))}
+                  />
+                </Field>
+                <Field
+                  label="Co-delegate experience"
+                  htmlFor="coExperience"
+                  error={errorFor("coDelegate.experience")}
+                  className="sm:col-span-2"
+                >
+                  <Select
+                    id="coExperience"
+                    name="coExperience"
+                    placeholder="Choose one"
+                    options={EXPERIENCE_OPTIONS.map(({ value, label }) => ({ value, label }))}
+                    value={partner.experience}
+                    invalid={Boolean(errorFor("coDelegate.experience"))}
+                    onChange={(event) => {
+                      setPartner("experience", event.target.value);
+                      setTouched((c) => new Set([...c, "coDelegate.experience"]));
+                    }}
+                  />
+                </Field>
+                <PricingNote
+                  currency={fee.currency}
+                  perHead={chosenFee * 2}
+                  headline="Fee for you and your co-delegate"
+                  detail="One payment covers both seats. Your co-delegate gets their own delegate code."
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <Checkbox
           name="accommodation"
           label="I need help with accommodation"
@@ -435,20 +601,6 @@ export function DelegateForm({
           checked={values.accommodation}
           onChange={(event) => set("accommodation", event.target.checked)}
         />
-
-        <Field
-          label="Dietary requirements"
-          htmlFor="dietary"
-          optional
-          error={errorFor("dietary")}
-        >
-          <Input
-            id="dietary"
-            name="dietary"
-            value={values.dietary ?? ""}
-            onChange={(event) => set("dietary", event.target.value)}
-          />
-        </Field>
       </FormStep>
 
       <FormStep

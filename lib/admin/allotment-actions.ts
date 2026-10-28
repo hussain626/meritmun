@@ -18,7 +18,11 @@ import {
   sendAllotmentConfirmed,
   type SendResult,
 } from "@/lib/email/send";
-import { planAllotments } from "@/lib/merit/allot";
+import {
+  planAllotments,
+  seatCapacity,
+  type SeatHolder,
+} from "@/lib/merit/allot";
 import { scoreDelegates } from "@/lib/merit/score";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -67,6 +71,21 @@ async function requireMutator(): Promise<
     ok: true,
     userId: isSupabaseConfigured() ? session.user.id : null,
   };
+}
+
+/** Seats kept from before a run, by portfolio, with each holder's pair. */
+function heldSeats(
+  kept: AllotmentRecord[],
+  delegates: DelegateRecord[],
+): Map<string, SeatHolder[]> {
+  const pairOf = new Map(delegates.map((d) => [d.id, d.pairId ?? null]));
+  const held = new Map<string, SeatHolder[]>();
+  for (const a of kept) {
+    const list = held.get(a.portfolioId) ?? [];
+    list.push({ delegateId: a.delegateId, pairId: pairOf.get(a.delegateId) ?? null });
+    held.set(a.portfolioId, list);
+  }
+  return held;
 }
 
 function demoState(): AllotmentState {
@@ -178,7 +197,7 @@ export async function runMeritEngineAction(
     scores: scored.scores,
     committees: state.committees,
     portfolios: state.portfolios,
-    takenPortfolioIds: new Set(kept.map((a) => a.portfolioId)),
+    held: heldSeats(kept, state.delegates),
     delegationCommitteeCounts,
     rules: state.rules,
   });
@@ -328,9 +347,13 @@ function resolveSeat(
   if (!portfolio.isActive) return `${portfolio.countryName} is inactive in the pool.`;
 
   const existing = state.allotments.find((a) => a.delegateId === delegate.id);
-  const holder = state.allotments.find(
+  // Full only when every seat on the country is taken: one, or two in a
+  // double-delegate committee.
+  const others = state.allotments.filter(
     (a) => a.portfolioId === portfolio.id && a.delegateId !== delegate.id,
   );
+  const holder =
+    others.length >= seatCapacity(committee) ? others[0] : undefined;
   return { delegate, committee, portfolio, existing, holder };
 }
 
@@ -372,7 +395,7 @@ export async function saveManualAllotment(input: {
       state.delegates.find((d) => d.id === holder.delegateId)?.fullName ??
       "another delegate";
     return fail(
-      `${portfolio.countryName} in ${committee.abbr} is already held by ${holderName}. Free that seat first.`,
+      `${portfolio.countryName} in ${committee.abbr} is already full (held by ${holderName}${seatCapacity(committee) > 1 ? " and their co-delegate" : ""}). Free a seat first.`,
     );
   }
 
@@ -560,12 +583,16 @@ async function issueRows(
       continue;
     }
 
+    const coHolder = state.allotments.find(
+      (a) => a.portfolioId === row.portfolioId && a.delegateId !== row.delegateId,
+    );
     const sent = await sendAllotmentConfirmed({
       to: delegate.email,
       fullName: delegate.fullName,
       committeeName: committee.name,
       countryName: portfolio.countryName,
       studyGuideUrl: committee.studyGuideUrl,
+      coDelegateName: coHolder ? (delegates.get(coHolder.delegateId)?.fullName ?? null) : null,
       related: { type: "delegate", id: delegate.id },
     });
     if (!emailDelivered(sent)) {

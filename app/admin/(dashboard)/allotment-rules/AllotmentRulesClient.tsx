@@ -152,7 +152,7 @@ export function AllotmentRulesClient({
         </p>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section className="rounded-sm border border-line bg-surface p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-fg">Engine settings</h2>
           <p className="mt-1 text-xs text-fg-muted">

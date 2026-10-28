@@ -51,14 +51,19 @@ export default async function RegisterDelegatePage({
 
       <Section width="prose">
         <DelegateForm
-          committees={committees.map(({ slug, abbr, name, difficulty }) => ({
+          committees={committees.map(({ slug, abbr, name, difficulty, doubleDelegate }) => ({
             slug,
             abbr,
             name,
             difficulty,
+            doubleDelegate,
           }))}
           preselect={preselect}
-          fee={{ currency: pricing.currency, amount: pricing.delegate }}
+          fee={{
+            currency: pricing.currency,
+            withSocial: pricing.delegate,
+            withoutSocial: pricing.delegateNoSocial,
+          }}
           action={submitDelegate}
           manual={manual}
         />

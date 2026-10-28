@@ -48,6 +48,7 @@ function toPublicCommittee(
       })),
     backgroundGuideUrl: committee.studyGuideUrl,
     featured: committee.featured,
+    doubleDelegate: committee.isDoubleDelegate,
   };
 }
 
@@ -125,10 +126,16 @@ export type PublicPricing = {
   currency: string;
   /** Fee for one individual delegate, early-bird applied. */
   delegate: number;
+  /** Individual fee without social, early-bird applied. */
+  delegateNoSocial: number;
   /** Per-head fee for delegation members, early-bird applied. */
   perDelegate: number;
+  /** Per-head fee without social, early-bird applied. */
+  perDelegateNoSocial: number;
   /** Flat fee charged once per delegation, on top of the per-head fees. */
   delegationFlat: number;
+  /** Numbers registrants send their transfer screenshot to. */
+  paymentContacts: string[];
   minDelegation: number;
   maxDelegation: number;
   /** Set only while an early-bird fee is actually being applied. */
@@ -160,10 +167,17 @@ export async function getPublicPricing(): Promise<PublicPricing> {
     delegate: delegateEarly
       ? (pricing.earlyBirdDelegateFee as number)
       : pricing.delegateFee,
+    delegateNoSocial: delegateEarly
+      ? (pricing.earlyBirdDelegateFeeNoSocial ?? pricing.delegateFeeNoSocial)
+      : pricing.delegateFeeNoSocial,
     perDelegate: memberEarly
       ? (pricing.earlyBirdPerDelegateFee as number)
       : pricing.perDelegateFee,
+    perDelegateNoSocial: memberEarly
+      ? (pricing.earlyBirdPerDelegateFeeNoSocial ?? pricing.perDelegateFeeNoSocial)
+      : pricing.perDelegateFeeNoSocial,
     delegationFlat: pricing.delegationFee,
+    paymentContacts: pricing.paymentContacts,
     minDelegation: pricing.delegationMin,
     maxDelegation: pricing.delegationMax,
     earlyBird:
@@ -175,9 +189,24 @@ export async function getPublicPricing(): Promise<PublicPricing> {
   };
 }
 
-/** Whole-delegation quote: per-head fee for every member plus the flat fee. */
-export function delegationQuote(pricing: PublicPricing, size: number): number {
-  return pricing.perDelegate * size + pricing.delegationFlat;
+/** One delegate's fee for their social choice. */
+export function individualFee(pricing: PublicPricing, withSocial: boolean): number {
+  return withSocial ? pricing.delegate : pricing.delegateNoSocial;
+}
+
+export function memberFee(pricing: PublicPricing, withSocial: boolean): number {
+  return withSocial ? pricing.perDelegate : pricing.perDelegateNoSocial;
+}
+
+/** Whole-delegation quote: each member's fee for their social choice, plus the flat fee. */
+export function delegationQuote(
+  pricing: PublicPricing,
+  members: readonly { withSocial: boolean }[],
+): number {
+  return (
+    members.reduce((sum, m) => sum + memberFee(pricing, m.withSocial), 0) +
+    pricing.delegationFlat
+  );
 }
 
 /* ── FAQ ─────────────────────────────────────────────────────────────────── */

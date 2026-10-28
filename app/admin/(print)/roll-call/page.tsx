@@ -113,9 +113,9 @@ export default async function RollCallPage({
               </thead>
               <tbody>
                 {seated.map((seat) => (
-                  <tr key={seat.portfolio.id} className="break-inside-avoid">
+                  <tr key={`${seat.portfolio.id}-${seat.slot ?? 1}`} className="break-inside-avoid">
                     <td className="border border-neutral-400 px-2 py-1.5 font-medium">
-                      {seat.portfolio.countryName}
+                      {seat.portfolio.countryName}{seat.slot ? ` (${seat.slot}/2)` : ""}
                     </td>
                     <td className="border border-neutral-400 px-2 py-1.5">
                       {seat.holder!.delegate.fullName}

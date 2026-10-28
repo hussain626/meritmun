@@ -117,12 +117,13 @@ type KpiPayment = { paymentStatus: string; paymentAmount: number | null };
  * as well would double both the payment counts and the revenue.
  */
 export function deriveOverviewKpis(
-  delegates: (KpiPayment & { delegationId: string | null })[],
+  delegates: (KpiPayment & { delegationId: string | null; paidBy?: string | null })[],
   delegations: KpiPayment[],
   queryStatuses: string[],
   allotmentStatuses: string[],
 ): OverviewKpis {
-  const individuals = delegates.filter((d) => d.delegationId === null);
+  // Co-delegates (paidBy) are covered by their registrant's payment.
+  const individuals = delegates.filter((d) => d.delegationId === null && !d.paidBy);
   const payments: KpiPayment[] = [...individuals, ...delegations];
   const confirmed = payments.filter((p) => p.paymentStatus === "confirmed");
 

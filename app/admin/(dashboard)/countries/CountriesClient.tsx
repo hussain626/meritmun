@@ -309,7 +309,7 @@ export function CountriesClient({
                 <tbody>
                   {seats.map((seat) => (
                     <SeatRow
-                      key={seat.portfolio.id}
+                      key={`${seat.portfolio.id}-${seat.slot ?? 1}`}
                       seat={seat}
                       offPool={!seat.portfolio.isActive}
                       days={attendanceMode ? days : []}
@@ -348,7 +348,7 @@ function SeatRow({
     <tr className="border-b border-line last:border-0">
       <td className="px-4 py-3">
         <span className="inline-flex items-center gap-1.5 font-medium text-fg">
-          {seat.portfolio.countryName}
+          {seat.portfolio.countryName}{seat.slot ? ` (${seat.slot}/2)` : ""}
           {seat.portfolio.isP5 ? (
             <Badge tone="warning" size="sm">
               P5

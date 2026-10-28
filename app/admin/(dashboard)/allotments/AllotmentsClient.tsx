@@ -182,24 +182,39 @@ export function AllotmentsClient({
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const heldBy = useMemo(
-    () => new Map(takenPortfolios.map((t) => [t.portfolioId, t.delegateId])),
-    [takenPortfolios],
-  );
+  // portfolio -> delegates holding it (two in a double-delegate committee).
+  const heldBy = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const t of takenPortfolios) {
+      map.set(t.portfolioId, [...(map.get(t.portfolioId) ?? []), t.delegateId]);
+    }
+    return map;
+  }, [takenPortfolios]);
+
+  const capacity = committees.find((c) => c.id === committeeId)?.isDoubleDelegate
+    ? 2
+    : 1;
 
   const portfolioOptions = useMemo(() => {
     if (!committeeId || !selected) return [];
     return portfolios
       .filter((p) => p.committeeId === committeeId && p.isActive)
       .filter((p) => {
-        const holder = heldBy.get(p.id);
-        return !holder || holder === selected.delegate.id;
+        const others = (heldBy.get(p.id) ?? []).filter(
+          (id) => id !== selected.delegate.id,
+        );
+        return others.length < capacity;
       })
-      .map((p) => ({
-        value: p.id,
-        label: `${p.countryName} · hardness ${p.hardness}${p.isP5 ? " · P5" : ""}`,
-      }));
-  }, [portfolios, committeeId, selected, heldBy]);
+      .map((p) => {
+        const others = (heldBy.get(p.id) ?? []).filter(
+          (id) => id !== selected.delegate.id,
+        ).length;
+        return {
+          value: p.id,
+          label: `${p.countryName} · hardness ${p.hardness}${p.isP5 ? " · P5" : ""}${capacity > 1 ? ` · ${capacity - others} of 2 seats free` : ""}`,
+        };
+      });
+  }, [portfolios, committeeId, selected, heldBy, capacity]);
 
   const selectedPortfolio = portfolios.find((p) => p.id === portfolioId);
   const selectedCommittee = committees.find((c) => c.id === committeeId);
@@ -316,7 +331,7 @@ export function AllotmentsClient({
         </p>
       ) : null}
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
         <section className="flex flex-wrap items-start justify-between gap-4 rounded-sm border border-line bg-surface px-4 py-3 shadow-sm">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-fg-faint">

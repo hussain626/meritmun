@@ -21,6 +21,7 @@ export const EMPTY_MEMBER: DelegationMember = {
   experience: "" as ExperienceLevel,
   priorAwards: null,
   committeePrefs: ["", "", ""],
+  withSocial: true,
 };
 
 /** DOM id of one roster control, also how the stepper focuses the first error. */
@@ -42,6 +43,8 @@ type DelegationRosterProps = {
   committees: Pick<Committee, "slug" | "abbr" | "name">[];
   maxMembers: number;
   head: { name: string; email: string; phone: string };
+  /** Per-delegate fee for each social tier, shown in the picker. */
+  fees: { currency: string; withSocial: number; withoutSocial: number };
   errorFor: (field: string) => string | undefined;
   onChange: (members: DelegationMember[]) => void;
   onTouch: (field: string) => void;
@@ -52,6 +55,7 @@ export function DelegationRoster({
   committees,
   maxMembers,
   head,
+  fees,
   errorFor,
   onChange,
   onTouch,
@@ -190,6 +194,28 @@ export function DelegationRoster({
                     update(index, { experience: e.target.value as ExperienceLevel });
                     touch("experience");
                   }}
+                />
+              </Field>
+
+              <Field
+                label="Fee option"
+                htmlFor={id("socialTier")}
+                className="sm:col-span-2"
+              >
+                <Select
+                  id={id("socialTier")}
+                  options={[
+                    {
+                      value: "with",
+                      label: `With social, ${fees.currency} ${fees.withSocial.toLocaleString("en-US")}`,
+                    },
+                    {
+                      value: "without",
+                      label: `Without social, ${fees.currency} ${fees.withoutSocial.toLocaleString("en-US")}`,
+                    },
+                  ]}
+                  value={member.withSocial ? "with" : "without"}
+                  onChange={(e) => update(index, { withSocial: e.target.value === "with" })}
                 />
               </Field>
 

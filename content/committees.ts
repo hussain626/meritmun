@@ -28,6 +28,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: true,
+    doubleDelegate: true,
   },
   {
     slug: "unhrc",
@@ -52,6 +53,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: true,
+    doubleDelegate: false,
   },
   {
     slug: "disec",
@@ -76,6 +78,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
   {
     slug: "ecosoc",
@@ -100,6 +103,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
   {
     slug: "who",
@@ -124,6 +128,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
   {
     slug: "unep",
@@ -147,6 +152,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
   {
     slug: "unodc",
@@ -171,6 +177,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
   {
     slug: "historic-crisis",
@@ -194,6 +201,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: true,
+    doubleDelegate: false,
   },
   {
     slug: "joint-crisis",
@@ -218,6 +226,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
   {
     slug: "national-assembly",
@@ -241,6 +250,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
   {
     slug: "youth-assembly",
@@ -264,6 +274,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
   {
     slug: "press-corps",
@@ -288,6 +299,7 @@ export const committees: Committee[] = [
     ],
     backgroundGuideUrl: null,
     featured: false,
+    doubleDelegate: false,
   },
 ];
 

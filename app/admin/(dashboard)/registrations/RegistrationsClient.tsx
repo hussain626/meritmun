@@ -88,6 +88,8 @@ export function RegistrationsClient({
   owedById,
 }: RegistrationsClientProps) {
   const canMutate = role === "admin" || role === "eb";
+  // Reviewers can confirm or reject payments too, but not edit anything else.
+  const canPay = canMutate || role === "reviewer";
   const prefLabel = (slug: string) => committeeAbbr[slug] ?? slug.toUpperCase();
   const [tab, setTab] = useState<Tab>("delegates");
   const [query, setQuery] = useState("");
@@ -603,18 +605,20 @@ export function RegistrationsClient({
         title={selected?.fullName ?? "Delegate"}
         size="lg"
         footer={
-          selected && canMutate ? (
+          selected && canPay ? (
             <>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={pending}
-                onClick={() =>
-                  runAction(() => resendRegistrationEmail(selected.id))
-                }
-              >
-                Resend email
-              </Button>
+              {canMutate ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() =>
+                    runAction(() => resendRegistrationEmail(selected.id))
+                  }
+                >
+                  Resend email
+                </Button>
+              ) : null}
               <Button variant="ghost" size="sm" onClick={openTranscript}>
                 Transcript
               </Button>
@@ -623,7 +627,9 @@ export function RegistrationsClient({
                   View screenshot
                 </Button>
               ) : null}
-              {selected.paymentStatus === "pending" && !selected.delegationId ? (
+              {selected.paymentStatus === "pending" &&
+              !selected.delegationId &&
+              !selected.paidBy ? (
                 <>
                   <Button
                     variant="outline"
@@ -674,6 +680,10 @@ export function RegistrationsClient({
               value={selected.committeePrefs.map(prefLabel).join(", ")}
             />
             <DetailRow
+              label="Fee option"
+              value={selected.withSocial === false ? "Without social" : "With social"}
+            />
+            <DetailRow
               label="Quoted fee"
               value={formatPkr(owedById[selected.id] ?? selected.quotedAmount ?? 0)}
             />
@@ -685,6 +695,21 @@ export function RegistrationsClient({
                   : selected.paymentStatus
               }
             />
+            {selected.paidBy ? (
+              <DetailRow
+                label="Paid by"
+                value={`${delegates.find((d) => d.id === selected.paidBy)?.fullName ?? "Their co-delegate"}, who registered them. Confirm that registration to confirm both.`}
+              />
+            ) : null}
+            {selected.pairId ? (
+              <DetailRow
+                label="Co-delegate"
+                value={
+                  delegates.find((d) => d.pairId === selected.pairId && d.id !== selected.id)
+                    ?.fullName ?? "Paired at allotment"
+                }
+              />
+            ) : null}
             {selected.delegationId ? (
               <DetailRow
                 label="Delegation"
@@ -714,7 +739,7 @@ export function RegistrationsClient({
         title={selectedDelegation?.institutionName ?? "Delegation"}
         size="lg"
         footer={
-          selectedDelegation && canMutate ? (
+          selectedDelegation && canPay ? (
             <>
               <Button variant="ghost" size="sm" onClick={openTranscript}>
                 Transcript
@@ -847,11 +872,14 @@ export function RegistrationsClient({
               <Input
                 inputMode="numeric"
                 value={payAmount}
+                disabled={!payProof}
                 onChange={(e) => setPayAmount(e.target.value)}
               />
               <span className="text-xs text-fg-faint">
-                Quoted fee: {formatPkr(owedFor())}. Change it for a discount or a
-                part waiver.
+                Quoted fee: {formatPkr(owedFor())}.{" "}
+                {payProof
+                  ? "Change it for a discount or a part waiver."
+                  : "Attach the screenshot below to edit the amount."}
               </span>
             </label>
             <label className="flex flex-col gap-1.5 text-sm">

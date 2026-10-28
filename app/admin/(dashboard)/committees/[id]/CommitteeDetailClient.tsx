@@ -39,6 +39,7 @@ export function CommitteeDetailClient({
     hardnessScore: committee.hardnessScore,
     featured: committee.featured,
     isPublished: committee.isPublished,
+    isDoubleDelegate: committee.isDoubleDelegate,
     type: committee.type,
     difficulty: committee.difficulty,
     studyGuideUrl: committee.studyGuideUrl ?? "",
@@ -258,6 +259,18 @@ export function CommitteeDetailClient({
                   }
                 />
                 Published
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-[var(--accent)]"
+                  checked={form.isDoubleDelegate}
+                  disabled={!canEdit}
+                  onChange={(e) =>
+                    setForm({ ...form, isDoubleDelegate: e.target.checked })
+                  }
+                />
+                Double delegate (two delegates per country)
               </label>
             </div>
             <p className="text-xs text-fg-faint">

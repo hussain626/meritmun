@@ -20,6 +20,7 @@ import { Settings } from "@/components/icons/Settings";
 import { Shield } from "@/components/icons/Shield";
 import { UserPlus } from "@/components/icons/UserPlus";
 import { Users } from "@/components/icons/Users";
+import { Wallet } from "@/components/icons/Wallet";
 import { initialsFromName } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/registrations", label: "Registrations", icon: FileText },
+  { href: "/admin/finances", label: "Finances", icon: Wallet },
   { href: "/admin/allotments", label: "Allotments", icon: Gavel },
   { href: "/admin/allotment-rules", label: "Allotment Rules", icon: Settings },
   { href: "/admin/countries", label: "Country Matrix", icon: Globe },

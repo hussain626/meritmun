@@ -114,7 +114,7 @@ export default async function AboutPage() {
       </Section>
 
       <Section band="subtle">
-        <div className="grid gap-14 lg:grid-cols-[7fr_5fr] lg:gap-20">
+        <div className="grid grid-cols-1 gap-14 lg:grid-cols-[7fr_5fr] lg:gap-20">
           <div>
             <h2 className="text-h2 text-fg text-balance">
               How {conference.fullName} works
@@ -174,7 +174,7 @@ export default async function AboutPage() {
 
       {institutions || alumni ? (
         <Section>
-          <div className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:gap-20">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[5fr_7fr] lg:gap-20">
             <div>
               <h2 className="text-h2 text-fg text-balance">
                 The record so far
@@ -206,7 +206,7 @@ export default async function AboutPage() {
       ) : null}
 
       <Section band="forest">
-        <div className="grid gap-10 lg:grid-cols-[7fr_5fr] lg:items-end">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[7fr_5fr] lg:items-end">
           <div>
             <h2 className="font-display text-h2 text-on-brand text-balance">
               {registrationOpen

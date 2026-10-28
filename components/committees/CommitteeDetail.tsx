@@ -29,6 +29,9 @@ export function CommitteeDetail({ committee, registrationOpen }: CommitteeDetail
         <Badge tone={difficultyTone[committee.difficulty]}>
           {difficultyLabel[committee.difficulty]}
         </Badge>
+        {committee.doubleDelegate ? (
+          <Badge tone="accent">Double delegation: two delegates per country</Badge>
+        ) : null}
         <span className="flex items-center gap-1.5 text-sm text-fg-faint">
           <Users className="size-4" />
           {committee.seats} seats

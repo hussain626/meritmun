@@ -4,7 +4,9 @@ import type { FaqEntry } from "@/lib/types";
 export type FaqPricing = {
   currency: string;
   delegate: number;
+  delegateNoSocial: number;
   perDelegate: number;
+  perDelegateNoSocial: number;
   delegationFlat: number;
   minDelegation: number;
   maxDelegation: number;
@@ -27,7 +29,7 @@ function feesAnswer(pricing: FaqPricing | null): string {
     ? ` These are early-bird rates${pricing.earlyBird.endsAt ? ` until ${new Date(pricing.earlyBird.endsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "Asia/Karachi" })}` : ""}.`
     : "";
   return (
-    `${money(pricing, pricing.delegate)} for an individual delegate. Delegations of ${pricing.minDelegation} to ${pricing.maxDelegation} students pay ${money(pricing, pricing.perDelegate)} per head${flat}.${early} ` +
+    `An individual delegate pays ${money(pricing, pricing.delegate)} with social or ${money(pricing, pricing.delegateNoSocial)} without. In a delegation of ${pricing.minDelegation} to ${pricing.maxDelegation} students, each delegate pays ${money(pricing, pricing.perDelegate)} with social or ${money(pricing, pricing.perDelegateNoSocial)} without${flat}.${early} ` +
     "You pay by bank transfer after registering, the account details arrive in your confirmation email. The fee covers all three days of the conference."
   );
 }

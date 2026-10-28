@@ -9,6 +9,7 @@ import {
   listDelegates,
   listDelegations,
   listPortfolios,
+  listTeamProfiles,
 } from "@/lib/admin/data";
 import { isPdfProof, proofUrl } from "@/lib/admin/payment-proof";
 import { owedForDelegate, owedForDelegation } from "@/lib/admin/fees";
@@ -52,11 +53,11 @@ function Row({ label, value }: { label: string; value: string }) {
  * by which screenshot it was confirmed, and the seat if one has been issued.
  */
 export default async function TranscriptPage({ params }: PageProps) {
-  await requireAdminSession(["admin", "eb"]);
+  await requireAdminSession(["admin", "eb", "reviewer"]);
   const { kind, id } = await params;
   if (kind !== "delegate" && kind !== "delegation") notFound();
 
-  const [delegates, delegations, allotments, committees, portfolios, pricing] =
+  const [delegates, delegations, allotments, committees, portfolios, pricing, profiles] =
     await Promise.all([
       listDelegates(),
       listDelegations(),
@@ -64,7 +65,13 @@ export default async function TranscriptPage({ params }: PageProps) {
       listCommitteesAdmin(),
       listPortfolios(),
       getPricing(),
+      listTeamProfiles(),
     ]);
+  const staffName = (id: string | null | undefined) =>
+    id
+      ? (profiles.find((p) => p.id === id)?.fullName ??
+        (id === "demo-admin" ? "Demo Admin" : "Former team member"))
+      : null;
   const committeeName = new Map(committees.map((c) => [c.id, `${c.abbr}: ${c.name}`]));
   const committeeBySlug = new Map(committees.map((c) => [c.slug, c.abbr]));
   const country = new Map(portfolios.map((p) => [p.id, p.countryName]));
@@ -82,6 +89,7 @@ export default async function TranscriptPage({ params }: PageProps) {
   let received: number | null;
   let note: string | null | undefined;
   let confirmedAt: string | null | undefined;
+  let confirmedBy: string | null = null;
   let proofPath: string | null | undefined;
   let details: { label: string; value: string }[];
   let roster: DelegateRecord[] = [];
@@ -108,6 +116,7 @@ export default async function TranscriptPage({ params }: PageProps) {
     received = d.paymentAmount;
     note = d.paymentNote;
     confirmedAt = d.paymentConfirmedAt;
+    confirmedBy = staffName(d.paymentConfirmedBy);
     proofPath = d.paymentProofPath;
     details = [
       { label: "Delegate code", value: d.delegateCode },
@@ -119,7 +128,14 @@ export default async function TranscriptPage({ params }: PageProps) {
       { label: "Awards", value: d.priorAwards ?? "-" },
       { label: "Preferences", value: prefs(d) },
       { label: "Registered", value: formatAdminDateTime(d.createdAt) },
+      { label: "Fee option", value: d.withSocial === false ? "Without social" : "With social" },
       { label: "Seat", value: seatOf(d.id) },
+      ...delegates
+        .filter((x) => x.paidBy === d.id)
+        .map((x) => ({
+          label: "Co-delegate (paid for)",
+          value: `${x.fullName} · ${x.delegateCode} · ${seatOf(x.id)}`,
+        })),
     ];
   } else {
     const g = delegations.find((x) => x.id === id);
@@ -132,6 +148,7 @@ export default async function TranscriptPage({ params }: PageProps) {
     received = g.paymentAmount;
     note = g.paymentNote;
     confirmedAt = g.paymentConfirmedAt;
+    confirmedBy = staffName(g.paymentConfirmedBy);
     proofPath = g.paymentProofPath;
     details = [
       { label: "Head delegate", value: `${g.headName} (${g.headRole})` },
@@ -183,6 +200,7 @@ export default async function TranscriptPage({ params }: PageProps) {
                 <tr className="border-b border-neutral-300 text-left text-neutral-500">
                   <th className="py-1.5 pr-3 font-medium">Name</th>
                   <th className="py-1.5 pr-3 font-medium">Code</th>
+                  <th className="py-1.5 pr-3 font-medium">Fee option</th>
                   <th className="py-1.5 pr-3 font-medium">Preferences</th>
                   <th className="py-1.5 font-medium">Seat</th>
                 </tr>
@@ -195,6 +213,7 @@ export default async function TranscriptPage({ params }: PageProps) {
                       {m.isHeadDelegate ? " (head)" : ""}
                     </td>
                     <td className="py-1.5 pr-3 font-mono">{m.delegateCode}</td>
+                    <td className="py-1.5 pr-3">{m.withSocial === false ? "No social" : "Social"}</td>
                     <td className="py-1.5 pr-3">{prefs(m)}</td>
                     <td className="py-1.5">{seatOf(m.id)}</td>
                   </tr>
@@ -223,6 +242,7 @@ export default async function TranscriptPage({ params }: PageProps) {
               label="Confirmed"
               value={confirmedAt ? formatAdminDateTime(confirmedAt) : "-"}
             />
+            <Row label="Confirmed by" value={confirmedBy ?? "-"} />
           </dl>
         </section>
 

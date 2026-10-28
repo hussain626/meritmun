@@ -78,12 +78,12 @@ export default async function HomePage() {
       <HomeCta
         delegateFee={
           pricing
-            ? `${pricing.currency} ${formatNumber(pricing.delegate)}`
+            ? `${pricing.currency} ${formatNumber(pricing.delegate)} with social, ${formatNumber(pricing.delegateNoSocial)} without`
             : null
         }
         delegationFee={
           pricing
-            ? `${pricing.currency} ${formatNumber(pricing.perDelegate)} per head${pricing.delegationFlat > 0 ? ` + ${pricing.currency} ${formatNumber(pricing.delegationFlat)} per delegation` : ""}`
+            ? `${pricing.currency} ${formatNumber(pricing.perDelegate)} with social, ${formatNumber(pricing.perDelegateNoSocial)} without, per head${pricing.delegationFlat > 0 ? ` + ${pricing.currency} ${formatNumber(pricing.delegationFlat)} per delegation` : ""}`
             : null
         }
         registrationOpen={registrationOpen}

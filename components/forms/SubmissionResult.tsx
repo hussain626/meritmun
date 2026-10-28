@@ -2,7 +2,7 @@ import { Check } from "@/components/icons/Check";
 import { Alert } from "@/components/ui/Alert";
 import { ButtonLink } from "@/components/ui/Button";
 import { formatNumber } from "@/lib/utils";
-import type { Submission } from "@/lib/types";
+import type { PaymentDetails, Submission } from "@/lib/types";
 
 type SubmissionResultProps = {
   submission: Submission;
@@ -20,13 +20,13 @@ function nextSteps(submission: Submission): string[] {
     case "delegate":
       return [
         `Pay ${fee} to one of the bank accounts in your confirmation email, quoting your delegate code${submission.delegateCode ? ` (${submission.delegateCode})` : ""} as the payment reference.`,
-        "Send the transfer screenshot to Delegate Affairs. You are emailed as soon as Finance has matched it.",
+        `Send the transfer screenshot${submission.payment?.contacts.length ? " to one of the numbers above" : " to Delegate Affairs"}. You are emailed as soon as Finance has matched it.`,
         "Paid delegates are allotted on merit; your committee, portfolio and background guide arrive by email.",
       ];
     case "delegation":
       return [
         `Pay ${fee} for the whole delegation to one of the bank accounts in the confirmation email, quoting your delegation reference.`,
-        "Send the transfer screenshot to Delegate Affairs. One confirmation covers every student on the roster.",
+        `Send the transfer screenshot${submission.payment?.contacts.length ? " to one of the numbers above" : " to Delegate Affairs"}. One confirmation covers every student on the roster.`,
         "Once the payment is confirmed, every student is allotted and emailed their committee and portfolio.",
       ];
     case "contact":
@@ -35,6 +35,88 @@ function nextSteps(submission: Submission): string[] {
         "Replies come from an @meritmun.systemsummit.online address, check spam if nothing arrives.",
       ];
   }
+}
+
+/** WhatsApp link for a phone number as admins type it. */
+function whatsappHref(number: string): string {
+  return `https://wa.me/${number.replace(/D/g, "")}`;
+}
+
+/** Bank accounts and screenshot numbers, so nobody has to wait for the email. */
+function PaymentPanel({
+  payment,
+  reference,
+}: {
+  payment: PaymentDetails;
+  reference: string;
+}) {
+  return (
+    <section className="mt-8 max-w-[60ch] rounded-md border border-line-strong bg-surface p-6">
+      <h3 className="text-base font-semibold text-fg">How to pay</h3>
+      {payment.accounts.length > 0 ? (
+        <ul className="mt-4 grid gap-4">
+          {payment.accounts.map((account) => (
+            <li
+              key={`${account.bankName}-${account.accountNumber}`}
+              className="rounded-sm border border-line p-4 text-sm"
+            >
+              <p className="font-semibold text-fg">{account.bankName}</p>
+              <dl className="mt-2 grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 text-fg-muted">
+                <dt>Account title</dt>
+                <dd className="break-words text-fg">{account.accountTitle}</dd>
+                <dt>Account number</dt>
+                <dd className="font-mono break-all text-fg">{account.accountNumber}</dd>
+                {account.iban ? (
+                  <>
+                    <dt>IBAN</dt>
+                    <dd className="font-mono break-all text-fg">{account.iban}</dd>
+                  </>
+                ) : null}
+                {account.branch ? (
+                  <>
+                    <dt>Branch</dt>
+                    <dd className="text-fg">{account.branch}</dd>
+                  </>
+                ) : null}
+              </dl>
+              {account.instructions ? (
+                <p className="mt-2 text-xs text-fg-faint">{account.instructions}</p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-fg-muted">
+          Bank details follow from Delegate Affairs.
+        </p>
+      )}
+      <p className="mt-4 text-sm text-fg-muted">
+        Use <strong className="font-mono text-fg">{reference}</strong> as the
+        payment reference.
+      </p>
+      {payment.contacts.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-sm font-medium text-fg">
+            Then send the transfer screenshot to any of these numbers:
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {payment.contacts.map((number) => (
+              <li key={number}>
+                <a
+                  href={whatsappHref(number)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-full border border-line-strong px-3 py-1.5 font-mono text-sm text-brand-fg hover:border-brand focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
+                >
+                  {number}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 const HEADINGS: Record<Submission["kind"], string> = {
@@ -81,6 +163,16 @@ export function SubmissionResult({ submission }: SubmissionResultProps) {
               </strong>
             </div>
           ) : null}
+          {submission.coDelegate ? (
+            <div className="inline-flex flex-col gap-1 rounded-md border border-line-strong bg-surface px-6 py-5">
+              <span className="text-xs tracking-wide text-fg-faint uppercase">
+                Co-delegate code · {submission.coDelegate.name}
+              </span>
+              <strong className="font-mono text-h3 tracking-tight text-accent-fg">
+                {submission.coDelegate.delegateCode}
+              </strong>
+            </div>
+          ) : null}
           {submission.fee ? (
             <div className="inline-flex flex-col gap-1 rounded-md border border-line-strong bg-surface px-6 py-5">
               <span className="text-xs tracking-wide text-fg-faint uppercase">
@@ -92,6 +184,13 @@ export function SubmissionResult({ submission }: SubmissionResultProps) {
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {isRegistration && submission.payment ? (
+        <PaymentPanel
+          payment={submission.payment}
+          reference={submission.delegateCode ?? submission.reference}
+        />
       ) : null}
 
       {isRegistration && submission.emailSent === false ? (

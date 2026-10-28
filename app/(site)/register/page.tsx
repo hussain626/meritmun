@@ -55,7 +55,7 @@ export default async function RegisterPage({
         "Three ranked committee preferences",
         "Seats allotted on merit once you have paid",
       ],
-      fee: `${pricing.currency} ${formatNumber(pricing.delegate)} per delegate`,
+      fee: `${pricing.currency} ${formatNumber(pricing.delegate)} with social, ${formatNumber(pricing.delegateNoSocial)} without`,
     },
     {
       href: manual ? "/register/delegation?manual=1" : "/register/delegation",
@@ -68,7 +68,7 @@ export default async function RegisterPage({
         "One payment covers the whole delegation",
         "Every member gets their own seat and allotment",
       ],
-      fee: `${pricing.currency} ${formatNumber(pricing.perDelegate)} per head${pricing.delegationFlat > 0 ? ` + ${pricing.currency} ${formatNumber(pricing.delegationFlat)} per delegation` : ""}`,
+      fee: `${pricing.currency} ${formatNumber(pricing.perDelegate)} with social, ${formatNumber(pricing.perDelegateNoSocial)} without, per head${pricing.delegationFlat > 0 ? ` + ${pricing.currency} ${formatNumber(pricing.delegationFlat)} per delegation` : ""}`,
     },
   ];
 

@@ -2,12 +2,15 @@
 
 import {
   hasErrors,
+  needsCoDelegate,
+  type DoubleCommittee,
   validateContact,
   validateDelegate,
   validateDelegation,
 } from "@/lib/validation";
 import { getDemoStore } from "@/lib/admin/demo-store";
 import type {
+  BankAccount,
   DelegateRecord,
   DelegationRecord,
   QueryRecord,
@@ -17,6 +20,8 @@ import { listBankAccounts } from "@/lib/admin/data";
 import {
   delegationQuote,
   getPublicPricing,
+  individualFee,
+  memberFee,
   listPublicCommittees,
 } from "@/lib/public/data";
 import {
@@ -36,6 +41,8 @@ import {
 } from "@/lib/utils";
 import type {
   ActionResult,
+  CoDelegateChoice,
+  PaymentDetails,
   ContactMessage,
   ContactTopic,
   DelegateApplication,
@@ -51,6 +58,36 @@ import type {
 async function publishedCommitteeSlugs(): Promise<string[]> {
   const list = await listPublicCommittees();
   return list.map((committee) => committee.slug);
+}
+
+/** Published committees that seat two delegates per country. */
+async function doubleCommittees(): Promise<DoubleCommittee[]> {
+  const list = await listPublicCommittees();
+  return list
+    .filter((committee) => committee.doubleDelegate)
+    .map(({ slug, abbr }) => ({ slug, abbr }));
+}
+
+/**
+ * Delegation members who rank a double-delegate committee first are seated in
+ * pairs, in roster order. Returns member index -> shared pair id.
+ */
+function pairMembers(
+  members: DelegationApplication["members"],
+  doubles: readonly DoubleCommittee[],
+): Map<number, string> {
+  const pairs = new Map<number, string>();
+  for (const committee of doubles) {
+    const indexes = members
+      .map((m, i) => (m.committeePrefs[0] === committee.slug ? i : -1))
+      .filter((i) => i >= 0);
+    for (let k = 0; k + 1 < indexes.length; k += 2) {
+      const pairId = crypto.randomUUID();
+      pairs.set(indexes[k], pairId);
+      pairs.set(indexes[k + 1], pairId);
+    }
+  }
+  return pairs;
 }
 
 /**
@@ -117,49 +154,113 @@ const SAVE_FAILED =
 
 /* ── delegate ────────────────────────────────────────────────────────────── */
 
+/** Pair columns are missing until migration 011 is applied. */
+function isMissingPairColumn(error: DbError): boolean {
+  return (
+    (error?.code === "PGRST204" || error?.code === "42703") &&
+    /pair_id|paid_by/i.test(error?.message ?? "")
+  );
+}
+
+/** The payment details shown on the success screen and in the first email. */
+function paymentDetails(
+  banks: BankAccount[],
+  contacts: string[],
+): PaymentDetails {
+  return {
+    accounts: banks
+      .filter((b) => b.isActive)
+      .map((b) => ({
+        bankName: b.bankName,
+        accountTitle: b.accountTitle,
+        accountNumber: b.accountNumber,
+        iban: b.iban,
+        branch: b.branch,
+        instructions: b.instructions,
+      })),
+    contacts,
+  };
+}
+
+/**
+ * Register one delegate. When their first choice seats two delegates per
+ * country and they bring their own co-delegate, both are registered as a pair
+ * (shared `pair_id`); the co-delegate's fee is paid through this
+ * registration (`paid_by`), so the quote covers two.
+ */
 async function persistDelegate(app: DelegateApplication): Promise<Submission> {
   const pricing = await getPublicPricing();
   const banks = await listBankAccounts();
   const receivedAt = new Date().toISOString();
+  const partner = app.coDelegate?.mode === "partner" ? app.coDelegate : null;
+  // A co-delegate brought along takes the registrant's social choice.
+  const fee = individualFee(pricing, app.withSocial) * (partner ? 2 : 1);
+  const pairId = partner ? crypto.randomUUID() : null;
   let reference = generateReference();
   let delegateCode = generateDelegateCode();
+  let partnerReference = generateReference();
+  let partnerCode = generateDelegateCode();
+  const registrantId = crypto.randomUUID();
+  const partnerId = crypto.randomUUID();
 
   if (!isSupabaseConfigured()) {
     const store = getDemoStore();
-    const record: DelegateRecord = {
-      id: `delegate-${reference}`,
-      reference,
-      delegateCode,
-      fullName: app.fullName,
-      email: app.email,
-      phone: app.phone,
+    const base = {
       institution: app.institution,
       age: null,
       city: app.city,
-      experience: app.experience,
-      priorAwards: app.priorAwards,
       committeePrefs: app.committeePrefs,
       accommodation: app.accommodation,
-      dietary: app.dietary,
+      withSocial: app.withSocial,
       hearAbout: app.hearAbout,
-      paymentStatus: "pending",
+      paymentStatus: "pending" as const,
       paymentAmount: null,
-      quotedAmount: pricing.delegate,
       paymentConfirmedAt: null,
       paymentRejectedAt: null,
       rejectionReason: null,
       delegationId: null,
       isHeadDelegate: false,
       feeType: pricing.delegateFeeType,
+      pairId,
       createdAt: receivedAt,
       updatedAt: receivedAt,
+    };
+    if (partner) {
+      const record: DelegateRecord = {
+        ...base,
+        id: partnerId,
+        reference: partnerReference,
+        delegateCode: partnerCode,
+        fullName: partner.fullName,
+        email: partner.email,
+        phone: partner.phone,
+        experience: partner.experience,
+        priorAwards: null,
+        quotedAmount: null,
+        paidBy: registrantId,
+      };
+      store.delegates.unshift(record);
+    }
+    const record: DelegateRecord = {
+      ...base,
+      id: registrantId,
+      reference,
+      delegateCode,
+      fullName: app.fullName,
+      email: app.email,
+      phone: app.phone,
+      experience: app.experience,
+      priorAwards: app.priorAwards,
+      quotedAmount: fee,
+      paidBy: null,
     };
     store.delegates.unshift(record);
   } else {
     const client = await registrationClient();
     for (let attempt = 1; ; attempt += 1) {
-      const error = await insertQuoted(client, "delegates", [
+      const rows: Record<string, unknown>[] = [
         {
+          id: registrantId,
           reference,
           delegate_code: delegateCode,
           full_name: app.fullName,
@@ -171,31 +272,63 @@ async function persistDelegate(app: DelegateApplication): Promise<Submission> {
           prior_awards: app.priorAwards,
           committee_prefs: app.committeePrefs,
           accommodation: app.accommodation,
-          dietary: app.dietary,
           hear_about: app.hearAbout,
+          ...(app.withSocial ? {} : { with_social: false }),
           payment_status: "pending",
           fee_type: pricing.delegateFeeType,
-          quoted_amount: pricing.delegate,
+          quoted_amount: fee,
+          ...(pairId ? { pair_id: pairId } : {}),
         },
-      ]);
+      ];
+      if (partner) {
+        rows.push({
+          id: partnerId,
+          reference: partnerReference,
+          delegate_code: partnerCode,
+          full_name: partner.fullName,
+          email: partner.email,
+          phone: partner.phone,
+          institution: app.institution,
+          city: app.city,
+          experience: partner.experience,
+          committee_prefs: app.committeePrefs,
+          accommodation: app.accommodation,
+          hear_about: app.hearAbout,
+          ...(app.withSocial ? {} : { with_social: false }),
+          payment_status: "pending",
+          fee_type: pricing.delegateFeeType,
+          pair_id: pairId,
+          paid_by: registrantId,
+        });
+      }
+      const error = await insertQuoted(client, "delegates", rows);
       if (!error) break;
       if (isUniqueViolation(error) && attempt < MAX_CODE_ATTEMPTS) {
         reference = generateReference();
         delegateCode = generateDelegateCode();
+        partnerReference = generateReference();
+        partnerCode = generateDelegateCode();
         continue;
+      }
+      if (isMissingPairColumn(error)) {
+        console.warn(
+          "[meritmun] co-delegate columns missing, run supabase/migrations/011_double_delegation.sql",
+        );
       }
       console.warn("[meritmun] delegate insert failed", error);
       throw new Error("delegate-insert-failed");
     }
   }
 
+  const payment = paymentDetails(banks, pricing.paymentContacts);
   const sent = await sendRegistrationConfirmation({
     to: app.email,
     fullName: app.fullName,
     reference,
     delegateCode,
     bankAccounts: banks.filter((b) => b.isActive),
-    feeAmount: pricing.delegate,
+    paymentContacts: pricing.paymentContacts,
+    feeAmount: fee,
     currency: pricing.currency,
   });
 
@@ -205,8 +338,12 @@ async function persistDelegate(app: DelegateApplication): Promise<Submission> {
     receivedAt,
     name: app.fullName,
     delegateCode,
-    fee: { currency: pricing.currency, amount: pricing.delegate },
+    fee: { currency: pricing.currency, amount: fee },
     emailSent: emailWentOut(sent),
+    coDelegate: partner
+      ? { name: partner.fullName, delegateCode: partnerCode }
+      : null,
+    payment,
   };
 }
 
@@ -224,16 +361,18 @@ async function persistDelegation(
   const receivedAt = new Date().toISOString();
   const feeType = pricing.memberFeeType;
   const headEmail = app.headEmail.trim().toLowerCase();
-  const total = delegationQuote(pricing, app.members.length);
+  const total = delegationQuote(pricing, app.members);
   let reference = generateReference();
 
+  const pairs = pairMembers(app.members, await doubleCommittees());
   const mintMembers = () =>
-    app.members.map((member) => ({
+    app.members.map((member, index) => ({
       ...member,
       id: crypto.randomUUID(),
       reference: generateReference(),
       delegateCode: generateDelegateCode(),
       isHead: member.email.trim().toLowerCase() === headEmail,
+      pairId: pairs.get(index) ?? null,
     }));
   let members = mintMembers();
 
@@ -278,16 +417,17 @@ async function persistDelegation(
         priorAwards: member.priorAwards,
         committeePrefs: member.committeePrefs,
         accommodation: false,
-        dietary: null,
         hearAbout: "school",
         paymentStatus: "pending",
         paymentAmount: null,
-        quotedAmount: pricing.perDelegate,
+        quotedAmount: memberFee(pricing, member.withSocial),
+        withSocial: member.withSocial,
         paymentConfirmedAt: null,
         paymentRejectedAt: null,
         rejectionReason: null,
         delegationId,
         isHeadDelegate: member.isHead,
+        pairId: member.pairId,
         feeType,
         createdAt: receivedAt,
         updatedAt: receivedAt,
@@ -346,8 +486,10 @@ async function persistDelegation(
           payment_status: "pending",
           delegation_id: delegationId,
           is_head_delegate: member.isHead,
+          ...(member.pairId ? { pair_id: member.pairId } : {}),
           fee_type: feeType,
-          quoted_amount: pricing.perDelegate,
+          quoted_amount: memberFee(pricing, member.withSocial),
+          ...(member.withSocial ? {} : { with_social: false }),
         })),
       );
       if (!membersError) break;
@@ -386,6 +528,7 @@ async function persistDelegation(
     feeAmount: total,
     currency: pricing.currency,
     bankAccounts: banks.filter((b) => b.isActive),
+    paymentContacts: pricing.paymentContacts,
   });
 
   return {
@@ -395,6 +538,7 @@ async function persistDelegation(
     name: app.institutionName,
     fee: { currency: pricing.currency, amount: total },
     emailSent: emailWentOut(sent),
+    payment: paymentDetails(banks, pricing.paymentContacts),
   };
 }
 
@@ -413,9 +557,24 @@ function readDelegateForm(formData: FormData): DelegateApplication {
       getField(formData, "committeePref3"),
     ],
     accommodation: getCheckbox(formData, "accommodation"),
-    dietary: getField(formData, "dietary") || null,
+    // Radio "socialTier": "with" or "without"; default with social.
+    withSocial: getField(formData, "socialTier") !== "without",
     hearAbout: getField(formData, "hearAbout") as HearAbout,
+    coDelegate: readCoDelegate(formData),
     consent: getCheckbox(formData, "consent"),
+  };
+}
+
+function readCoDelegate(formData: FormData): CoDelegateChoice | null {
+  const mode = getField(formData, "coDelegateMode");
+  if (mode === "random") return { mode: "random" };
+  if (mode !== "partner") return null;
+  return {
+    mode: "partner",
+    fullName: getField(formData, "coFullName"),
+    email: getField(formData, "coEmail"),
+    phone: getField(formData, "coPhone"),
+    experience: getField(formData, "coExperience") as ExperienceLevel,
   };
 }
 
@@ -429,8 +588,13 @@ export async function submitDelegate(
     return { ok: false, errors: {}, message: REGISTRATION_CLOSED };
   }
 
-  const values = readDelegateForm(formData);
-  const errors = validateDelegate(values, await publishedCommitteeSlugs());
+  const parsed = readDelegateForm(formData);
+  const doubles = await doubleCommittees();
+  // The co-delegate choice only applies when the first choice seats two.
+  const values: DelegateApplication = needsCoDelegate(parsed.committeePrefs, doubles)
+    ? parsed
+    : { ...parsed, coDelegate: null };
+  const errors = validateDelegate(values, await publishedCommitteeSlugs(), doubles);
 
   if (hasErrors(errors)) {
     return {
@@ -473,6 +637,7 @@ function readMembers(formData: FormData): DelegationMember[] {
       experience: text(m.experience) as ExperienceLevel,
       priorAwards: text(m.priorAwards) || null,
       committeePrefs: [0, 1, 2].map((i) => text(prefs[i])),
+      withSocial: m.withSocial !== false,
     };
   });
 }
@@ -507,10 +672,12 @@ export async function submitDelegation(
 
   const values = readDelegationForm(formData);
   const pricing = await getPublicPricing();
-  const errors = validateDelegation(values, await publishedCommitteeSlugs(), {
-    min: pricing.minDelegation,
-    max: pricing.maxDelegation,
-  });
+  const errors = validateDelegation(
+    values,
+    await publishedCommitteeSlugs(),
+    { min: pricing.minDelegation, max: pricing.maxDelegation },
+    await doubleCommittees(),
+  );
 
   if (hasErrors(errors)) {
     return {

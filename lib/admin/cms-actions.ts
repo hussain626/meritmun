@@ -159,6 +159,7 @@ export async function createCommittee(input: {
   difficulty: Difficulty;
   agenda: string;
   seats: number;
+  isDoubleDelegate?: boolean;
 }): Promise<ActionResult> {
   const auth = await authorizeAction(STAFF, "create committees");
   if (!auth.ok) return auth;
@@ -198,6 +199,7 @@ export async function createCommittee(input: {
       featured: false,
       isPublished: false,
       allotmentsPaused: false,
+      isDoubleDelegate: Boolean(input.isDoubleDelegate),
       sortOrder: Math.max(0, ...store.committees.map((c) => c.sortOrder)) + 1,
       createdAt: nowIso(),
       updatedAt: nowIso(),
@@ -223,6 +225,7 @@ export async function createCommittee(input: {
       seats,
       featured: false,
       is_published: false,
+      is_double_delegate: Boolean(input.isDoubleDelegate),
       sort_order: await nextSortOrder(client, "committees"),
     });
     if (error) {

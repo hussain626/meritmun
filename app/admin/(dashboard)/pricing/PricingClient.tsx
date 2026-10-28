@@ -65,15 +65,24 @@ export function PricingClient({
   const [form, setForm] = useState<PricingSaveInput>({
     currency: "PKR",
     delegateFee: pricing.delegateFee,
+    delegateFeeNoSocial: pricing.delegateFeeNoSocial,
     delegationFee: pricing.delegationFee,
     perDelegateFee: pricing.perDelegateFee,
+    perDelegateFeeNoSocial: pricing.perDelegateFeeNoSocial,
     delegationMin: pricing.delegationMin,
     delegationMax: pricing.delegationMax,
     earlyBirdEnabled: pricing.earlyBirdEnabled,
     earlyBirdDelegateFee: pricing.earlyBirdDelegateFee,
+    earlyBirdDelegateFeeNoSocial: pricing.earlyBirdDelegateFeeNoSocial,
     earlyBirdPerDelegateFee: pricing.earlyBirdPerDelegateFee,
+    earlyBirdPerDelegateFeeNoSocial: pricing.earlyBirdPerDelegateFeeNoSocial,
     earlyBirdEndsAt: pricing.earlyBirdEndsAt,
+    paymentContacts: pricing.paymentContacts,
   });
+  // One number per line in the editor; saved as a list.
+  const [contactsText, setContactsText] = useState(
+    pricing.paymentContacts.join("\n"),
+  );
   const [accounts, setAccounts] = useState(bankAccounts);
   const [editingBank, setEditingBank] = useState<BankAccount | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -149,7 +158,7 @@ export function PricingClient({
         </p>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-4">
           <section className="rounded-sm border border-line bg-surface p-5 shadow-sm">
             <h2 className="text-base font-bold text-fg">Base Fee Structure</h2>
@@ -159,9 +168,9 @@ export function PricingClient({
             <div className="mt-5 grid gap-6 sm:grid-cols-2">
               <div className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold text-fg">
-                  Individual Delegate
+                  Regular phase fees
                 </h3>
-                <Field label="Standard Fee">
+                <Field label="Individual, with social">
                   <PkrInput
                     value={form.delegateFee}
                     disabled={!canEdit}
@@ -170,7 +179,16 @@ export function PricingClient({
                     }
                   />
                 </Field>
-                <Field label="Per-delegate (in a delegation)">
+                <Field label="Individual, without social">
+                  <PkrInput
+                    value={form.delegateFeeNoSocial}
+                    disabled={!canEdit}
+                    onChange={(e) =>
+                      patch("delegateFeeNoSocial", Number(e.target.value) || 0)
+                    }
+                  />
+                </Field>
+                <Field label="Delegate in a delegation, with social">
                   <PkrInput
                     value={form.perDelegateFee}
                     disabled={!canEdit}
@@ -179,10 +197,19 @@ export function PricingClient({
                     }
                   />
                 </Field>
+                <Field label="Delegate in a delegation, without social">
+                  <PkrInput
+                    value={form.perDelegateFeeNoSocial}
+                    disabled={!canEdit}
+                    onChange={(e) =>
+                      patch("perDelegateFeeNoSocial", Number(e.target.value) || 0)
+                    }
+                  />
+                </Field>
               </div>
               <div className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold text-fg">Delegation</h3>
-                <Field label="Delegation Registration Fee">
+                <Field label="Delegation fee (once per delegation)">
                   <PkrInput
                     value={form.delegationFee}
                     disabled={!canEdit}
@@ -247,7 +274,7 @@ export function PricingClient({
                   }
                 />
               </Field>
-              <Field label="Discounted Individual Fee">
+              <Field label="Early bird individual, with social">
                 <PkrInput
                   disabled={!canEdit || !form.earlyBirdEnabled}
                   value={form.earlyBirdDelegateFee ?? ""}
@@ -266,7 +293,19 @@ export function PricingClient({
                   </p>
                 ) : null}
               </Field>
-              <Field label="Discounted per-delegate">
+              <Field label="Early bird individual, without social">
+                <PkrInput
+                  disabled={!canEdit || !form.earlyBirdEnabled}
+                  value={form.earlyBirdDelegateFeeNoSocial ?? ""}
+                  onChange={(e) =>
+                    patch(
+                      "earlyBirdDelegateFeeNoSocial",
+                      e.target.value === "" ? null : Number(e.target.value) || 0,
+                    )
+                  }
+                />
+              </Field>
+              <Field label="Early bird in a delegation, with social">
                 <PkrInput
                   disabled={!canEdit || !form.earlyBirdEnabled}
                   value={form.earlyBirdPerDelegateFee ?? ""}
@@ -280,12 +319,51 @@ export function PricingClient({
                   }
                 />
               </Field>
+              <Field label="Early bird in a delegation, without social">
+                <PkrInput
+                  disabled={!canEdit || !form.earlyBirdEnabled}
+                  value={form.earlyBirdPerDelegateFeeNoSocial ?? ""}
+                  onChange={(e) =>
+                    patch(
+                      "earlyBirdPerDelegateFeeNoSocial",
+                      e.target.value === "" ? null : Number(e.target.value) || 0,
+                    )
+                  }
+                />
+              </Field>
             </div>
             <p className="mt-4 flex gap-2 rounded-sm bg-accent/15 px-3 py-2.5 text-sm text-fg">
               <Info className="mt-0.5 size-4 shrink-0 text-warning-fg" />
               After this date, the system will automatically revert to Standard
               Pricing on the public portal.
             </p>
+          </section>
+
+          <section className="rounded-sm border border-line bg-surface p-5 shadow-sm">
+            <h2 className="text-base font-bold text-fg">Payment screenshot numbers</h2>
+            <p className="mt-1 text-sm text-fg-muted">
+              Registrants are asked to send their transfer screenshot to any of
+              these numbers (opened in WhatsApp). Shown on the registration
+              confirmation screen and in the first email. One number per line.
+            </p>
+            <Textarea
+              className="mt-4"
+              rows={3}
+              disabled={!canEdit}
+              value={contactsText}
+              placeholder={"+92 300 1234567\n+92 321 7654321"}
+              onChange={(e) => {
+                setContactsText(e.target.value);
+                patch(
+                  "paymentContacts",
+                  e.target.value
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter(Boolean),
+                );
+              }}
+            />
+            <p className="mt-2 text-xs text-fg-faint">Saved with &ldquo;Save All Changes&rdquo;.</p>
           </section>
 
           <section className="rounded-sm border border-line bg-surface p-5 shadow-sm">

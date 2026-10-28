@@ -80,8 +80,13 @@ function mapPricing(row: Record<string, unknown>): PricingSettings {
     id: Number(row.id),
     currency: "PKR",
     delegateFee: Number(row.delegate_fee),
+    // Until migration 012 there is no without-social tier: use the same price.
+    delegateFeeNoSocial: Number(row.delegate_fee_no_social ?? row.delegate_fee),
     delegationFee: Number(row.delegation_fee),
     perDelegateFee: Number(row.per_delegate_fee),
+    perDelegateFeeNoSocial: Number(
+      row.per_delegate_fee_no_social ?? row.per_delegate_fee,
+    ),
     delegationMin: Number(row.delegation_min),
     delegationMax: Number(row.delegation_max),
     earlyBirdEnabled: Boolean(row.early_bird_enabled),
@@ -89,12 +94,23 @@ function mapPricing(row: Record<string, unknown>): PricingSettings {
       row.early_bird_delegate_fee == null
         ? null
         : Number(row.early_bird_delegate_fee),
+    earlyBirdDelegateFeeNoSocial:
+      row.early_bird_delegate_fee_no_social == null
+        ? null
+        : Number(row.early_bird_delegate_fee_no_social),
     earlyBirdPerDelegateFee:
       row.early_bird_per_delegate_fee == null
         ? null
         : Number(row.early_bird_per_delegate_fee),
+    earlyBirdPerDelegateFeeNoSocial:
+      row.early_bird_per_delegate_fee_no_social == null
+        ? null
+        : Number(row.early_bird_per_delegate_fee_no_social),
     earlyBirdEndsAt:
       row.early_bird_ends_at == null ? null : String(row.early_bird_ends_at),
+    paymentContacts: Array.isArray(row.payment_contact_numbers)
+      ? (row.payment_contact_numbers as unknown[]).map(String).filter(Boolean)
+      : [],
     updatedAt: String(row.updated_at),
     updatedBy: row.updated_by == null ? null : String(row.updated_by),
   };
@@ -117,7 +133,6 @@ export function mapDelegateRow(row: Record<string, unknown>): DelegateRecord {
       ? (row.committee_prefs as string[])
       : [],
     accommodation: Boolean(row.accommodation),
-    dietary: row.dietary == null ? null : String(row.dietary),
     hearAbout: row.hear_about as DelegateRecord["hearAbout"],
     paymentStatus: row.payment_status as DelegateRecord["paymentStatus"],
     paymentAmount:
@@ -137,6 +152,11 @@ export function mapDelegateRow(row: Record<string, unknown>): DelegateRecord {
     paymentNote: row.payment_note == null ? null : String(row.payment_note),
     delegationId: row.delegation_id == null ? null : String(row.delegation_id),
     isHeadDelegate: Boolean(row.is_head_delegate),
+    withSocial: row.with_social == null ? true : Boolean(row.with_social),
+    pairId: row.pair_id == null ? null : String(row.pair_id),
+    paidBy: row.paid_by == null ? null : String(row.paid_by),
+    paymentConfirmedBy:
+      row.payment_confirmed_by == null ? null : String(row.payment_confirmed_by),
     feeType: row.fee_type as DelegateRecord["feeType"],
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -169,6 +189,8 @@ function mapDelegation(row: Record<string, unknown>): DelegationRecord {
     paymentNote: row.payment_note == null ? null : String(row.payment_note),
     paymentConfirmedAt:
       row.payment_confirmed_at == null ? null : String(row.payment_confirmed_at),
+    paymentConfirmedBy:
+      row.payment_confirmed_by == null ? null : String(row.payment_confirmed_by),
     quotedAmount:
       row.quoted_amount == null ? null : Number(row.quoted_amount),
     createdAt: String(row.created_at),
@@ -238,7 +260,9 @@ export async function getOverviewKpis(): Promise<OverviewKpis> {
       const [delegates, delegations, queries, allotments] = await Promise.all([
         client
           .from("delegates")
-          .select("payment_status, payment_amount, delegation_id"),
+          // "*" so paid_by is read when migration 011 is applied, without
+          // failing the query before it is.
+          .select("*"),
         client.from("delegations").select("payment_status, payment_amount"),
         client.from("queries").select("status"),
         client.from("allotments").select("status"),
@@ -255,6 +279,7 @@ export async function getOverviewKpis(): Promise<OverviewKpis> {
           paymentAmount:
             typeof r.payment_amount === "number" ? r.payment_amount : null,
           delegationId: r.delegation_id == null ? null : String(r.delegation_id),
+          paidBy: r.paid_by == null ? null : String(r.paid_by),
         })),
         (delegations.data ?? []).map((r) => ({
           paymentStatus: String(r.payment_status),
@@ -607,6 +632,7 @@ function mapCommittee(r: Record<string, unknown>): CommitteeAdminRecord {
     featured: Boolean(r.featured),
     isPublished: Boolean(r.is_published),
     allotmentsPaused: Boolean(r.allotments_paused),
+    isDoubleDelegate: Boolean(r.is_double_delegate),
     sortOrder: Number(r.sort_order),
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),

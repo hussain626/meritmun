@@ -28,7 +28,7 @@ export default async function ContactPage() {
       />
 
       <Section>
-        <div className="grid gap-14 lg:grid-cols-[7fr_5fr] lg:gap-20">
+        <div className="grid grid-cols-1 gap-14 lg:grid-cols-[7fr_5fr] lg:gap-20">
           <div>
             <h2 className="text-h2 text-fg">Send us a message</h2>
             <p className="mt-4 max-w-[52ch] leading-relaxed text-fg-muted">

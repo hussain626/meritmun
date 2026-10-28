@@ -5,17 +5,29 @@ import type {
   PricingSettings,
 } from "@/lib/admin/types";
 
-/** Current fee for a fee type (used for rows registered before quotes were stored). */
-export function feeForType(feeType: FeeType, pricing: PricingSettings): number {
+/**
+ * Current fee for a fee type and social tier (used for rows registered before
+ * quotes were stored). An early-bird price left blank falls back to the
+ * regular price of the same tier.
+ */
+export function feeForType(
+  feeType: FeeType,
+  pricing: PricingSettings,
+  withSocial = true,
+): number {
   switch (feeType) {
     case "early_bird_delegate":
-      return pricing.earlyBirdDelegateFee ?? pricing.delegateFee;
+      return withSocial
+        ? (pricing.earlyBirdDelegateFee ?? pricing.delegateFee)
+        : (pricing.earlyBirdDelegateFeeNoSocial ?? pricing.delegateFeeNoSocial);
     case "delegation_member":
-      return pricing.perDelegateFee;
+      return withSocial ? pricing.perDelegateFee : pricing.perDelegateFeeNoSocial;
     case "early_bird_delegation_member":
-      return pricing.earlyBirdPerDelegateFee ?? pricing.perDelegateFee;
+      return withSocial
+        ? (pricing.earlyBirdPerDelegateFee ?? pricing.perDelegateFee)
+        : (pricing.earlyBirdPerDelegateFeeNoSocial ?? pricing.perDelegateFeeNoSocial);
     default:
-      return pricing.delegateFee;
+      return withSocial ? pricing.delegateFee : pricing.delegateFeeNoSocial;
   }
 }
 
@@ -27,10 +39,11 @@ export function owedAmount(
   quoted: unknown,
   feeType: FeeType,
   pricing: PricingSettings,
+  withSocial = true,
 ): number {
   return typeof quoted === "number" && Number.isFinite(quoted)
     ? quoted
-    : feeForType(feeType, pricing);
+    : feeForType(feeType, pricing, withSocial);
 }
 
 export function owedAmountTotal(quoted: unknown, computed: number): number {
@@ -38,7 +51,7 @@ export function owedAmountTotal(quoted: unknown, computed: number): number {
 }
 
 export function owedForDelegate(d: DelegateRecord, pricing: PricingSettings): number {
-  return owedAmount(d.quotedAmount, d.feeType, pricing);
+  return owedAmount(d.quotedAmount, d.feeType, pricing, d.withSocial ?? true);
 }
 
 /** Whole-delegation amount: its quote, or per-head fees plus the flat fee. */

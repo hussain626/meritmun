@@ -35,6 +35,8 @@ export type Committee = {
   chairs: Chair[];
   backgroundGuideUrl: string | null;
   featured: boolean;
+  /** Two delegates share each country (e.g. UNSC). */
+  doubleDelegate: boolean;
 };
 
 export type BoardTier = "secretariat" | "directorate";
@@ -132,10 +134,28 @@ export type DelegateApplication = {
   priorAwards: string | null;
   committeePrefs: string[];
   accommodation: boolean;
-  dietary: string | null;
+  /** Fee tier: with social (true) or without social (false). */
+  withSocial: boolean;
   hearAbout: HearAbout;
+  /**
+   * Only when the first choice is a double-delegate committee: be paired with
+   * a random co-delegate, or bring one (and pay for both).
+   */
+  coDelegate: CoDelegateChoice | null;
   consent: boolean;
 };
+
+/** The co-delegate an individual brings to a double-delegate committee. */
+export type CoDelegatePartner = {
+  fullName: string;
+  email: string;
+  phone: string;
+  experience: ExperienceLevel;
+};
+
+export type CoDelegateChoice =
+  | { mode: "random" }
+  | ({ mode: "partner" } & CoDelegatePartner);
 
 export type InstitutionType =
   | "school"
@@ -152,6 +172,8 @@ export type DelegationMember = {
   experience: ExperienceLevel;
   priorAwards: string | null;
   committeePrefs: string[];
+  /** Fee tier: with social (true) or without social (false). */
+  withSocial: boolean;
 };
 
 export type DelegationApplication = {
@@ -202,6 +224,25 @@ export type Submission = {
   fee?: { currency: string; amount: number };
   /** False when the confirmation email could not be sent. */
   emailSent?: boolean;
+  /** The co-delegate this registrant brought (and paid for). */
+  coDelegate?: { name: string; delegateCode: string } | null;
+  /** Registrations: how to pay, shown with the codes. */
+  payment?: PaymentDetails;
+};
+
+export type PaymentAccount = {
+  bankName: string;
+  accountTitle: string;
+  accountNumber: string;
+  iban: string | null;
+  branch: string | null;
+  instructions: string | null;
+};
+
+export type PaymentDetails = {
+  accounts: PaymentAccount[];
+  /** Numbers (WhatsApp) to send the transfer screenshot to. */
+  contacts: string[];
 };
 
 /* ── Action plumbing ─────────────────────────────────────────────────────── */

@@ -117,7 +117,7 @@ export function OverviewClient({
   const registrations = useMemo(() => {
     const rows: RecentRow[] = [
       ...delegates
-        .filter((d) => d.delegationId === null)
+        .filter((d) => d.delegationId === null && !d.paidBy)
         .map((d) => ({
         id: d.id,
         reference: d.reference,
@@ -259,7 +259,7 @@ export function OverviewClient({
         />
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <section className="rounded-sm border border-line bg-surface p-5 shadow-sm">
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
             {funnel.map((step, index) => {
@@ -321,7 +321,7 @@ export function OverviewClient({
         </section>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <section className="rounded-sm border border-line bg-surface shadow-sm">
           <div className="flex items-center justify-between gap-2 px-4 py-3">
             <h2 className="text-sm font-semibold text-fg">Recent Registrations</h2>

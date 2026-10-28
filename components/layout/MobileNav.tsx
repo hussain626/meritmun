@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Close } from "@/components/icons/Close";
 import { Menu } from "@/components/icons/Menu";
 import { Wordmark } from "@/components/layout/Wordmark";
@@ -83,7 +84,12 @@ export function MobileNav({ items, registrationOpen }: MobileNavProps) {
         <Menu className="size-5" />
       </button>
 
-      {isOpen ? (
+      {/* Portalled to <body>: the sticky header gains a backdrop-filter once the
+          page scrolls, and a backdrop-filter makes it the containing block for
+          fixed children, which squeezed this full-screen sheet into the
+          header bar and made the menu impossible to open past the hero. */}
+      {isOpen && typeof document !== "undefined"
+        ? createPortal(
         <div className="lg:hidden">
           <button
             type="button"
@@ -189,7 +195,10 @@ export function MobileNav({ items, registrationOpen }: MobileNavProps) {
             </nav>
           </div>
         </div>
-      ) : null}
+        ,
+            document.body,
+          )
+        : null}
     </>
   );
 }

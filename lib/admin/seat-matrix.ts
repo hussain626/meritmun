@@ -20,6 +20,8 @@ export type SeatHolder = {
 export type Seat = {
   portfolio: Portfolio;
   holder: SeatHolder | null;
+  /** Double-delegate committees: which of the country's two seats (1 or 2). */
+  slot?: number;
 };
 
 export type CommitteeSeats = {
@@ -44,11 +46,13 @@ export function buildSeatMatrix(input: {
   const delegationName = new Map(
     input.delegations.map((d) => [d.id, d.institutionName]),
   );
-  const holderByPortfolio = new Map<string, SeatHolder>();
+  const holdersByPortfolio = new Map<string, SeatHolder[]>();
   for (const allotment of input.allotments) {
     const delegate = delegateById.get(allotment.delegateId);
     if (!delegate) continue;
-    holderByPortfolio.set(allotment.portfolioId, {
+    const list = holdersByPortfolio.get(allotment.portfolioId) ?? [];
+    holdersByPortfolio.set(allotment.portfolioId, list);
+    list.push({
       delegate,
       allotment,
       delegationName: delegate.delegationId
@@ -57,22 +61,29 @@ export function buildSeatMatrix(input: {
     });
   }
 
+  // One Seat per seat, not per country: a double-delegate committee lists
+  // each country twice (slots 1 and 2), so every count stays seat-accurate.
+  const slotsFor = (portfolio: Portfolio, capacity: number): Seat[] => {
+    const list = holdersByPortfolio.get(portfolio.id) ?? [];
+    const slots = Math.max(capacity, list.length);
+    return Array.from({ length: slots }, (_, i) => ({
+      portfolio,
+      holder: list[i] ?? null,
+      ...(capacity > 1 ? { slot: i + 1 } : {}),
+    }));
+  };
+
   return input.committees.map((committee) => {
+    const capacity = committee.isDoubleDelegate ? 2 : 1;
     const pool = input.portfolios
       .filter((p) => p.committeeId === committee.id)
       .sort((a, b) => a.countryName.localeCompare(b.countryName));
     const seats = pool
       .filter((p) => p.isActive)
-      .map((portfolio) => ({
-        portfolio,
-        holder: holderByPortfolio.get(portfolio.id) ?? null,
-      }));
+      .flatMap((portfolio) => slotsFor(portfolio, capacity));
     const offPool = pool
-      .filter((p) => !p.isActive && holderByPortfolio.has(p.id))
-      .map((portfolio) => ({
-        portfolio,
-        holder: holderByPortfolio.get(portfolio.id) ?? null,
-      }));
+      .filter((p) => !p.isActive && holdersByPortfolio.has(p.id))
+      .flatMap((portfolio) => slotsFor(portfolio, capacity).filter((s) => s.holder));
     const takenInPool = seats.filter((s) => s.holder).length;
     return {
       committee,

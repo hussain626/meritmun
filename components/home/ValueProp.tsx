@@ -14,7 +14,7 @@ export function ValueProp({ points }: ValuePropProps) {
 
   return (
     <Section id="why" band="subtle">
-      <div className="grid gap-14 lg:grid-cols-[5fr_7fr] lg:gap-20">
+      <div className="grid grid-cols-1 gap-14 lg:grid-cols-[5fr_7fr] lg:gap-20">
         <div className="lg:sticky lg:top-[calc(var(--chrome-h)+3rem)] lg:self-start">
           <h2 className="text-h2 text-fg text-balance">
             Why give MERITMUN III your weekend
