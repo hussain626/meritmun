@@ -85,10 +85,10 @@ export function HeroBackdrop() {
         </g>
       </svg>
 
-      {/* Contrast guarantee for the headline. Stronger on the left where the
-          copy lives, easing right so the collage keeps its depth, but never
-          fully clearing, so the figures stay cutouts rather than a busy scene. */}
-      <div className="absolute inset-0 bg-[linear-gradient(100deg,var(--art-scrim)_0%,var(--art-scrim)_40%,color-mix(in_oklch,var(--art-scrim)_35%,transparent)_80%)]" />
+      {/* Contrast guarantee for the headline. Strongest through the centre
+          where the copy lives, easing toward the edges so the colonnade keeps
+          its depth there. */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_65%_at_50%_45%,var(--art-scrim)_0%,color-mix(in_oklch,var(--art-scrim)_80%,transparent)_55%,color-mix(in_oklch,var(--art-scrim)_45%,transparent)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(to_top,var(--art-scrim),transparent)]" />
     </div>
   );
