@@ -39,9 +39,10 @@ export function Hero({
             <p className="animate-rise text-xs font-semibold tracking-caps text-on-art-accent uppercase sm:text-sm">
               Discover the world of diplomacy with
             </p>
-            {/* nowrap only from sm up, below that the display size would
-                overflow the viewport rather than wrap. */}
-            <h1 className="mt-4 animate-rise font-display text-display font-bold text-on-art uppercase sm:text-nowrap">
+            {/* Always one line. The name runs about 7.6em wide, so on phones the
+                size is capped by the viewport (less the gutters, with a little
+                slack) instead of letting it wrap. */}
+            <h1 className="mt-4 animate-rise font-display text-display text-[min(var(--text-display),calc((100vw-2*var(--gutter))/7.9))] font-bold text-nowrap text-on-art uppercase">
               Meritmun <span className="text-on-art-accent">III</span>
             </h1>
             <p className="mt-5 max-w-[38ch] animate-rise text-lg leading-snug text-on-art-muted sm:text-xl">
