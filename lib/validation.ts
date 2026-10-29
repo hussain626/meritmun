@@ -16,7 +16,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^[+\d][\d\s()+-]{7,19}$/;
 
 export const MIN_DELEGATION = 5;
-export const MAX_DELEGATION = 30;
+export const MAX_DELEGATION = 10;
 
 /* ── field-level helpers ─────────────────────────────────────────────────── */
 

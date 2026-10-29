@@ -115,7 +115,7 @@ create table public.pricing_settings (
   delegation_fee integer not null default 0,
   per_delegate_fee integer not null default 4000,
   delegation_min integer not null default 5,
-  delegation_max integer not null default 30,
+  delegation_max integer not null default 10,
   early_bird_enabled boolean not null default false,
   early_bird_delegate_fee integer,
   early_bird_per_delegate_fee integer,

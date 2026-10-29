@@ -53,7 +53,7 @@ export const navItems: NavItem[] = [
       {
         label: "Register a Delegation",
         href: "/register/delegation",
-        description: "Bringing 5–30 students from one institution.",
+        description: "Bringing 5 to 10 students from one institution.",
       },
     ],
   },
