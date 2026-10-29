@@ -1,7 +1,7 @@
 import "server-only";
 import { getDemoStore } from "@/lib/admin/demo-store";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 /**
  * Transfer screenshots attached when a payment is confirmed. Live: a private
@@ -26,7 +26,7 @@ export type ProofKind = "delegate" | "delegation";
 /** Returns a reason the file cannot be accepted, or null when it is fine. */
 export function validateProof(file: unknown): string | null {
   if (!(file instanceof File) || file.size === 0) {
-    return "Attach the payment screenshot before confirming.";
+    return "Attach the payment screenshot.";
   }
   if (!PROOF_TYPES[file.type]) {
     return "The screenshot must be a PNG, JPG, WEBP, HEIC image or a PDF.";
@@ -37,11 +37,16 @@ export function validateProof(file: unknown): string | null {
   return null;
 }
 
-/** Store a validated proof and return its storage path. */
+/**
+ * Store a validated proof and return its storage path. Staff upload with their
+ * own session; a registrant's upload (from their private link) goes through
+ * the service role, since they have no account.
+ */
 export async function saveProof(
   kind: ProofKind,
   id: string,
   file: File,
+  as: "staff" | "registrant" = "staff",
 ): Promise<string> {
   const ext = PROOF_TYPES[file.type] ?? "bin";
   const path = `${kind}/${id}/${Date.now()}.${ext}`;
@@ -55,7 +60,8 @@ export async function saveProof(
     return path;
   }
 
-  const client = await createClient();
+  const client = as === "registrant" ? createServiceClient() : await createClient();
+  if (!client) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
   const { error } = await client.storage
     .from(PROOF_BUCKET)
     .upload(path, bytes, { contentType: file.type, upsert: false });

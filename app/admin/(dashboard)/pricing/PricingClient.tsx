@@ -79,10 +79,6 @@ export function PricingClient({
     earlyBirdEndsAt: pricing.earlyBirdEndsAt,
     paymentContacts: pricing.paymentContacts,
   });
-  // One number per line in the editor; saved as a list.
-  const [contactsText, setContactsText] = useState(
-    pricing.paymentContacts.join("\n"),
-  );
   const [accounts, setAccounts] = useState(bankAccounts);
   const [editingBank, setEditingBank] = useState<BankAccount | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -337,33 +333,6 @@ export function PricingClient({
               After this date, the system will automatically revert to Standard
               Pricing on the public portal.
             </p>
-          </section>
-
-          <section className="rounded-sm border border-line bg-surface p-5 shadow-sm">
-            <h2 className="text-base font-bold text-fg">Payment screenshot numbers</h2>
-            <p className="mt-1 text-sm text-fg-muted">
-              Registrants are asked to send their transfer screenshot to any of
-              these numbers (opened in WhatsApp). Shown on the registration
-              confirmation screen and in the first email. One number per line.
-            </p>
-            <Textarea
-              className="mt-4"
-              rows={3}
-              disabled={!canEdit}
-              value={contactsText}
-              placeholder={"+92 300 1234567\n+92 321 7654321"}
-              onChange={(e) => {
-                setContactsText(e.target.value);
-                patch(
-                  "paymentContacts",
-                  e.target.value
-                    .split("\n")
-                    .map((line) => line.trim())
-                    .filter(Boolean),
-                );
-              }}
-            />
-            <p className="mt-2 text-xs text-fg-faint">Saved with &ldquo;Save All Changes&rdquo;.</p>
           </section>
 
           <section className="rounded-sm border border-line bg-surface p-5 shadow-sm">

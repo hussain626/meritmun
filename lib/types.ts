@@ -245,8 +245,8 @@ export type PaymentAccount = {
 
 export type PaymentDetails = {
   accounts: PaymentAccount[];
-  /** Numbers (WhatsApp) to send the transfer screenshot to. */
-  contacts: string[];
+  /** Site-relative path of the page where the payer uploads the screenshot. */
+  uploadUrl: string;
 };
 
 /* ── Action plumbing ─────────────────────────────────────────────────────── */

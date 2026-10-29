@@ -114,6 +114,8 @@ export type DelegateRecord = {
   rejectionReason: string | null;
   /** Storage path of the transfer screenshot attached at confirmation. */
   paymentProofPath?: string | null;
+  /** When the registrant uploaded the screenshot from their private link. */
+  paymentProofUploadedAt?: string | null;
   /** Why the confirmed amount differs from the quote (discount etc.). */
   paymentNote?: string | null;
   delegationId: string | null;
@@ -152,6 +154,8 @@ export type DelegationRecord = {
   /** Whole-delegation fee quoted at registration. */
   quotedAmount?: number | null;
   paymentProofPath?: string | null;
+  /** When the registrant uploaded the screenshot from their private link. */
+  paymentProofUploadedAt?: string | null;
   paymentNote?: string | null;
   paymentConfirmedAt?: string | null;
   paymentConfirmedBy?: string | null;

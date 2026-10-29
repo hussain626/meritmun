@@ -150,6 +150,8 @@ export function mapDelegateRow(row: Record<string, unknown>): DelegateRecord {
       row.rejection_reason == null ? null : String(row.rejection_reason),
     paymentProofPath:
       row.payment_proof_path == null ? null : String(row.payment_proof_path),
+    paymentProofUploadedAt:
+      row.payment_proof_uploaded_at == null ? null : String(row.payment_proof_uploaded_at),
     paymentNote: row.payment_note == null ? null : String(row.payment_note),
     delegationId: row.delegation_id == null ? null : String(row.delegation_id),
     isHeadDelegate: Boolean(row.is_head_delegate),
@@ -188,6 +190,8 @@ function mapDelegation(row: Record<string, unknown>): DelegationRecord {
       row.payment_amount == null ? null : Number(row.payment_amount),
     paymentProofPath:
       row.payment_proof_path == null ? null : String(row.payment_proof_path),
+    paymentProofUploadedAt:
+      row.payment_proof_uploaded_at == null ? null : String(row.payment_proof_uploaded_at),
     paymentNote: row.payment_note == null ? null : String(row.payment_note),
     paymentConfirmedAt:
       row.payment_confirmed_at == null ? null : String(row.payment_confirmed_at),

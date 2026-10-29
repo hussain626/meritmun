@@ -374,38 +374,21 @@ function bankBlock(accounts: BankAccount[]): { html: string; text: string } {
   };
 }
 
-/** WhatsApp link target: digits only, no leading +. */
-function whatsappDigits(phone: string): string {
-  return phone.replace(/\D/g, "");
-}
-
-/** Final "send your screenshot" step for the registration emails. */
-function paymentContactsBlock(
-  contacts: string[] | undefined,
-  referenceLabel: string,
+/** Final step of the registration emails: upload the transfer screenshot. */
+function uploadBlock(
+  uploadUrl: string | undefined,
   step: number,
 ): { html: string; text: string } {
-  const numbers = (contacts ?? [])
-    .map((c) => c.trim())
-    .filter((c) => whatsappDigits(c).length > 0);
-  if (numbers.length === 0) {
-    const line = "Send your transfer screenshot to Delegate Affairs by replying to this email.";
+  if (!uploadUrl) {
+    const line = "Reply to this email with your transfer screenshot.";
     return { html: numberedSteps([escapeHtml(line)], step), text: line };
   }
-  const lead = `Send your transfer screenshot, with your ${referenceLabel} in the message, to any of these numbers:`;
-  const list = numbers
-    .map(
-      (n) =>
-        `<p style="margin:8px 0 0 0;font-family:${FONT_BODY};font-size:15px;line-height:20px;">` +
-        `<a href="${escapeHtml(`https://wa.me/${whatsappDigits(n)}`)}" target="_blank" rel="noopener" style="color:${C.forest};font-weight:600;text-decoration:underline;">${escapeHtml(n)}</a>` +
-        `<span style="font-size:12px;color:${C.muted};">&nbsp;&nbsp;WhatsApp</span></p>`,
-    )
-    .join("");
+  const lead =
+    "After paying, upload a screenshot of the transfer using the button below. Finance matches it and confirms your payment.";
   return {
-    html: numberedSteps([escapeHtml(lead) + list], step),
-    text:
-      `${lead}\n` +
-      numbers.map((n) => `- ${n} (WhatsApp: https://wa.me/${whatsappDigits(n)})`).join("\n"),
+    html: numberedSteps([escapeHtml(lead)], step) + button(uploadUrl, "Upload payment screenshot"),
+    text: `
+Upload it here: `,
   };
 }
 
@@ -422,11 +405,11 @@ export async function sendRegistrationConfirmation(input: {
   feeAmount: number;
   currency: string;
   bankAccounts: BankAccount[];
-  /** WhatsApp numbers that accept payment screenshots. */
-  paymentContacts?: string[];
+  /** Private link where the payer uploads the transfer screenshot. */
+  uploadUrl?: string;
 }): Promise<SendResult> {
   const banks = bankBlock(input.bankAccounts);
-  const contacts = paymentContactsBlock(input.paymentContacts, "delegate code", 3);
+  const contacts = uploadBlock(input.uploadUrl, 3);
   const subject = `MERITMUN III, Registration received (${input.delegateCode})`;
   const text =
     `Hello ${input.fullName},\n\n` +
@@ -480,11 +463,11 @@ export async function sendDelegationRegistrationConfirmation(input: {
   feeAmount: number;
   currency: string;
   bankAccounts: BankAccount[];
-  /** WhatsApp numbers that accept payment screenshots. */
-  paymentContacts?: string[];
+  /** Private link where the payer uploads the transfer screenshot. */
+  uploadUrl?: string;
 }): Promise<SendResult> {
   const banks = bankBlock(input.bankAccounts);
-  const contacts = paymentContactsBlock(input.paymentContacts, "delegation reference", 3);
+  const contacts = uploadBlock(input.uploadUrl, 3);
   const subject = `MERITMUN III, Delegation registered (${input.reference})`;
   const rosterText = input.members
     .map((m, i) => `${i + 1}. ${m.fullName}: ${m.delegateCode}`)
@@ -768,7 +751,7 @@ export function getPresidentAddress(): string {
   const from = process.env.PRESIDENT_EMAIL_FROM?.trim();
   return from && from.length > 0
     ? from
-    : "President, MERITMUN III <president@meritmun.systemsummit.online>";
+    : "Saffana Qaiser <president@meritmun.systemsummit.online>";
 }
 
 /**

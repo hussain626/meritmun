@@ -20,13 +20,13 @@ function nextSteps(submission: Submission): string[] {
     case "delegate":
       return [
         `Pay ${fee} to one of the bank accounts in your confirmation email, quoting your delegate code${submission.delegateCode ? ` (${submission.delegateCode})` : ""} as the payment reference.`,
-        `Send the transfer screenshot${submission.payment?.contacts.length ? " to one of the numbers above" : " to Delegate Affairs"}. You are emailed as soon as Finance has matched it.`,
+        "Upload a screenshot of the transfer with the Upload payment screenshot button above (the same link is in your confirmation email). You are emailed as soon as Finance has matched it.",
         "Paid delegates are allotted on merit; your committee, portfolio and background guide arrive by email.",
       ];
     case "delegation":
       return [
         `Pay ${fee} for the whole delegation to one of the bank accounts in the confirmation email, quoting your delegation reference.`,
-        `Send the transfer screenshot${submission.payment?.contacts.length ? " to one of the numbers above" : " to Delegate Affairs"}. One confirmation covers every student on the roster.`,
+        "Upload a screenshot of the transfer with the Upload payment screenshot button above (the same link is in the confirmation email). One confirmation covers every student on the roster.",
         "Once the payment is confirmed, every student is allotted and emailed their committee and portfolio.",
       ];
     case "contact":
@@ -37,12 +37,7 @@ function nextSteps(submission: Submission): string[] {
   }
 }
 
-/** WhatsApp link for a phone number as admins type it. */
-function whatsappHref(number: string): string {
-  return `https://wa.me/${number.replace(/D/g, "")}`;
-}
-
-/** Bank accounts and screenshot numbers, so nobody has to wait for the email. */
+/** Bank accounts and the screenshot upload link, so nobody has to wait for the email. */
 function PaymentPanel({
   payment,
   reference,
@@ -94,27 +89,18 @@ function PaymentPanel({
         Use <strong className="font-mono text-fg">{reference}</strong> as the
         payment reference.
       </p>
-      {payment.contacts.length > 0 ? (
-        <div className="mt-4">
-          <p className="text-sm font-medium text-fg">
-            Then send the transfer screenshot to any of these numbers:
-          </p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {payment.contacts.map((number) => (
-              <li key={number}>
-                <a
-                  href={whatsappHref(number)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center rounded-full border border-line-strong px-3 py-1.5 font-mono text-sm text-brand-fg hover:border-brand focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2"
-                >
-                  {number}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      <div className="mt-5 border-t border-line pt-5">
+        <p className="text-sm font-medium text-fg">
+          Paid? Upload a screenshot of the transfer.
+        </p>
+        <p className="mt-1 text-sm text-fg-muted">
+          The same private link is in your confirmation email, so you can
+          upload it later too.
+        </p>
+        <ButtonLink href={payment.uploadUrl} className="mt-3" size="sm">
+          Upload payment screenshot
+        </ButtonLink>
+      </div>
     </section>
   );
 }

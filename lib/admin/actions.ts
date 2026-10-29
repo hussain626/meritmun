@@ -46,6 +46,7 @@ import {
 } from "@/lib/email/send";
 import { runMeritEngineAction } from "@/lib/admin/allotment-actions";
 import { listFinanceRows } from "@/lib/admin/finances";
+import { paymentUploadUrl } from "@/lib/payment-link";
 import {
   isPdfProof,
   proofUrl,
@@ -280,8 +281,12 @@ type ConfirmInput = {
   /** Amount actually received, in PKR (may be below the quote for a discount). */
   amount: number;
   note: string | null;
-  proof: File;
+  /** A screenshot attached by staff; null to use the one the registrant uploaded. */
+  proof: File | null;
 };
+
+const NO_PROOF =
+  "Attach the payment screenshot. The registrant has not uploaded one yet.";
 
 /** Parse and check the confirm form; returns the input or a reason it is invalid. */
 function readConfirmForm(formData: FormData): ConfirmInput | string {
@@ -298,11 +303,14 @@ function readConfirmForm(formData: FormData): ConfirmInput | string {
   if (amount > MAX_PAYMENT) {
     return `That amount is above PKR ${MAX_PAYMENT.toLocaleString("en-US")}, check for an extra zero.`;
   }
-  const proof = formData.get("proof");
-  const proofError = validateProof(proof);
-  if (proofError) return proofError;
+  const raw = formData.get("proof");
+  const proof = raw instanceof File && raw.size > 0 ? raw : null;
+  if (proof) {
+    const proofError = validateProof(proof);
+    if (proofError) return proofError;
+  }
   const note = String(formData.get("note") ?? "").trim().slice(0, 500) || null;
-  return { kind, id, amount, note, proof: proof as File };
+  return { kind, id, amount, note, proof };
 }
 
 /** A changed amount must say why, so Finance can reconcile it later. */
@@ -370,7 +378,10 @@ async function confirmDelegate(
     const noteError = amountNoteError(amount, owed, note);
     if (noteError) return { ok: false, message: noteError };
 
-    const proofPath = await saveProof("delegate", id, input.proof);
+    const proofPath = input.proof
+      ? await saveProof("delegate", id, input.proof)
+      : (delegate.paymentProofPath ?? null);
+    if (!proofPath) return { ok: false, message: NO_PROOF };
     delegate.paymentStatus = "confirmed";
     delegate.paymentAmount = amount;
     delegate.paymentProofPath = proofPath;
@@ -418,7 +429,10 @@ async function confirmDelegate(
     const noteError = amountNoteError(amount, owed, note);
     if (noteError) return { ok: false, message: noteError };
 
-    proofPath = await saveProof("delegate", id, input.proof);
+    const existingProof =
+      delegate.payment_proof_path == null ? null : String(delegate.payment_proof_path);
+    if (!input.proof && !existingProof) return { ok: false, message: NO_PROOF };
+    proofPath = input.proof ? await saveProof("delegate", id, input.proof) : null;
 
     // `.select()` returns the rows actually changed: RLS can turn an UPDATE
     // into a silent no-op, and nobody must be emailed "confirmed" then.
@@ -427,7 +441,7 @@ async function confirmDelegate(
       .update({
         payment_status: "confirmed",
         payment_amount: amount,
-        payment_proof_path: proofPath,
+        payment_proof_path: proofPath ?? existingProof,
         payment_note: note,
         payment_confirmed_by: userId,
         payment_confirmed_at: nowIso(),
@@ -439,7 +453,7 @@ async function confirmDelegate(
       .select("id");
     if (error) throw error;
     if (!updated?.length) {
-      await removeProof(proofPath);
+      if (proofPath) await removeProof(proofPath);
       return { ok: false, message: "You do not have permission to confirm payments." };
     }
     confirmed = true;
@@ -509,7 +523,10 @@ async function confirmDelegation(
     const noteError = amountNoteError(amount, owed, note);
     if (noteError) return { ok: false, message: noteError };
 
-    const proofPath = await saveProof("delegation", id, input.proof);
+    const proofPath = input.proof
+      ? await saveProof("delegation", id, input.proof)
+      : (delegation.paymentProofPath ?? null);
+    if (!proofPath) return { ok: false, message: NO_PROOF };
     const stamp = nowIso();
     for (const member of members) {
       member.paymentStatus = "confirmed";
@@ -578,7 +595,10 @@ async function confirmDelegation(
     const noteError = amountNoteError(amount, owed, note);
     if (noteError) return { ok: false, message: noteError };
 
-    proofPath = await saveProof("delegation", id, input.proof);
+    const existingProof =
+      delegation.payment_proof_path == null ? null : String(delegation.payment_proof_path);
+    if (!input.proof && !existingProof) return { ok: false, message: NO_PROOF };
+    proofPath = input.proof ? await saveProof("delegation", id, input.proof) : null;
 
     const stamp = nowIso();
     // The delegation row carries the whole payment (what was actually
@@ -588,7 +608,7 @@ async function confirmDelegation(
       .update({
         payment_status: "confirmed",
         payment_amount: amount,
-        payment_proof_path: proofPath,
+        payment_proof_path: proofPath ?? existingProof,
         payment_note: note,
         payment_confirmed_by: userId,
         payment_confirmed_at: stamp,
@@ -598,7 +618,7 @@ async function confirmDelegation(
       .select("id");
     if (error) throw error;
     if (!updatedDelegation?.length) {
-      await removeProof(proofPath);
+      if (proofPath) await removeProof(proofPath);
       return { ok: false, message: "You do not have permission to confirm payments." };
     }
     confirmed = true;
@@ -935,6 +955,7 @@ export async function resendRegistrationEmail(
         feeAmount: owedAmount(delegate.quotedAmount, delegate.feeType, pricing, delegate.withSocial ?? true),
         currency: pricing.currency,
         bankAccounts: active,
+        uploadUrl: paymentUploadUrl("delegate", id),
         related: { type: "delegate", id },
       });
       return { ok: sent.ok, message: deliveryNote(sent) };
@@ -960,6 +981,7 @@ export async function resendRegistrationEmail(
       feeAmount: total,
       currency: pricing.currency,
       bankAccounts: active,
+      uploadUrl: paymentUploadUrl("delegation", delegation.id),
       related: { type: "delegation", id: delegation.id },
     });
     return {

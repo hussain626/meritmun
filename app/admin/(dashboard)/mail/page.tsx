@@ -9,11 +9,11 @@ export const metadata: Metadata = {
 };
 
 export default async function MailPage() {
-  const session = await requireAdminSession(["admin"]);
+  await requireAdminSession(["admin"]);
   return (
     <MailClient
       from={getPresidentAddress()}
-      defaultSignature={`${session.user.fullName}\nPresident, MERITMUN III`}
+      defaultSignature={"Saffana Qaiser\nPresident, MERITMUN III"}
     />
   );
 }

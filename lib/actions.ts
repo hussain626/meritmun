@@ -17,6 +17,7 @@ import type {
 } from "@/lib/admin/types";
 import { canAcceptRegistration } from "@/lib/admin/auth";
 import { listBankAccounts } from "@/lib/admin/data";
+import { paymentUploadPath, paymentUploadUrl } from "@/lib/payment-link";
 import {
   delegationQuote,
   getPublicPricing,
@@ -177,7 +178,7 @@ function isMissingPairColumn(error: DbError): boolean {
 /** The payment details shown on the success screen and in the first email. */
 function paymentDetails(
   banks: BankAccount[],
-  contacts: string[],
+  uploadUrl: string,
 ): PaymentDetails {
   return {
     accounts: banks
@@ -190,7 +191,7 @@ function paymentDetails(
         branch: b.branch,
         instructions: b.instructions,
       })),
-    contacts,
+    uploadUrl,
   };
 }
 
@@ -334,14 +335,15 @@ async function persistDelegate(app: DelegateApplication): Promise<Submission> {
     }
   }
 
-  const payment = paymentDetails(banks, pricing.paymentContacts);
+  const uploadUrl = paymentUploadUrl("delegate", registrantId);
+  const payment = paymentDetails(banks, paymentUploadPath("delegate", registrantId));
   const sent = await sendRegistrationConfirmation({
     to: app.email,
     fullName: app.fullName,
     reference,
     delegateCode,
     bankAccounts: banks.filter((b) => b.isActive),
-    paymentContacts: pricing.paymentContacts,
+    uploadUrl,
     feeAmount: fee,
     currency: pricing.currency,
   });
@@ -389,10 +391,13 @@ async function persistDelegation(
       pairId: pairs.get(index) ?? null,
     }));
   let members = mintMembers();
+  // The saved delegation's id, for the screenshot upload link.
+  let savedDelegationId = "";
 
   if (!isSupabaseConfigured()) {
     const store = getDemoStore();
     const delegationId = crypto.randomUUID();
+    savedDelegationId = delegationId;
     const delegation: DelegationRecord = {
       id: delegationId,
       reference,
@@ -453,6 +458,7 @@ async function persistDelegation(
     const client = await registrationClient();
     for (let attempt = 1; ; attempt += 1) {
       const delegationId = crypto.randomUUID();
+      savedDelegationId = delegationId;
       const delegationError = await insertQuoted(client, "delegations", [
         {
           id: delegationId,
@@ -532,6 +538,7 @@ async function persistDelegation(
     }
   }
 
+  const uploadUrl = paymentUploadUrl("delegation", savedDelegationId);
   const sent = await sendDelegationRegistrationConfirmation({
     to: app.headEmail,
     headName: app.headName,
@@ -544,7 +551,7 @@ async function persistDelegation(
     feeAmount: total,
     currency: pricing.currency,
     bankAccounts: banks.filter((b) => b.isActive),
-    paymentContacts: pricing.paymentContacts,
+    uploadUrl,
   });
 
   return {
@@ -554,7 +561,7 @@ async function persistDelegation(
     name: app.institutionName,
     fee: { currency: pricing.currency, amount: total },
     emailSent: emailWentOut(sent),
-    payment: paymentDetails(banks, pricing.paymentContacts),
+    payment: paymentDetails(banks, paymentUploadPath("delegation", savedDelegationId)),
   };
 }
 

@@ -171,9 +171,10 @@
   --admin-selected: var(--cream);
 }
 
-/* Admin ops console: cream canvas + deep green rail. Tokens remapped on the
-   subtree so the public site's dark default is unchanged. */
-[data-admin-root] {
+/* Admin ops console, light theme: cream canvas + deep green rail. In the dark
+   theme the console keeps the site's dark tokens (block below), so the theme
+   toggle in the admin top bar works. */
+[data-theme="light"] [data-admin-root] {
   color-scheme: light;
 
   --bg: color-mix(in oklch, var(--cream) 70%, white);
@@ -214,6 +215,12 @@
   --shadow-lg: 0 12px 32px oklch(0.3 0.04 165 / 0.1);
   --shadow-xl: 0 24px 64px oklch(0.3 0.04 165 / 0.12);
   --shadow-accent: 0 6px 20px color-mix(in oklch, var(--green) 28%, transparent);
+}
+
+:root:not([data-theme="light"]) [data-admin-root] {
+  color-scheme: dark;
+  /* Raised panels sit just above the canvas, not the bright site green. */
+  --surface-raised: color-mix(in oklch, var(--green-deep) 40%, var(--green));
 }
 
 @media (max-width: 767px) {

@@ -31,6 +31,7 @@ import type {
 } from "@/lib/admin/types";
 import {
   formatAdminDate,
+  formatAdminDateTime,
   formatNumber,
   formatPkr,
   titleCase,
@@ -77,6 +78,18 @@ function exportCsv(filename: string, header: string, lines: string[]) {
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+/** Flags a pending payment whose registrant has uploaded their screenshot. */
+function ScreenshotIn({
+  row,
+}: {
+  row: { paymentStatus: string; paymentProofUploadedAt?: string | null };
+}) {
+  if (row.paymentStatus !== "pending" || !row.paymentProofUploadedAt) return null;
+  return (
+    <span className="mt-1 block text-xs font-medium text-success-fg">Screenshot in</span>
+  );
 }
 
 export function RegistrationsClient({
@@ -199,6 +212,15 @@ export function RegistrationsClient({
     return t ? (owedById[t.id] ?? 0) : 0;
   }
 
+  /** Screenshot the registrant already uploaded from their private link. */
+  const existingProof = selectedDelegation
+    ? (selectedDelegation.paymentProofPath ?? null)
+    : (selected?.paymentProofPath ?? null);
+  const uploadedAt = selectedDelegation
+    ? (selectedDelegation.paymentProofUploadedAt ?? null)
+    : (selected?.paymentProofUploadedAt ?? null);
+  const hasProof = Boolean(payProof || existingProof);
+
   function amountChanged(): boolean {
     const typed = payAmount.replace(/[,\s]/g, "");
     return typed !== "" && Number(typed) !== owedFor();
@@ -215,7 +237,7 @@ export function RegistrationsClient({
   function submitConfirm() {
     const t = target();
     if (!t) return;
-    if (!payProof) {
+    if (!hasProof) {
       setPayError("Attach the payment screenshot before confirming.");
       return;
     }
@@ -228,7 +250,7 @@ export function RegistrationsClient({
     form.set("id", t.id);
     form.set("amount", payAmount);
     form.set("note", payNote);
-    form.set("proof", payProof);
+    if (payProof) form.set("proof", payProof);
     setPayError(null);
     startTransition(async () => {
       const result = await confirmPayment(form);
@@ -487,6 +509,7 @@ export function RegistrationsClient({
                     </td>
                     <td className="px-3 py-3">
                       <StatusBadge kind="payment" status={row.paymentStatus} />
+                      <ScreenshotIn row={row} />
                     </td>
                     <td className="px-3 py-3 tabular-nums text-fg-muted">
                       {formatAdminDate(row.createdAt)}
@@ -567,6 +590,7 @@ export function RegistrationsClient({
                   </td>
                   <td className="px-3 py-3">
                     <StatusBadge kind="payment" status={row.paymentStatus} />
+                    <ScreenshotIn row={row} />
                   </td>
                   <td className="px-3 py-3 tabular-nums text-fg-muted">
                     {row.paymentAmount != null
@@ -876,12 +900,12 @@ export function RegistrationsClient({
               <Input
                 inputMode="numeric"
                 value={payAmount}
-                disabled={!payProof}
+                disabled={!hasProof}
                 onChange={(e) => setPayAmount(e.target.value)}
               />
               <span className="text-xs text-fg-faint">
                 Quoted fee: {formatPkr(owedFor())}.{" "}
-                {payProof
+                {hasProof
                   ? "Change it for a discount or a part waiver."
                   : "Attach the screenshot below to edit the amount."}
               </span>
@@ -898,7 +922,25 @@ export function RegistrationsClient({
               />
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-fg">Payment screenshot (required)</span>
+              <span className="font-medium text-fg">
+                {existingProof
+                  ? "Payment screenshot (optional, replaces the uploaded one)"
+                  : "Payment screenshot (required)"}
+              </span>
+              {existingProof ? (
+                <span className="flex flex-wrap items-center gap-2 rounded-sm border border-line bg-surface-inset px-3 py-2 text-xs text-fg-muted">
+                  {uploadedAt
+                    ? `The registrant uploaded a screenshot on ${formatAdminDateTime(uploadedAt)}.`
+                    : "A screenshot is already attached."}
+                  <button
+                    type="button"
+                    onClick={viewProof}
+                    className="font-medium text-accent-fg underline underline-offset-2"
+                  >
+                    View it
+                  </button>
+                </span>
+              ) : null}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/heic,application/pdf"

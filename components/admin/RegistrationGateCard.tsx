@@ -27,7 +27,7 @@ export function RegistrationGateCard({
             <h2 className="text-sm font-semibold text-fg">Public registration</h2>
             <p className="mt-0.5 text-xs text-fg-faint">
               When closed, the public site shows “coming soon” and the forms are
-              hidden. Status lookup stays live.
+              hidden. Payment upload links keep working.
             </p>
           </div>
         </div>
