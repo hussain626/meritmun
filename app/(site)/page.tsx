@@ -1,5 +1,6 @@
 import { ArrowRight } from "@/components/icons/ArrowRight";
 import { CommitteeCard } from "@/components/committees/CommitteeCard";
+import { Documentary } from "@/components/home/Documentary";
 import { Hero } from "@/components/home/Hero";
 import { HomeCta } from "@/components/home/HomeCta";
 import { SponsorSlider } from "@/components/home/SponsorSlider";
@@ -52,6 +53,21 @@ export default async function HomePage() {
           <SponsorSlider sponsors={activeSponsors} />
         </div>
       ) : null}
+
+      <Section>
+        <SectionHeading
+          title="The documentary"
+          lead="Forty seconds on why the world keeps coming back to the table."
+        />
+        <div className="mt-10">
+          <Documentary
+            title="the MERITMUN documentary"
+            src="/video/documentary.mp4"
+            poster="/video/documentary-poster.jpg"
+            duration="0:40"
+          />
+        </div>
+      </Section>
 
       <Section band="subtle">
         <SectionHeading
