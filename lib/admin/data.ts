@@ -638,6 +638,7 @@ function mapCommittee(r: Record<string, unknown>): CommitteeAdminRecord {
     featured: Boolean(r.featured),
     isPublished: Boolean(r.is_published),
     allotmentsPaused: Boolean(r.allotments_paused),
+    allotmentEmailsHeld: Boolean(r.allotment_emails_held),
     isDoubleDelegate: Boolean(r.is_double_delegate),
     sortOrder: Number(r.sort_order),
     createdAt: String(r.created_at),

@@ -183,6 +183,8 @@ export type CommitteeAdminRecord = {
   isPublished: boolean;
   /** Merit engine skips this committee; manual placement still works. */
   allotmentsPaused: boolean;
+  /** Allotments are placed as drafts but never emailed until released. */
+  allotmentEmailsHeld: boolean;
   /** Two delegates share each country (e.g. UNSC). */
   isDoubleDelegate: boolean;
   sortOrder: number;

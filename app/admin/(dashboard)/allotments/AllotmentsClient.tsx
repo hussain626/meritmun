@@ -23,6 +23,7 @@ import {
   clearAllotment,
   issueAllotment,
   issueAllotments,
+  releaseHeldAllotments,
   runMeritEngineAction,
   saveManualAllotment,
 } from "@/lib/admin/allotment-actions";
@@ -130,6 +131,7 @@ export function AllotmentsClient({
   const [keepDrafts, setKeepDrafts] = useState(false);
   const [runOpen, setRunOpen] = useState(false);
   const [issueOpen, setIssueOpen] = useState(false);
+  const [releaseId, setReleaseId] = useState<string | null>(null);
   const [selected, setSelected] = useState<AllotmentRow | null>(null);
   const [committeeId, setCommitteeId] = useState("");
   const [portfolioId, setPortfolioId] = useState("");
@@ -139,20 +141,54 @@ export function AllotmentsClient({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const heldCommittees = useMemo(
+    () => new Set(committees.filter((c) => c.allotmentEmailsHeld).map((c) => c.id)),
+    [committees],
+  );
+
   const counts = useMemo(() => {
-    const out = { all: rows.length, awaiting: 0, draft: 0, issued: 0, needsEb: 0, emailPending: 0 };
+    const out = {
+      all: rows.length,
+      awaiting: 0,
+      draft: 0,
+      issued: 0,
+      needsEb: 0,
+      emailPending: 0,
+      held: 0,
+      toIssue: 0,
+    };
     for (const row of rows) {
       const status = rowStatus(row);
       out[status] += 1;
       if (status === "awaiting" && row.meritNote) out.needsEb += 1;
-      if (row.allotment?.status === "confirmed" && !row.allotment.emailSentAt) {
-        out.emailPending += 1;
+      const unsent =
+        row.allotment != null && (status === "draft" || !row.allotment.emailSentAt);
+      if (!unsent) continue;
+      if (heldCommittees.has(row.allotment!.committeeId)) {
+        out.held += 1;
+        continue;
       }
+      out.toIssue += 1;
+      if (status !== "draft") out.emailPending += 1;
     }
     return out;
-  }, [rows]);
+  }, [rows, heldCommittees]);
 
-  const toIssue = counts.draft + counts.emailPending;
+  // Drafts per held committee, for the release banner.
+  const heldDrafts = useMemo(
+    () =>
+      committees
+        .filter((c) => c.allotmentEmailsHeld)
+        .map((c) => ({
+          committee: c,
+          drafts: rows.filter(
+            (r) => r.allotment?.committeeId === c.id && rowStatus(r) === "draft",
+          ).length,
+        })),
+    [committees, rows],
+  );
+
+  const toIssue = counts.toIssue;
   const paidTotal = rows.filter((r) => r.delegate.paymentStatus === "confirmed").length;
   const progress = paidTotal > 0 ? Math.round((counts.issued / paidTotal) * 100) : 0;
 
@@ -329,6 +365,46 @@ export function AllotmentsClient({
         >
           {message}
         </p>
+      ) : null}
+
+      {heldDrafts.length > 0 ? (
+        <section className="flex flex-col gap-3 rounded-sm border border-line bg-surface px-4 py-3 shadow-sm">
+          <div>
+            <p className="text-sm font-semibold text-fg">Allotment emails on hold</p>
+            <p className="mt-0.5 text-xs text-fg-muted">
+              Delegates in these committees are placed as drafts but not emailed. Release a
+              committee when you are ready to send its allotments. Change the hold on each
+              committee&apos;s page or under Allotment rules.
+            </p>
+          </div>
+          <ul className="flex flex-wrap gap-2">
+            {heldDrafts.map(({ committee, drafts }) => (
+              <li
+                key={committee.id}
+                className="flex items-center gap-3 rounded-sm border border-line bg-surface-inset px-3 py-2"
+              >
+                <span className="text-sm">
+                  <span className="font-semibold text-fg">{committee.abbr}</span>{" "}
+                  <span className="text-fg-muted">
+                    {drafts} draft{drafts === 1 ? "" : "s"}
+                  </span>
+                </span>
+                {canMutate ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 px-2 text-xs"
+                    iconStart={<Mail className="size-3.5" />}
+                    disabled={pending}
+                    onClick={() => setReleaseId(committee.id)}
+                  >
+                    Release &amp; send
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
@@ -559,7 +635,12 @@ export function AllotmentsClient({
                           >
                             {status === "awaiting" ? "Set seat" : status === "draft" ? "Adjust" : "Change"}
                           </Button>
-                          {status === "draft" ? (
+                          {status === "draft" &&
+                          heldCommittees.has(row.allotment!.committeeId) ? (
+                            <Badge tone="warning" size="sm">
+                              On hold
+                            </Badge>
+                          ) : status === "draft" ? (
                             <Button
                               variant="primary"
                               size="sm"
@@ -690,7 +771,7 @@ export function AllotmentsClient({
                 placeholder="Choose a committee"
                 options={committees.map((c) => ({
                   value: c.id,
-                  label: `${c.abbr}${c.allotmentsPaused ? " (paused)" : ""}`,
+                  label: `${c.abbr}${c.allotmentsPaused ? " (paused)" : ""}${c.allotmentEmailsHeld ? " (emails on hold)" : ""}`,
                 }))}
               />
             </label>
@@ -721,6 +802,12 @@ export function AllotmentsClient({
             {selectedCommittee?.allotmentsPaused ? (
               <p className="rounded-sm border border-line bg-surface-inset px-3 py-2 text-sm text-fg-muted">
                 {selectedCommittee.abbr} is paused for the merit engine; manual placement still works.
+              </p>
+            ) : null}
+            {selectedCommittee?.allotmentEmailsHeld ? (
+              <p className="rounded-sm border border-line bg-surface-inset px-3 py-2 text-sm text-warning-fg">
+                {selectedCommittee.abbr} allotment emails are on hold. This seat stays a draft
+                and nobody is emailed until {selectedCommittee.abbr} is released.
               </p>
             ) : null}
             <label className="flex flex-col gap-1.5">
@@ -774,8 +861,21 @@ export function AllotmentsClient({
           )
         }
         title="Issue allotments?"
-        description={`Confirms ${counts.draft} draft${counts.draft === 1 ? "" : "s"}${counts.emailPending ? ` and retries ${counts.emailPending} failed email${counts.emailPending === 1 ? "" : "s"}` : ""}${committeeFilter ? ` in ${committeeNameById(committeeFilter)}` : ""}, emailing each delegate their committee and country.`}
+        description={`Confirms ${counts.toIssue - counts.emailPending} draft${counts.toIssue - counts.emailPending === 1 ? "" : "s"}${counts.emailPending ? ` and retries ${counts.emailPending} failed email${counts.emailPending === 1 ? "" : "s"}` : ""}${committeeFilter ? ` in ${committeeNameById(committeeFilter)}` : ""}, emailing each delegate their committee and country.${counts.held > 0 ? ` ${counts.held} seat${counts.held === 1 ? "" : "s"} in committees on hold (${heldDrafts.map((h) => h.committee.abbr).join(", ")}) stay drafts.` : ""}`}
         confirmLabel="Issue & email"
+        loading={pending}
+      />
+
+      <ConfirmDialog
+        open={releaseId !== null}
+        onClose={() => setReleaseId(null)}
+        onConfirm={() => {
+          const id = releaseId;
+          if (id) run(() => releaseHeldAllotments(id), () => setReleaseId(null));
+        }}
+        title={`Send ${releaseId ? committeeNameById(releaseId) : ""} allotments now?`}
+        description={`Lifts the hold and emails every paid delegate with a draft seat in ${releaseId ? committeeNameById(releaseId) : "this committee"} their committee and country. New seats there will then be sent as usual.`}
+        confirmLabel="Release & email"
         loading={pending}
       />
 
@@ -784,7 +884,11 @@ export function AllotmentsClient({
         onClose={() => setChangeOpen(false)}
         onConfirm={() => saveSeat(true)}
         title="Change an issued allotment?"
-        description={`${selected?.delegate.fullName ?? "This delegate"} already received their allotment. They will be emailed the new seat (${selectedCommittee?.abbr ?? ""} · ${selectedPortfolio?.countryName ?? ""}) and the old one is freed.`}
+        description={
+          selectedCommittee?.allotmentEmailsHeld
+            ? `${selected?.delegate.fullName ?? "This delegate"} already received their allotment. The new seat (${selectedCommittee.abbr} · ${selectedPortfolio?.countryName ?? ""}) becomes a draft and is not emailed until ${selectedCommittee.abbr} is released; the old one is freed.`
+            : `${selected?.delegate.fullName ?? "This delegate"} already received their allotment. They will be emailed the new seat (${selectedCommittee?.abbr ?? ""} · ${selectedPortfolio?.countryName ?? ""}) and the old one is freed.`
+        }
         confirmLabel="Change & email"
         tone="danger"
         loading={pending}

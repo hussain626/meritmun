@@ -420,6 +420,9 @@ export async function saveManualAllotment(input: {
   // re-sends the new seat.
   const seatMoved = isConfirmed && existing.portfolioId !== portfolio.id;
   let emailSentAt: string | null = seatMoved ? null : (existing?.emailSentAt ?? null);
+  // Moving an issued seat into a committee whose emails are on hold turns it
+  // back into a draft; it goes out with the rest when the committee is released.
+  const backToDraft = seatMoved && committee.allotmentEmailsHeld;
 
   if (!client) {
     const store = getDemoStore();
@@ -430,6 +433,11 @@ export async function saveManualAllotment(input: {
       row.source = "manual";
       row.rationale = rationale;
       row.emailSentAt = emailSentAt;
+      if (backToDraft) {
+        row.status = "draft";
+        row.confirmedAt = null;
+        row.confirmedBy = null;
+      }
       row.updatedAt = stamp;
     } else {
       store.allotments.push({
@@ -459,6 +467,9 @@ export async function saveManualAllotment(input: {
             source: "manual",
             rationale,
             email_sent_at: emailSentAt,
+            ...(backToDraft
+              ? { status: "draft", confirmed_at: null, confirmed_by: null }
+              : {}),
             updated_at: stamp,
           })
           .eq("id", existing.id);
@@ -485,7 +496,7 @@ export async function saveManualAllotment(input: {
     }
   }
 
-  if (seatMoved) {
+  if (seatMoved && !backToDraft) {
     const sent = await sendAllotmentChanged({
       to: delegate.email,
       fullName: delegate.fullName,
@@ -511,6 +522,11 @@ export async function saveManualAllotment(input: {
 
   revalidateAllotments();
   const p5Note = portfolio.isP5 ? " (P5, manual EB seat)" : "";
+  if (backToDraft) {
+    return ok(
+      `Moved to ${committee.abbr} · ${portfolio.countryName}${p5Note} as a draft. ${committee.abbr} emails are on hold, so the delegate has not been emailed yet.`,
+    );
+  }
   if (isConfirmed) {
     return ok(
       emailSentAt
@@ -559,6 +575,8 @@ type IssueOutcome = {
   sent: number;
   failed: number;
   skipped: number;
+  /** Abbreviations of committees whose allotment emails are on hold. */
+  held: Map<string, number>;
   /** Distinct reasons emails did not go out, shown to the admin. */
   reasons: Set<string>;
 };
@@ -569,7 +587,13 @@ async function issueRows(
   userId: string | null,
   client: Awaited<ReturnType<typeof createClient>> | null,
 ): Promise<IssueOutcome> {
-  const outcome: IssueOutcome = { sent: 0, failed: 0, skipped: 0, reasons: new Set() };
+  const outcome: IssueOutcome = {
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+    held: new Map(),
+    reasons: new Set(),
+  };
   const delegates = new Map(state.delegates.map((d) => [d.id, d]));
   const committees = new Map(state.committees.map((c) => [c.id, c]));
   const portfolios = new Map(state.portfolios.map((p) => [p.id, p]));
@@ -580,6 +604,11 @@ async function issueRows(
     const portfolio = portfolios.get(row.portfolioId);
     if (!delegate || !committee || !portfolio || delegate.paymentStatus !== "confirmed") {
       outcome.skipped += 1;
+      continue;
+    }
+    // Held committees keep their drafts until an admin releases them.
+    if (committee.allotmentEmailsHeld) {
+      outcome.held.set(committee.abbr, (outcome.held.get(committee.abbr) ?? 0) + 1);
       continue;
     }
 
@@ -646,6 +675,12 @@ function describeIssue(outcome: IssueOutcome): string {
     );
   }
   if (outcome.skipped) parts.push(`${outcome.skipped} skipped (payment not confirmed)`);
+  if (outcome.held.size > 0) {
+    const held = [...outcome.held.values()].reduce((sum, n) => sum + n, 0);
+    parts.push(
+      `${held} held back, emails on hold for ${[...outcome.held.keys()].join(", ")}`,
+    );
+  }
   return `${parts.join(" · ")}.`;
 }
 
@@ -660,6 +695,12 @@ export async function issueAllotment(id: string): Promise<ActionResult> {
     if (!row) return fail("Allotment not found.");
     if (row.status === "confirmed" && row.emailSentAt) {
       return ok("Already issued.");
+    }
+    const committee = state.committees.find((c) => c.id === row.committeeId);
+    if (committee?.allotmentEmailsHeld) {
+      return fail(
+        `${committee.abbr} allotment emails are on hold. Release ${committee.abbr} to send them.`,
+      );
     }
     const outcome = await issueRows(state, [row], auth.userId, client);
     revalidateAllotments();
@@ -770,6 +811,59 @@ export async function setCommitteeAllotmentsPaused(
     console.warn("[meritmun/admin] setCommitteeAllotmentsPaused", error);
     return fail("Could not update the committee. Run migration 005 if the column is missing.");
   }
+}
+
+/**
+ * Hold or resume allotment emails for one committee. While held, the merit
+ * engine and EB still place delegates there, but the seats stay drafts and
+ * "Issue allotments" skips them.
+ */
+export async function setCommitteeAllotmentEmailsHeld(
+  committeeId: string,
+  held: boolean,
+): Promise<ActionResult> {
+  const auth = await requireMutator();
+  if (!auth.ok) return fail(auth.message);
+
+  let abbr = "This committee";
+  if (!isSupabaseConfigured()) {
+    const committee = getDemoStore().committees.find((c) => c.id === committeeId);
+    if (!committee) return fail("Committee not found.");
+    committee.allotmentEmailsHeld = held;
+    abbr = committee.abbr;
+  } else {
+    try {
+      const client = await createClient();
+      const { data, error } = await client
+        .from("committees")
+        .update({ allotment_emails_held: held, updated_at: nowIso() })
+        .eq("id", committeeId)
+        .select("abbr")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return fail("Committee not found.");
+      abbr = String(data.abbr);
+    } catch (error) {
+      console.warn("[meritmun/admin] setCommitteeAllotmentEmailsHeld", error);
+      return fail("Could not update the committee. Run migration 015 if the column is missing.");
+    }
+  }
+
+  revalidateAllotments();
+  revalidatePath("/admin/committees");
+  revalidatePath(`/admin/committees/${committeeId}`);
+  return ok(
+    held
+      ? `${abbr} allotment emails are on hold. Seats are still placed as drafts.`
+      : `${abbr} allotment emails resumed. Use Issue allotments to send its drafts.`,
+  );
+}
+
+/** Lift a committee's hold and email every draft in it straight away. */
+export async function releaseHeldAllotments(committeeId: string): Promise<ActionResult> {
+  const lifted = await setCommitteeAllotmentEmailsHeld(committeeId, false);
+  if (!lifted.ok) return lifted;
+  return issueAllotments(committeeId);
 }
 
 /* ── Attendance ──────────────────────────────────────────────────────────── */

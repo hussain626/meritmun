@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { PortfolioManager } from "@/components/admin/PortfolioManager";
+import { Switch } from "@/components/admin/Switch";
+import { Mail } from "@/components/icons/Mail";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -10,6 +12,10 @@ import { Textarea } from "@/components/ui/Textarea";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { saveCommitteeFields } from "@/lib/admin/actions";
+import {
+  releaseHeldAllotments,
+  setCommitteeAllotmentEmailsHeld,
+} from "@/lib/admin/allotment-actions";
 import { deleteCommittee } from "@/lib/admin/cms-actions";
 import type {
   AdminRole,
@@ -47,6 +53,7 @@ export function CommitteeDetailClient({
   const [focusText, setFocusText] = useState(committee.focusPoints.join("\n"));
   const [message, setMessage] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [releaseOpen, setReleaseOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -279,7 +286,7 @@ export function CommitteeDetailClient({
           </div>
         </section>
 
-        <section className="rounded-sm border border-line bg-surface p-4 shadow-sm">
+        <section className="rounded-sm border border-line bg-surface p-4 shadow-sm lg:row-span-2">
           <PortfolioManager
             committeeId={committee.id}
             seats={form.seats}
@@ -288,7 +295,70 @@ export function CommitteeDetailClient({
             defaultHardness={form.hardnessScore}
           />
         </section>
+
+        <section className="rounded-sm border border-line bg-surface p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-bold text-fg">Allotment emails</h2>
+              <p className="mt-1 text-sm text-fg-muted">
+                {committee.allotmentEmailsHeld
+                  ? `On hold. Delegates are still placed in ${committee.abbr} as drafts, but nobody is emailed until you release it.`
+                  : `Sent as usual when you issue allotments. Hold them to place delegates in ${committee.abbr} as drafts without emailing anyone yet.`}
+              </p>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-2">
+              <Switch
+                checked={committee.allotmentEmailsHeld}
+                label={`Hold ${committee.abbr} allotment emails`}
+                disabled={!canEdit || pending}
+                onChange={(held) =>
+                  startTransition(async () => {
+                    const result = await setCommitteeAllotmentEmailsHeld(committee.id, held);
+                    setMessage(result.message);
+                    router.refresh();
+                  })
+                }
+              />
+              <span
+                className={
+                  committee.allotmentEmailsHeld ? "text-xs text-warning-fg" : "text-xs text-fg-muted"
+                }
+              >
+                {committee.allotmentEmailsHeld ? "On hold" : "Sending"}
+              </span>
+            </span>
+          </div>
+          {committee.allotmentEmailsHeld && canEdit ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-4"
+              iconStart={<Mail className="size-4" />}
+              disabled={pending}
+              onClick={() => setReleaseOpen(true)}
+            >
+              Release &amp; send {committee.abbr} allotments
+            </Button>
+          ) : null}
+        </section>
       </div>
+
+      <ConfirmDialog
+        open={releaseOpen}
+        onClose={() => setReleaseOpen(false)}
+        onConfirm={() => {
+          startTransition(async () => {
+            const result = await releaseHeldAllotments(committee.id);
+            setReleaseOpen(false);
+            setMessage(result.message);
+            router.refresh();
+          });
+        }}
+        title={`Send ${committee.abbr} allotments now?`}
+        description={`Lifts the hold and emails every paid delegate with a draft seat in ${committee.abbr} their committee and country. New seats in ${committee.abbr} will then be sent as usual.`}
+        confirmLabel="Release & email"
+        loading={pending}
+      />
 
       <ConfirmDialog
         open={deleteOpen}

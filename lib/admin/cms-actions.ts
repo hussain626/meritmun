@@ -199,6 +199,7 @@ export async function createCommittee(input: {
       featured: false,
       isPublished: false,
       allotmentsPaused: false,
+      allotmentEmailsHeld: false,
       isDoubleDelegate: Boolean(input.isDoubleDelegate),
       sortOrder: Math.max(0, ...store.committees.map((c) => c.sortOrder)) + 1,
       createdAt: nowIso(),

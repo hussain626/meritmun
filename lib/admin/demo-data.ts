@@ -86,6 +86,7 @@ export const demoCommittees: CommitteeAdminRecord[] = committees.map(
     featured: committee.featured,
     isPublished: true,
     allotmentsPaused: false,
+    allotmentEmailsHeld: false,
     isDoubleDelegate: committee.doubleDelegate,
     sortOrder: index + 1,
     createdAt: WEEK_AGO,

@@ -12,6 +12,7 @@ import { Check } from "@/components/icons/Check";
 import { Shield } from "@/components/icons/Shield";
 import {
   saveAllotmentRules,
+  setCommitteeAllotmentEmailsHeld,
   setCommitteeAllotmentsPaused,
 } from "@/lib/admin/allotment-actions";
 import { FIXED_ALLOTMENT_RULES } from "@/lib/admin/allotment-rules";
@@ -111,6 +112,13 @@ export function AllotmentRulesClient({
   function togglePause(committeeId: string, paused: boolean) {
     startTransition(async () => {
       const result = await setCommitteeAllotmentsPaused(committeeId, paused);
+      setMessage(result.message);
+    });
+  }
+
+  function toggleHold(committeeId: string, held: boolean) {
+    startTransition(async () => {
+      const result = await setCommitteeAllotmentEmailsHeld(committeeId, held);
       setMessage(result.message);
     });
   }
@@ -278,7 +286,7 @@ export function AllotmentRulesClient({
           <table className="w-full min-w-[52rem] border-collapse text-left text-sm">
             <thead className="bg-surface-inset">
               <tr className="border-b border-line">
-                {["Committee", "Difficulty", "Gate", "Countries", "Held", "Free (engine)", "Engine", ""].map(
+                {["Committee", "Difficulty", "Gate", "Countries", "Held", "Free (engine)", "Engine", "Emails", ""].map(
                   (heading) => (
                     <th key={heading} className="px-4 py-2.5 text-xs font-semibold text-fg-muted">
                       {heading}
@@ -333,6 +341,24 @@ export function AllotmentRulesClient({
                         />
                         <span className="text-xs text-fg-muted">
                           {row.committee.allotmentsPaused ? "Paused" : "On"}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-2">
+                        <Switch
+                          checked={!row.committee.allotmentEmailsHeld}
+                          label={`Send ${row.committee.abbr} allotment emails`}
+                          disabled={!canMutate || pending}
+                          onChange={(on) => toggleHold(row.committee.id, !on)}
+                        />
+                        <span
+                          className={cn(
+                            "text-xs",
+                            row.committee.allotmentEmailsHeld ? "text-warning-fg" : "text-fg-muted",
+                          )}
+                        >
+                          {row.committee.allotmentEmailsHeld ? "On hold" : "Send"}
                         </span>
                       </span>
                     </td>
