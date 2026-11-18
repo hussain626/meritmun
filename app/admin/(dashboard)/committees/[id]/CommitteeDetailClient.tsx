@@ -35,7 +35,9 @@ export function CommitteeDetailClient({
   portfolios,
   role,
 }: CommitteeDetailClientProps) {
-  const canEdit = role === "admin" || role === "eb";
+  const canEdit = role === "admin" || role === "eb" || role === "academics";
+  // Allotment emails are an operations call, not an academic one.
+  const canHoldEmails = role === "admin" || role === "eb";
   const [form, setForm] = useState({
     name: committee.name,
     abbr: committee.abbr,
@@ -54,6 +56,21 @@ export function CommitteeDetailClient({
   const [message, setMessage] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
+  // Flipped straight away and rolled back if the save fails, with the result
+  // shown under the switch rather than at the top of the page.
+  const [held, setHeld] = useState(committee.allotmentEmailsHeld);
+  const [holdNote, setHoldNote] = useState<{ ok: boolean; message: string } | null>(null);
+
+  function toggleHold(next: boolean) {
+    setHeld(next);
+    setHoldNote(null);
+    startTransition(async () => {
+      const result = await setCommitteeAllotmentEmailsHeld(committee.id, next);
+      if (!result.ok) setHeld(!next);
+      setHoldNote(result);
+      router.refresh();
+    });
+  }
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -286,7 +303,13 @@ export function CommitteeDetailClient({
           </div>
         </section>
 
-        <section className="rounded-sm border border-line bg-surface p-4 shadow-sm lg:row-span-2">
+        <section
+          className={
+            canHoldEmails
+              ? "rounded-sm border border-line bg-surface p-4 shadow-sm lg:row-span-2"
+              : "rounded-sm border border-line bg-surface p-4 shadow-sm"
+          }
+        >
           <PortfolioManager
             committeeId={committee.id}
             seats={form.seats}
@@ -296,39 +319,34 @@ export function CommitteeDetailClient({
           />
         </section>
 
+        {canHoldEmails ? (
         <section className="rounded-sm border border-line bg-surface p-4 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-base font-bold text-fg">Allotment emails</h2>
               <p className="mt-1 text-sm text-fg-muted">
-                {committee.allotmentEmailsHeld
+                {held
                   ? `On hold. Delegates are still placed in ${committee.abbr} as drafts, but nobody is emailed until you release it.`
                   : `Sent as usual when you issue allotments. Hold them to place delegates in ${committee.abbr} as drafts without emailing anyone yet.`}
               </p>
             </div>
             <span className="inline-flex shrink-0 items-center gap-2">
               <Switch
-                checked={committee.allotmentEmailsHeld}
+                checked={held}
                 label={`Hold ${committee.abbr} allotment emails`}
                 disabled={!canEdit || pending}
-                onChange={(held) =>
-                  startTransition(async () => {
-                    const result = await setCommitteeAllotmentEmailsHeld(committee.id, held);
-                    setMessage(result.message);
-                    router.refresh();
-                  })
-                }
+                onChange={toggleHold}
               />
               <span
                 className={
-                  committee.allotmentEmailsHeld ? "text-xs text-warning-fg" : "text-xs text-fg-muted"
+                  held ? "text-xs text-warning-fg" : "text-xs text-fg-muted"
                 }
               >
-                {committee.allotmentEmailsHeld ? "On hold" : "Sending"}
+                {held ? "On hold" : "Sending"}
               </span>
             </span>
           </div>
-          {committee.allotmentEmailsHeld && canEdit ? (
+          {held && canEdit ? (
             <Button
               variant="secondary"
               size="sm"
@@ -340,7 +358,20 @@ export function CommitteeDetailClient({
               Release &amp; send {committee.abbr} allotments
             </Button>
           ) : null}
+          {holdNote ? (
+            <p
+              role="status"
+              className={
+                holdNote.ok
+                  ? "mt-3 text-xs text-fg-muted"
+                  : "mt-3 text-xs font-medium text-danger-fg"
+              }
+            >
+              {holdNote.message}
+            </p>
+          ) : null}
         </section>
+        ) : null}
       </div>
 
       <ConfirmDialog

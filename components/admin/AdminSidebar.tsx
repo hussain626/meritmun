@@ -25,7 +25,10 @@ import { Wallet } from "@/components/icons/Wallet";
 import { initialsFromName } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-export type AdminRole = "admin" | "eb" | "reviewer";
+export type AdminRole = "admin" | "eb" | "reviewer" | "academics";
+
+const OPERATIONS: AdminRole[] = ["admin", "eb", "reviewer"];
+const ACADEMIC: AdminRole[] = ["admin", "eb", "academics"];
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -38,12 +41,12 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/registrations", label: "Registrations", icon: FileText },
-  { href: "/admin/finances", label: "Finances", icon: Wallet },
-  { href: "/admin/allotments", label: "Allotments", icon: Gavel },
-  { href: "/admin/allotment-rules", label: "Allotment Rules", icon: Settings },
-  { href: "/admin/countries", label: "Country Matrix", icon: Globe },
+  { href: "/admin", label: "Overview", icon: LayoutDashboard, roles: OPERATIONS },
+  { href: "/admin/registrations", label: "Registrations", icon: FileText, roles: OPERATIONS },
+  { href: "/admin/finances", label: "Finances", icon: Wallet, roles: OPERATIONS },
+  { href: "/admin/allotments", label: "Allotments", icon: Gavel, roles: OPERATIONS },
+  { href: "/admin/allotment-rules", label: "Allotment Rules", icon: Settings, roles: OPERATIONS },
+  { href: "/admin/countries", label: "Country Matrix", icon: Globe, roles: OPERATIONS },
   {
     href: "/admin/queries",
     label: "Queries",
@@ -60,7 +63,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/admin/committees",
     label: "Committees",
     icon: Users,
-    roles: ["admin", "eb"],
+    roles: ACADEMIC,
   },
   {
     href: "/admin/schedule",
@@ -72,7 +75,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/admin/eb",
     label: "EB",
     icon: Shield,
-    roles: ["admin", "eb"],
+    roles: ACADEMIC,
   },
   {
     href: "/admin/sponsors",
@@ -104,6 +107,7 @@ const ROLE_SUBTITLE: Record<AdminRole, string> = {
   admin: "System Administrator",
   eb: "Executive Board",
   reviewer: "Reviewer",
+  academics: "Academics",
 };
 
 type AdminSidebarProps = {

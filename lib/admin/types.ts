@@ -14,7 +14,30 @@ import type {
 
 /* ── Enums ───────────────────────────────────────────────────────────────── */
 
-export type AdminRole = "admin" | "eb" | "reviewer";
+export type AdminRole = "admin" | "eb" | "reviewer" | "academics";
+
+/** Every role that may sign in to the admin panel. */
+export const ADMIN_ROLES: AdminRole[] = ["admin", "eb", "reviewer", "academics"];
+
+/**
+ * Roles that see registrations, payments and allotments. Academics are left
+ * out: they only work on committees and the EB.
+ */
+export const OPERATIONS_ROLES: AdminRole[] = ["admin", "eb", "reviewer"];
+
+/** Committees, country lists, study guides and the EB. */
+export const ACADEMIC_ROLES: AdminRole[] = ["admin", "eb", "academics"];
+
+export const ROLE_LABELS: Record<AdminRole, string> = {
+  admin: "Admin",
+  eb: "EB",
+  reviewer: "Reviewer",
+  academics: "Academics",
+};
+
+export function isAdminRole(value: unknown): value is AdminRole {
+  return ADMIN_ROLES.includes(value as AdminRole);
+}
 
 export type PaymentStatus = "pending" | "confirmed" | "rejected";
 

@@ -22,6 +22,7 @@ import type {
   Portfolio,
   PricingSettings,
 } from "@/lib/admin/types";
+import { ACADEMIC_ROLES, isAdminRole } from "@/lib/admin/types";
 import {
   getPricing,
   listBankAccounts,
@@ -159,7 +160,7 @@ export async function signInAdmin(
   }
 
   const role = String(profile.role);
-  if (role !== "admin" && role !== "eb" && role !== "reviewer") {
+  if (!isAdminRole(role)) {
     await client.auth.signOut();
     return { message: "This account is not allowed to use the admin panel." };
   }
@@ -1273,7 +1274,7 @@ export async function deleteBankAccount(
 
 export async function createTeamMember(input: {
   email: string;
-  role: "admin" | "eb" | "reviewer";
+  role: AdminRole;
   fullName: string;
   password: string;
 }): Promise<{ ok: boolean; message: string }> {
@@ -1293,7 +1294,7 @@ export async function createTeamMember(input: {
   if (!fullName) {
     return { ok: false, message: "Name is required." };
   }
-  if (role !== "admin" && role !== "eb" && role !== "reviewer") {
+  if (!isAdminRole(role)) {
     return { ok: false, message: "Choose a valid role." };
   }
   if (password.length < 8) {
@@ -1499,7 +1500,7 @@ export async function saveCommitteeFields(
     isDoubleDelegate: boolean;
   }>,
 ): Promise<{ ok: boolean; message: string }> {
-  const auth = await authorizeAction(STAFF, "edit committees");
+  const auth = await authorizeAction(ACADEMIC_ROLES, "edit committees");
   if (!auth.ok) return auth;
 
   if (patch.studyGuideUrl && !isSafeHttpUrl(patch.studyGuideUrl)) {
@@ -1621,7 +1622,7 @@ export async function addPortfolios(
   committeeId: string,
   input: { rawList: string; hardness?: number; notes?: string },
 ): Promise<{ ok: boolean; message: string }> {
-  const auth = await authorizeAction(STAFF, "edit country lists");
+  const auth = await authorizeAction(ACADEMIC_ROLES, "edit country lists");
   if (!auth.ok) return auth;
 
   const names = parseCountryList(input.rawList);
@@ -1771,7 +1772,7 @@ export async function updatePortfolio(
   id: string,
   patch: { hardness?: number; notes?: string | null; isActive?: boolean },
 ): Promise<{ ok: boolean; message: string }> {
-  const auth = await authorizeAction(STAFF, "edit country lists");
+  const auth = await authorizeAction(ACADEMIC_ROLES, "edit country lists");
   if (!auth.ok) return auth;
 
   if (!isSupabaseConfigured()) {
@@ -1831,7 +1832,7 @@ export async function updatePortfolio(
 export async function removePortfolio(
   id: string,
 ): Promise<{ ok: boolean; message: string }> {
-  const auth = await authorizeAction(STAFF, "edit country lists");
+  const auth = await authorizeAction(ACADEMIC_ROLES, "edit country lists");
   if (!auth.ok) return auth;
 
   if (!isSupabaseConfigured()) {
@@ -2119,7 +2120,7 @@ export async function updateTeamMemberRole(
 ): Promise<{ ok: boolean; message: string }> {
   const auth = await authorizeAction(ADMIN_ONLY, "change team roles");
   if (!auth.ok) return auth;
-  if (role !== "admin" && role !== "eb" && role !== "reviewer") {
+  if (!isAdminRole(role)) {
     return { ok: false, message: "Choose a valid role." };
   }
   if (profileId === auth.session.user.id) {

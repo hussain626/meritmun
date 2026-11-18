@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getRegistrationOpen } from "@/lib/admin/data";
-import type { AdminRole } from "@/lib/admin/types";
+import { isAdminRole, OPERATIONS_ROLES, type AdminRole } from "@/lib/admin/types";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,7 +33,11 @@ type SessionLookup =
 
 async function lookupAdminSession(): Promise<SessionLookup> {
   if (!isSupabaseConfigured()) {
-    return { session: DEMO_SESSION };
+    // DEMO_ROLE lets you preview another role's panel offline.
+    const demoRole = process.env.DEMO_ROLE;
+    return {
+      session: isAdminRole(demoRole) ? { ...DEMO_SESSION, role: demoRole } : DEMO_SESSION,
+    };
   }
 
   try {
@@ -62,8 +66,8 @@ async function lookupAdminSession(): Promise<SessionLookup> {
       return { session: null, error: "no_profile" };
     }
 
-    const role = profile.role as AdminRole;
-    if (role !== "admin" && role !== "eb" && role !== "reviewer") {
+    const role = profile.role;
+    if (!isAdminRole(role)) {
       return { session: null, error: "forbidden" };
     }
 
@@ -139,11 +143,12 @@ export async function canAcceptRegistration(manual: boolean): Promise<boolean> {
 }
 
 /**
- * Require a session (and optionally one of `allowedRoles`). Redirects to
- * `/admin/login` when missing or unauthorized.
+ * Require a session with one of `allowedRoles`. Redirects to `/admin/login`
+ * when missing or unauthorized. Without a list it admits the operations roles
+ * only, so a page has to opt academics in explicitly.
  */
 export async function requireAdminSession(
-  allowedRoles?: AdminRole[],
+  allowedRoles: AdminRole[] = OPERATIONS_ROLES,
 ): Promise<AdminSession> {
   const result = await lookupAdminSession();
   if (!result.session) {
@@ -151,7 +156,9 @@ export async function requireAdminSession(
       result.error === "unauthenticated" ? undefined : result.error,
     );
   }
-  if (allowedRoles && !allowedRoles.includes(result.session.role)) {
+  if (!allowedRoles.includes(result.session.role)) {
+    // Academics land on their own work instead of a sign-in loop.
+    if (result.session.role === "academics") redirect("/admin/committees");
     loginRedirect("forbidden");
   }
   return result.session;

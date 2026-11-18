@@ -103,6 +103,7 @@ const ROLE_TONE: Record<AdminRole, "neutral" | "accent"> = {
   admin: "neutral",
   eb: "accent",
   reviewer: "neutral",
+  academics: "accent",
 };
 
 const PAGE_SIZE = 8;
@@ -278,6 +279,7 @@ export function TeamClient({
                   { value: "admin", label: "Admin" },
                   { value: "eb", label: "EB" },
                   { value: "reviewer", label: "Reviewer" },
+                  { value: "academics", label: "Academics" },
                 ]}
                 className="min-h-9 text-sm"
               />
@@ -326,6 +328,7 @@ export function TeamClient({
               { value: "admin", label: "Admin" },
               { value: "eb", label: "EB" },
               { value: "reviewer", label: "Reviewer" },
+              { value: "academics", label: "Academics" },
             ]}
             className="min-h-9 w-40 text-sm"
           />
@@ -392,6 +395,7 @@ export function TeamClient({
                           { value: "admin", label: "Admin" },
                           { value: "eb", label: "EB" },
                           { value: "reviewer", label: "Reviewer" },
+                          { value: "academics", label: "Academics" },
                         ]}
                         className="min-h-8 w-32 text-sm"
                       />

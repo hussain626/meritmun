@@ -14,6 +14,7 @@ import type {
   SecretariatMemberRecord,
   SponsorRecord,
 } from "@/lib/admin/types";
+import { ACADEMIC_ROLES } from "@/lib/admin/types";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { CommitteeType, Difficulty, ScheduleKind } from "@/lib/types";
@@ -161,7 +162,7 @@ export async function createCommittee(input: {
   seats: number;
   isDoubleDelegate?: boolean;
 }): Promise<ActionResult> {
-  const auth = await authorizeAction(STAFF, "create committees");
+  const auth = await authorizeAction(ACADEMIC_ROLES, "create committees");
   if (!auth.ok) return auth;
 
   const name = input.name.trim();
@@ -250,7 +251,7 @@ export async function createCommittee(input: {
  * since those seats and emails point at them.
  */
 export async function deleteCommittee(id: string): Promise<ActionResult> {
-  const auth = await authorizeAction(STAFF, "delete committees");
+  const auth = await authorizeAction(ACADEMIC_ROLES, "delete committees");
   if (!auth.ok) return auth;
   const inUse =
     "Delegates already hold seats in this committee. Unpublish it instead, or move those seats first.";
@@ -305,6 +306,11 @@ export type BoardKind = "eb" | "hod";
 const BOARD_TABLE: Record<BoardKind, string> = { eb: "eb_members", hod: "hods" };
 const BOARD_NOUN: Record<BoardKind, string> = { eb: "EB member", hod: "HOD" };
 
+/** Academics look after the EB; HODs stay with admins and the EB. */
+function boardRoles(kind: BoardKind): AdminRole[] {
+  return kind === "eb" ? ACADEMIC_ROLES : STAFF;
+}
+
 function boardRows(kind: BoardKind): (EbMemberRecord | HodRecord)[] {
   const store = getDemoStore();
   return kind === "eb" ? store.ebMembers : store.hods;
@@ -332,7 +338,7 @@ export async function saveBoardMember(
   kind: BoardKind,
   input: BoardMemberInput,
 ): Promise<ActionResult> {
-  const auth = await authorizeAction(STAFF, "edit the board");
+  const auth = await authorizeAction(boardRoles(kind), "edit the board");
   if (!auth.ok) return auth;
 
   const noun = BOARD_NOUN[kind];
@@ -414,7 +420,7 @@ export async function setBoardMemberPublished(
   id: string,
   isPublished: boolean,
 ): Promise<ActionResult> {
-  const auth = await authorizeAction(STAFF, "edit the board");
+  const auth = await authorizeAction(boardRoles(kind), "edit the board");
   if (!auth.ok) return auth;
 
   if (!isSupabaseConfigured()) {
@@ -445,7 +451,7 @@ export async function deleteBoardMember(
   kind: BoardKind,
   id: string,
 ): Promise<ActionResult> {
-  const auth = await authorizeAction(STAFF, "edit the board");
+  const auth = await authorizeAction(boardRoles(kind), "edit the board");
   if (!auth.ok) return auth;
   const noun = BOARD_NOUN[kind];
 
@@ -481,7 +487,7 @@ export async function moveBoardMember(
   id: string,
   direction: -1 | 1,
 ): Promise<ActionResult> {
-  const auth = await authorizeAction(STAFF, "edit the board");
+  const auth = await authorizeAction(boardRoles(kind), "edit the board");
   if (!auth.ok) return auth;
 
   if (!isSupabaseConfigured()) {

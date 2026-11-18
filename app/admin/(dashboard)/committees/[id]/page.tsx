@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireAdminSession } from "@/lib/admin/auth";
+import { ACADEMIC_ROLES } from "@/lib/admin/types";
 import { listCommitteesAdmin, listPortfolios } from "@/lib/admin/data";
 import { CommitteeDetailClient } from "./CommitteeDetailClient";
 
@@ -14,7 +15,7 @@ type PageProps = {
 };
 
 export default async function CommitteeDetailPage({ params }: PageProps) {
-  const session = await requireAdminSession(["admin", "eb"]);
+  const session = await requireAdminSession(ACADEMIC_ROLES);
   const { id } = await params;
   const [committees, portfolios] = await Promise.all([
     listCommitteesAdmin(),
